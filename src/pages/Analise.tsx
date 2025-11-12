@@ -19,185 +19,265 @@ const kwicDataMap: Record<string, Array<{
   source: string;
 }>> = {
   "verso": [{
-    leftContext: "...Daí um",
+    leftContext: "Daí um",
     keyword: "verso",
-    rightContext: "de campo se chegou da campereada...",
-    source: "Luiz Marenco"
+    rightContext: "de campo se chegou da campereada",
+    source: "Verso 5"
   }, {
-    leftContext: "...Prá querência galponeira, onde o",
+    leftContext: "onde o",
     keyword: "verso",
-    rightContext: "é mais caseiro...",
-    source: "Luiz Marenco"
+    rightContext: "é mais caseiro",
+    source: "Verso 11"
   }, {
-    leftContext: "...E o",
+    leftContext: "E o",
     keyword: "verso",
-    rightContext: "que tinha sonhos prá rondar na madrugada...",
-    source: "Luiz Marenco"
+    rightContext: "que tinha sonhos prá rondar na madrugada",
+    source: "Verso 15"
   }, {
-    leftContext: "...E o",
+    leftContext: "E o",
     keyword: "verso",
-    rightContext: "sonhou ser várzea com sombra de tarumã...",
-    source: "Luiz Marenco"
+    rightContext: "sonhou ser várzea com sombra de tarumã",
+    source: "Verso 17"
   }],
   "tarumã": [{
     leftContext: "A calma do",
     keyword: "tarumã",
-    rightContext: ", ganhou sombra mais copada...",
-    source: "Luiz Marenco"
+    rightContext: ", ganhou sombra mais copada",
+    source: "Verso 1"
   }, {
-    leftContext: "...E o verso sonhou ser várzea com sombra de",
+    leftContext: "ser várzea com sombra de",
     keyword: "tarumã",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Verso 17"
   }],
   "saudade": [{
-    leftContext: "...A mansidão da campanha traz",
+    leftContext: "traz saudades feito açoite",
     keyword: "saudade",
-    rightContext: "feito açoite...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Verso 13"
   }, {
-    leftContext: "...E uma",
+    leftContext: "E uma",
     keyword: "saudade",
-    rightContext: "redomona pelos cantos do galpão...",
-    source: "Luiz Marenco"
+    rightContext: "redomona pelos cantos do galpão",
+    source: "Verso 24"
   }],
   "galpão": [{
-    leftContext: "...E uma saudade redomona pelos cantos do",
+    leftContext: "pelos cantos do",
     keyword: "galpão",
-    rightContext: "...",
-    source: "Luiz Marenco"
-  }, {
-    leftContext: "...Prá querência galponeira, onde o verso é mais caseiro... Templado a luz de candeeiro e um 'quarto gordo nas brasa'... A mansidão da campanha traz saudades feito açoite... pelos cantos do",
-    keyword: "galpão",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Verso 24"
   }],
   "várzea": [{
     leftContext: "Pela",
     keyword: "várzea",
-    rightContext: "espichada com o sol da tarde caindo...",
-    source: "Luiz Marenco"
+    rightContext: "espichada com o sol da tarde caindo",
+    source: "Verso 2"
   }, {
-    leftContext: "...E o verso sonhou ser",
+    leftContext: "E o verso sonhou ser",
     keyword: "várzea",
-    rightContext: "com sombra de tarumã...",
-    source: "Luiz Marenco"
+    rightContext: "com sombra de tarumã",
+    source: "Verso 17"
   }],
   "sonhos": [{
-    leftContext: "...E o verso que tinha",
+    leftContext: "que tinha",
     keyword: "sonhos",
-    rightContext: "prá rondar na madrugada...",
-    source: "Luiz Marenco"
-  }, {
-    leftContext: "...E o verso sonhou ser várzea... Sonhou com os olhos da prenda vestidos de primavera... Adormecidos na espera do sol pontear na coxilha",
-    keyword: "sonhos",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "prá rondar na madrugada",
+    source: "Verso 15"
   }],
   "gateada": [{
-    leftContext: "...No lombo de uma",
+    leftContext: "No lombo de uma",
     keyword: "gateada",
-    rightContext: "frente aberta de respeito...",
-    source: "Luiz Marenco"
-  }, {
-    leftContext: "...Ou um gateado prá",
-    keyword: "encilha",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "frente aberta de respeito",
+    source: "Verso 6"
   }],
   "mate": [{
     leftContext: "Cevou um",
     keyword: "mate",
-    rightContext: "pura-folha, jujado de maçanilha...",
-    source: "Luiz Marenco"
+    rightContext: "pura-folha, jujado de maçanilha",
+    source: "Verso 9"
   }],
   "coxilha": [{
-    leftContext: "...E um ventito da",
+    leftContext: "E um ventito da",
     keyword: "coxilha",
-    rightContext: "trouxe coplas entre as asas...",
-    source: "Luiz Marenco"
+    rightContext: "trouxe coplas entre as asas",
+    source: "Verso 10"
   }, {
-    leftContext: "...Adormecidos na espera do sol pontear na",
+    leftContext: "do sol pontear na",
     keyword: "coxilha",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Verso 20"
   }],
   "sombra": [{
-    leftContext: "A calma do tarumã, ganhou",
+    leftContext: "ganhou",
     keyword: "sombra",
-    rightContext: "mais copada...",
-    source: "Luiz Marenco"
+    rightContext: "mais copada",
+    source: "Verso 1"
   }, {
-    leftContext: "...E o verso sonhou ser várzea com",
+    leftContext: "ser várzea com",
     keyword: "sombra",
-    rightContext: "de tarumã...",
-    source: "Luiz Marenco"
+    rightContext: "de tarumã",
+    source: "Verso 17"
   }],
   "arreios": [{
     leftContext: "Ficaram",
     keyword: "arreios",
-    rightContext: "suados e o silencio de esporas...",
-    source: "Luiz Marenco"
+    rightContext: "suados e o silencio de esporas",
+    source: "Verso 21"
   }],
   "esporas": [{
-    leftContext: "...Ficaram arreios suados e o silencio de",
+    leftContext: "e o silencio de",
     keyword: "esporas",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Verso 21"
   }],
   "prenda": [{
-    leftContext: "...Sonhou com os olhos da",
+    leftContext: "com os olhos da",
     keyword: "prenda",
-    rightContext: "vestidos de primavera...",
-    source: "Luiz Marenco"
+    rightContext: "vestidos de primavera",
+    source: "Verso 19"
   }],
   "ramada": [{
     leftContext: "Desencilhou na",
     keyword: "ramada",
-    rightContext: ", já cansado das lonjuras...",
-    source: "Luiz Marenco"
+    rightContext: ", já cansado das lonjuras",
+    source: "Verso 7"
   }],
   "candeeiro": [{
-    leftContext: "...Templado a luz de",
+    leftContext: "Templado a luz de",
     keyword: "candeeiro",
-    rightContext: "e um 'quarto gordo nas brasa'...",
-    source: "Luiz Marenco"
+    rightContext: "e um \"quarto gordo nas brasa\"",
+    source: "Verso 12"
   }],
   "querência": [{
     leftContext: "Prá",
     keyword: "querência",
-    rightContext: "galponeira, onde o verso é mais caseiro...",
-    source: "Luiz Marenco"
+    rightContext: "galponeira, onde o verso é mais caseiro",
+    source: "Verso 11"
   }],
   "cuia": [{
     leftContext: "Uma",
     keyword: "cuia",
-    rightContext: "e uma bomba recostada na cambona...",
-    source: "Luiz Marenco"
+    rightContext: "e uma bomba recostada na cambona",
+    source: "Verso 23"
+  }],
+  "bomba": [{
+    leftContext: "e uma",
+    keyword: "bomba",
+    rightContext: "recostada na cambona",
+    source: "Verso 23"
   }],
   "maragato": [{
     leftContext: "Um pañuelo",
     keyword: "maragato",
-    rightContext: "se abriu no horizonte...",
-    source: "Luiz Marenco"
+    rightContext: "se abriu no horizonte",
+    source: "Verso 3"
+  }],
+  "pañuelo": [{
+    leftContext: "Um",
+    keyword: "pañuelo",
+    rightContext: "maragato se abriu no horizonte",
+    source: "Verso 3"
   }],
   "campereada": [{
-    leftContext: "...Daí um verso de campo se chegou da",
+    leftContext: "se chegou da",
     keyword: "campereada",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Verso 5"
   }],
   "calma": [{
     leftContext: "A",
     keyword: "calma",
-    rightContext: "do tarumã, ganhou sombra mais copada...",
-    source: "Luiz Marenco"
+    rightContext: "do tarumã, ganhou sombra mais copada",
+    source: "Verso 1"
   }],
   "encilha": [{
-    leftContext: "...Ou um gateado prá",
+    leftContext: "ou um gateado prá",
     keyword: "encilha",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Verso 18"
+  }],
+  "campo": [{
+    leftContext: "Daí um verso de",
+    keyword: "campo",
+    rightContext: "se chegou da campereada",
+    source: "Verso 5"
+  }],
+  "campanha": [{
+    leftContext: "A mansidão da",
+    keyword: "campanha",
+    rightContext: "traz saudades feito açoite",
+    source: "Verso 13"
+  }],
+  "horizonte": [{
+    leftContext: "se abriu no",
+    keyword: "horizonte",
+    rightContext: "",
+    source: "Verso 3"
+  }],
+  "sol": [{
+    leftContext: "com o",
+    keyword: "sol",
+    rightContext: "da tarde caindo",
+    source: "Verso 2"
+  }, {
+    leftContext: "na espera do",
+    keyword: "sol",
+    rightContext: "pontear na coxilha",
+    source: "Verso 20"
+  }],
+  "tropa": [{
+    leftContext: "e a",
+    keyword: "tropa",
+    rightContext: "se desgarrou",
+    source: "Verso 16"
+  }],
+  "lombo": [{
+    leftContext: "No",
+    keyword: "lombo",
+    rightContext: "de uma gateada frente aberta de respeito",
+    source: "Verso 6"
+  }],
+  "cambona": [{
+    leftContext: "recostada na",
+    keyword: "cambona",
+    rightContext: "",
+    source: "Verso 23"
+  }],
+  "fogo": [{
+    leftContext: "queimando em",
+    keyword: "fogo",
+    rightContext: "de chão",
+    source: "Verso 22"
+  }],
+  "chão": [{
+    leftContext: "queimando em fogo de",
+    keyword: "chão",
+    rightContext: "",
+    source: "Verso 22"
+  }],
+  "coplas": [{
+    leftContext: "trouxe",
+    keyword: "coplas",
+    rightContext: "entre as asas",
+    source: "Verso 10"
+  }],
+  "mansidão": [{
+    leftContext: "A",
+    keyword: "mansidão",
+    rightContext: "da campanha traz saudades feito açoite",
+    source: "Verso 13"
+  }],
+  "silêncio": [{
+    leftContext: "e o",
+    keyword: "silêncio",
+    rightContext: "de esporas",
+    source: "Verso 21"
+  }],
+  "maçanilha": [{
+    leftContext: "jujado de",
+    keyword: "maçanilha",
+    rightContext: "",
+    source: "Verso 9"
   }]
 };
 const dominiosData = [{
@@ -688,35 +768,89 @@ E uma saudade redomona pelos cantos do galpão`}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {dominiosData.map((item, index) => <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{
-                        backgroundColor: item.cor
-                      }} />
-                          <h3 className="font-semibold">{item.dominio}</h3>
+                <CardContent className="p-12">
+                  <div className="space-y-16">
+                    {dominiosData.map((item, index) => {
+                      // Scale button size based on domain relevance (percentual)
+                      const baseSize = 48;
+                      const sizeMultiplier = (item.percentual / 28.2); // Normalize to largest domain
+                      const buttonSize = baseSize + (sizeMultiplier * 24);
+                      
+                      return (
+                        <div key={index} className="space-y-6">
+                          <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-5 h-5 rounded-full shadow-lg" 
+                                style={{
+                                  backgroundColor: item.cor,
+                                  boxShadow: `0 0 24px ${item.cor}50`
+                                }} 
+                              />
+                              <h3 className="font-bold text-xl">{item.dominio}</h3>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-muted-foreground font-medium"># {item.ocorrencias} ocorrências</span>
+                              <span className="text-foreground font-bold text-xl">{item.percentual}%</span>
+                            </div>
+                          </div>
+                          
+                          {/* Constellation-style layout */}
+                          <div className="relative min-h-[280px] flex items-center justify-center py-12 px-8">
+                            <div className="flex flex-wrap gap-6 justify-center items-center max-w-4xl mx-auto">
+                              {item.palavras.map((palavra, idx) => {
+                                const angle = (idx / item.palavras.length) * Math.PI * 2;
+                                const radius = 100 + (idx % 3) * 50;
+                                const x = Math.cos(angle) * radius;
+                                const y = Math.sin(angle) * radius;
+                                
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="relative"
+                                    style={{
+                                      transform: `translate(${x}px, ${y}px)`
+                                    }}
+                                  >
+                                    <button
+                                      onClick={() => handleWordClick(palavra)}
+                                      className="relative group transition-all duration-300 hover:scale-110"
+                                      style={{
+                                        width: `${buttonSize}px`,
+                                        height: `${buttonSize}px`,
+                                      }}
+                                    >
+                                      {/* Glow effect */}
+                                      <div 
+                                        className="absolute inset-0 rounded-full opacity-15 group-hover:opacity-35 transition-opacity blur-xl"
+                                        style={{
+                                          backgroundColor: item.cor,
+                                        }}
+                                      />
+                                      
+                                      {/* Button circle */}
+                                      <div 
+                                        className="absolute inset-0 rounded-full border-2 flex items-center justify-center font-bold text-xs transition-all"
+                                        style={{
+                                          backgroundColor: item.cor,
+                                          color: item.corTexto,
+                                          borderColor: item.corTexto + '30',
+                                        }}
+                                      >
+                                        <span className="px-3 text-center leading-tight">
+                                          {palavra}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span># {item.ocorrencias} ocorrências</span>
-                          <span className="text-foreground font-semibold">{item.percentual}%</span>
-                        </div>
-                      </div>
-                      <div className="w-full bg-muted/30 rounded-full h-2">
-                        <div className="h-2 rounded-full transition-all" style={{
-                      width: `${item.percentual}%`,
-                      backgroundColor: item.cor
-                    }} />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {item.palavras.map((palavra, idx) => <Badge key={idx} className="cursor-pointer hover:scale-105 transition-all border-0" style={{
-                      backgroundColor: item.cor,
-                      color: item.corTexto
-                    }} onClick={() => handleWordClick(palavra)}>
-                            {palavra}
-                          </Badge>)}
-                      </div>
-                    </div>)}
+                      );
+                    })}
+                  </div>
                 </CardContent>
               </Card>
             </div>
