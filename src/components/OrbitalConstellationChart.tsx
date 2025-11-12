@@ -48,25 +48,286 @@ export const OrbitalConstellationChart = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Mock KWIC data - será substituído por dados reais
-  const getMockKWICData = (word: string) => [{
-    leftContext: "quando o",
-    keyword: word,
-    rightContext: "vem pras casa",
-    source: "Quando o verso vem pras casa - Luiz Marenco"
-  }, {
-    leftContext: "e o",
-    keyword: word,
-    rightContext: "se faz canção",
-    source: "Quando o verso vem pras casa - Luiz Marenco"
-  }, {
-    leftContext: "um",
-    keyword: word,
-    rightContext: "bem gateado",
-    source: "Quando o verso vem pras casa - Luiz Marenco"
-  }];
+  // KWIC data baseado na letra da música "Quando o verso vem pras casa"
+  const getMockKWICData = (word: string) => {
+    const kwicData: Record<string, Array<{
+      leftContext: string;
+      keyword: string;
+      rightContext: string;
+      source: string;
+    }>> = {
+      "verso": [
+        {
+          leftContext: "Daí um",
+          keyword: "verso",
+          rightContext: "de campo se chegou da campereada",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        },
+        {
+          leftContext: "Prá querência galponeira, onde o",
+          keyword: "verso",
+          rightContext: "é mais caseiro",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        },
+        {
+          leftContext: "E o",
+          keyword: "verso",
+          rightContext: "que tinha sonhos prá rondar na madrugada",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        },
+        {
+          leftContext: "E o",
+          keyword: "verso",
+          rightContext: "sonhou ser várzea com sombra de tarumã",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "campereada": [
+        {
+          leftContext: "Daí um verso de campo se chegou da",
+          keyword: "campereada",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "desencilhou": [
+        {
+          leftContext: "",
+          keyword: "Desencilhou",
+          rightContext: "na ramada, já cansado das lonjuras",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "sonhos": [
+        {
+          leftContext: "E o verso que tinha",
+          keyword: "sonhos",
+          rightContext: "prá rondar na madrugada",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        },
+        {
+          leftContext: "E o verso",
+          keyword: "sonhou",
+          rightContext: "ser várzea com sombra de tarumã",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        },
+        {
+          leftContext: "",
+          keyword: "Sonhou",
+          rightContext: "com os olhos da prenda vestidos de primavera",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "campeira": [
+        {
+          leftContext: "Mas estampando a figura,",
+          keyword: "campeira",
+          rightContext: ", bem do seu jeito",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "açoite": [
+        {
+          leftContext: "A mansidão da campanha traz saudades feito",
+          keyword: "açoite",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "redomona": [
+        {
+          leftContext: "E uma saudade",
+          keyword: "redomona",
+          rightContext: "pelos cantos do galpão",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "galpão": [
+        {
+          leftContext: "E uma saudade redomona pelos cantos do",
+          keyword: "galpão",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "olhos negros": [
+        {
+          leftContext: "Com os",
+          keyword: "olhos negros",
+          rightContext: "de noite que ela mesmo aquerenciou",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "várzea": [
+        {
+          leftContext: "Pela",
+          keyword: "várzea",
+          rightContext: "espichada com o sol da tarde caindo",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        },
+        {
+          leftContext: "E o verso sonhou ser",
+          keyword: "várzea",
+          rightContext: "com sombra de tarumã",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "prenda": [
+        {
+          leftContext: "Sonhou com os olhos da",
+          keyword: "prenda",
+          rightContext: "vestidos de primavera",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "gateado": [
+        {
+          leftContext: "Ser um galo prás manhãs, ou um",
+          keyword: "gateado",
+          rightContext: "prá encilha",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "desgarrou": [
+        {
+          leftContext: "Deixou a cancela encostada e a tropa se",
+          keyword: "desgarrou",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "caindo": [
+        {
+          leftContext: "Pela várzea espichada com o sol da tarde",
+          keyword: "caindo",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "lonjuras": [
+        {
+          leftContext: "Desencilhou na ramada, já cansado das",
+          keyword: "lonjuras",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "tarde": [
+        {
+          leftContext: "Pela várzea espichada com o sol da",
+          keyword: "tarde",
+          rightContext: "caindo",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        },
+        {
+          leftContext: "Trazendo um novo reponte, prá um fim de",
+          keyword: "tarde",
+          rightContext: "bem lindo",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "ramada": [
+        {
+          leftContext: "Desencilhou na",
+          keyword: "ramada",
+          rightContext: ", já cansado das lonjuras",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "esporas": [
+        {
+          leftContext: "Ficaram arreios suados e o silencio de",
+          keyword: "esporas",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "encostada": [
+        {
+          leftContext: "Deixou a cancela",
+          keyword: "encostada",
+          rightContext: "e a tropa se desgarrou",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "recostada": [
+        {
+          leftContext: "Uma cuia e uma bomba",
+          keyword: "recostada",
+          rightContext: "na cambona",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "arreios": [
+        {
+          leftContext: "Ficaram",
+          keyword: "arreios",
+          rightContext: "suados e o silencio de esporas",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "suados": [
+        {
+          leftContext: "Ficaram arreios",
+          keyword: "suados",
+          rightContext: "e o silencio de esporas",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "gateada": [
+        {
+          leftContext: "No lombo de uma",
+          keyword: "gateada",
+          rightContext: "frente aberta de respeito",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "respeito": [
+        {
+          leftContext: "No lombo de uma gateada frente aberta de",
+          keyword: "respeito",
+          rightContext: "",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "querência": [
+        {
+          leftContext: "Prá",
+          keyword: "querência",
+          rightContext: "galponeira, onde o verso é mais caseiro",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "saudade": [
+        {
+          leftContext: "E uma",
+          keyword: "saudade",
+          rightContext: "redomona pelos cantos do galpão",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "silêncio": [
+        {
+          leftContext: "Ficaram arreios suados e o",
+          keyword: "silencio",
+          rightContext: "de esporas",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ],
+      "cansado": [
+        {
+          leftContext: "Desencilhou na ramada, já",
+          keyword: "cansado",
+          rightContext: "das lonjuras",
+          source: "Quando o verso vem pras casa - Luiz Marenco"
+        }
+      ]
+    };
 
-  // Mock data para estatísticas de palavras (para tooltips)
+    return kwicData[word.toLowerCase()] || [];
+  };
+
+  // Estatísticas de palavras baseadas na letra da música
   const palavraStats: Record<string, {
     frequenciaBruta: number;
     frequenciaNormalizada: number;
@@ -75,12 +336,11 @@ export const OrbitalConstellationChart = ({
     "verso": { frequenciaBruta: 4, frequenciaNormalizada: 23.5, prosodia: "positiva" },
     "campereada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
     "desencilhou": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
-    "sonhos": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+    "sonhos": { frequenciaBruta: 3, frequenciaNormalizada: 17.6, prosodia: "positiva" },
     "campeira": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
     "galpão": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
     "querência": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
-    "versos": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
-    "saudade": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "negativa" },
+    "saudade": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
     "açoite": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
     "redomona": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
     "caindo": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
@@ -94,13 +354,11 @@ export const OrbitalConstellationChart = ({
     "recostada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
     "gateada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
     "respeito": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
-    "tarde": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "tarde": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "neutra" },
     "olhos negros": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
     "várzea": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
     "prenda": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
     "gateado": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
-    "lonjura": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
-    "jurado": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
     "silêncio": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
     "arreios": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" }
   };
