@@ -7,13 +7,13 @@ const HowItWorksSection = () => {
       icon: Upload,
       title: "1. Envie seu Corpus",
       description: "Faça upload de letras de músicas gaúchas ou obras literárias que deseja analisar, ou utilize nossa base de dados.",
-      color: "text-primary",
+      color: "text-success",
     },
     {
       icon: Network,
       title: "2. Visualize os Temas",
       description: "Navegue por redes semânticas e nuvens de palavras que revelam os temas centrais do seu texto.",
-      color: "text-success",
+      color: "text-primary",
     },
     {
       icon: Download,
