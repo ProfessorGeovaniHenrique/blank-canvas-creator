@@ -229,22 +229,59 @@ export const OrbitalConstellationChart = ({
           })
         )}
 
-        {/* Palavra central */}
+        {/* Palavra central - Botão flutuante */}
         <g>
+          {/* Glow externo */}
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={28 * scale}
+            fill={centerWordColors[system.centerWord]}
+            opacity="0.2"
+            className="animate-pulse"
+          />
+          
+          {/* Sombra média */}
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={23 * scale}
+            fill={centerWordColors[system.centerWord]}
+            opacity="0.4"
+          />
+          
+          {/* Botão principal */}
           <circle
             cx={centerX}
             cy={centerY}
             r={18 * scale}
             fill={centerWordColors[system.centerWord]}
-            opacity="0.9"
+            opacity="0.95"
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))' }}
           />
+          
+          {/* Borda brilhante */}
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={18 * scale}
+            fill="none"
+            stroke="hsl(var(--background))"
+            strokeWidth={1.5 * scale}
+            opacity="0.5"
+          />
+          
           <text
             x={centerX}
             y={centerY}
             textAnchor="middle"
             dominantBaseline="middle"
             className="fill-primary-foreground font-bold"
-            style={{ fontSize: `${14 * scale}px`, pointerEvents: 'none' }}
+            style={{ 
+              fontSize: `${14 * scale}px`, 
+              pointerEvents: 'none',
+              textShadow: '0 1px 3px rgba(0, 0, 0, 0.5)'
+            }}
           >
             {system.centerWord}
           </text>
@@ -435,7 +472,7 @@ export const OrbitalConstellationChart = ({
             })
           )}
 
-          {/* Legendas dos sistemas ao redor */}
+          {/* Legendas dos sistemas ao redor - Botões flutuantes */}
           {orbitalSystems.map((system, index) => {
             const angle = (index / orbitalSystems.length) * 2 * Math.PI;
             const legendRadius = 420;
@@ -445,19 +482,51 @@ export const OrbitalConstellationChart = ({
             return (
               <g
                 key={`legend-${system.centerWord}`}
-                className="cursor-pointer transition-all hover:opacity-80"
+                className="cursor-pointer transition-all"
                 onClick={() => {
                   setSelectedSystem(system.centerWord);
                   setViewMode('systems');
                 }}
+                style={{ transform: 'translateZ(0)' }}
               >
-                <circle cx={x} cy={y} r={25} fill={centerWordColors[system.centerWord]} opacity="0.8" />
+                {/* Sombra externa (glow) */}
+                <circle cx={x} cy={y} r={35} fill={centerWordColors[system.centerWord]} opacity="0.15" className="animate-pulse" />
+                
+                {/* Sombra média */}
+                <circle cx={x} cy={y} r={30} fill={centerWordColors[system.centerWord]} opacity="0.3" />
+                
+                {/* Botão principal */}
+                <circle 
+                  cx={x} 
+                  cy={y} 
+                  r={25} 
+                  fill={centerWordColors[system.centerWord]} 
+                  opacity="0.95"
+                  className="transition-all"
+                  style={{ 
+                    filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))',
+                  }}
+                />
+                
+                {/* Borda brilhante */}
+                <circle 
+                  cx={x} 
+                  cy={y} 
+                  r={25} 
+                  fill="none" 
+                  stroke="hsl(var(--background))" 
+                  strokeWidth="2"
+                  opacity="0.4"
+                />
+                
+                {/* Texto */}
                 <text
                   x={x}
                   y={y}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-primary-foreground font-semibold text-xs"
+                  className="fill-primary-foreground font-bold text-xs pointer-events-none"
+                  style={{ textShadow: '0 1px 3px rgba(0, 0, 0, 0.5)' }}
                 >
                   {system.centerWord}
                 </text>
