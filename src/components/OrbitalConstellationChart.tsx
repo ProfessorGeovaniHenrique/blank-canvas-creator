@@ -363,7 +363,7 @@ export const OrbitalConstellationChart = ({
             cy={centerY}
             r={28 * scale}
             fill={centerWordColors[system.centerWord]}
-            opacity="0.2"
+            opacity="0.1"
             className="animate-pulse"
           />
           
@@ -373,7 +373,7 @@ export const OrbitalConstellationChart = ({
             cy={centerY}
             r={23 * scale}
             fill={centerWordColors[system.centerWord]}
-            opacity="0.4"
+            opacity="0.2"
           />
           
           {/* Botão principal */}
@@ -382,7 +382,7 @@ export const OrbitalConstellationChart = ({
             cy={centerY}
             r={18 * scale}
             fill={centerWordColors[system.centerWord]}
-            opacity="0.95"
+            opacity="0.85"
             style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))' }}
           />
           
@@ -451,7 +451,7 @@ export const OrbitalConstellationChart = ({
                   cy={pos.y}
                   r={8 * scale}
                   fill={word.color}
-                  opacity="0.15"
+                  opacity="0.08"
                   className="animate-pulse"
                   style={{ pointerEvents: 'none' }}
                 />
@@ -462,7 +462,7 @@ export const OrbitalConstellationChart = ({
                   cy={pos.y}
                   r={6 * scale}
                   fill={word.color}
-                  opacity="0.3"
+                  opacity="0.15"
                   style={{ pointerEvents: 'none' }}
                 />
                 
@@ -472,7 +472,7 @@ export const OrbitalConstellationChart = ({
                   cy={pos.y}
                   r={4 * scale}
                   fill={word.color}
-                  opacity="0.95"
+                  opacity="0.85"
                   style={{ 
                     pointerEvents: 'none',
                     filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3))'
@@ -602,7 +602,7 @@ export const OrbitalConstellationChart = ({
   // Renderiza o gráfico mãe (nível principal com todas as palavras)
   const renderMotherOrbital = () => {
     const centerX = 575;
-    const centerY = 380;
+    const centerY = 400;
     
     // Agrupa todas as palavras com suas informações de sistema
     const allWords = orbitalSystems.flatMap(system =>
@@ -622,10 +622,10 @@ export const OrbitalConstellationChart = ({
     }, {} as Record<number, typeof allWords>);
 
     const motherOrbitRadii = {
-      1: 135,
-      2: 200,
-      3: 265,
-      4: 330
+      1: 160,
+      2: 235,
+      3: 310,
+      4: 385
     };
 
     return (
@@ -639,7 +639,7 @@ export const OrbitalConstellationChart = ({
             Ver constelações →
           </button>
         </div>
-        <svg width="1150" height="760" viewBox="0 0 1150 760" className="w-full h-auto animate-fade-in">
+        <svg width="1150" height="800" viewBox="0 0 1150 800" className="w-full h-auto animate-fade-in">
           {/* Órbitas principais */}
           {[1, 2, 3, 4].map(orbit => (
             <circle
@@ -698,9 +698,9 @@ export const OrbitalConstellationChart = ({
                   />
                   
                   {/* Background maior para legibilidade */}
-                  <circle cx={x} cy={y} r={22} fill={word.systemColor} opacity="0.15" />
-                  <circle cx={x} cy={y} r={18} fill={word.systemColor} opacity="0.3" />
-                  <circle cx={x} cy={y} r={14} fill={word.systemColor} opacity="0.95" stroke="hsl(var(--background))" strokeWidth="1.5" />
+                  <circle cx={x} cy={y} r={24} fill={word.systemColor} opacity="0.08" />
+                  <circle cx={x} cy={y} r={20} fill={word.systemColor} opacity="0.15" />
+                  <circle cx={x} cy={y} r={16} fill={word.systemColor} opacity="0.85" stroke="hsl(var(--background))" strokeWidth="1.5" />
                   
                   {/* Texto da palavra */}
                   <text
@@ -720,7 +720,7 @@ export const OrbitalConstellationChart = ({
           {/* Legendas dos sistemas ao redor - Botões flutuantes interativos */}
           {orbitalSystems.map((system, index) => {
             const angle = (index / orbitalSystems.length) * 2 * Math.PI;
-            const legendRadius = 385;
+            const legendRadius = 460;
             const x = centerX + legendRadius * Math.cos(angle);
             const y = centerY + legendRadius * Math.sin(angle);
             const buttonId = `legend-${system.centerWord}`;
@@ -747,18 +747,18 @@ export const OrbitalConstellationChart = ({
                 }}
               >
                 {/* Sombra externa (glow) */}
-                <circle cx={x} cy={y} r={32} fill={centerWordColors[system.centerWord]} opacity="0.15" className="animate-pulse" />
+                <circle cx={x} cy={y} r={35} fill={centerWordColors[system.centerWord]} opacity="0.08" className="animate-pulse" />
                 
                 {/* Sombra média */}
-                <circle cx={x} cy={y} r={27} fill={centerWordColors[system.centerWord]} opacity="0.3" />
+                <circle cx={x} cy={y} r={30} fill={centerWordColors[system.centerWord]} opacity="0.15" />
                 
                 {/* Botão principal */}
                 <circle 
                   cx={x} 
                   cy={y} 
-                  r={22} 
+                  r={24} 
                   fill={centerWordColors[system.centerWord]} 
-                  opacity="0.95"
+                  opacity="0.85"
                   className="transition-all"
                   style={{ 
                     filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))',
@@ -769,7 +769,7 @@ export const OrbitalConstellationChart = ({
                 <circle 
                   cx={x} 
                   cy={y} 
-                  r={22} 
+                  r={24} 
                   fill="none" 
                   stroke="hsl(var(--background))" 
                   strokeWidth="1.5"
@@ -782,7 +782,7 @@ export const OrbitalConstellationChart = ({
                   y={y}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-primary-foreground font-bold text-[11px] pointer-events-none"
+                  className="fill-primary-foreground font-bold text-[12px] pointer-events-none"
                 >
                   {system.centerWord}
                 </text>

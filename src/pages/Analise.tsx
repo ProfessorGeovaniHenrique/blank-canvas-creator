@@ -598,34 +598,23 @@ export default function Analise() {
 
         {/* Tab: Corpus */}
         <TabsContent value="corpus" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle>Quando o verso vem pras casa</CardTitle>
+                      <CardDescription>Luiz Marenco - Letra completa da música</CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle>Quando o verso vem pras casa</CardTitle>
-                    <CardDescription>Luiz Marenco - Letra completa da música</CardDescription>
-                  </div>
-                </div>
-                <a 
-                  href="https://music.youtube.com/watch?v=uaRc4k-Rxpo" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-sm flex items-center gap-2"
-                >
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                  Ouça a canção
-                </a>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <div className="whitespace-pre-line text-foreground leading-relaxed">
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <div className="whitespace-pre-line text-foreground leading-relaxed">
 {`Daí um verso de campo se chegou da campereada
 Desencilhou na ramada, já cansado das lonjuras
 Pela várzea espichada com o sol da tarde caindo
@@ -651,10 +640,35 @@ Ou um gateado prá encilha
 E o verso sonhou ser várzea com sombra de tarumã
 Sonhou com os olhos da prenda vestidos de primavera
 Adormecidos na espera do sol pontear na coxilha`}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Ouça a canção</CardTitle>
+                  <CardDescription>Player integrado do YouTube</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video rounded-lg overflow-hidden border shadow-sm">
+                    <iframe 
+                      width="100%" 
+                      height="100%" 
+                      src="https://www.youtube.com/embed/uaRc4k-Rxpo" 
+                      title="Quando o verso vem pras casa - Luiz Marenco"
+                      frameBorder="0" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Tab: Domínios */}
