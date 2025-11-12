@@ -402,11 +402,10 @@ export const OrbitalConstellationChart = ({
             y={centerY}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="fill-background font-bold"
+            className="fill-primary-foreground font-bold"
             style={{ 
               fontSize: `${14 * scale}px`, 
-              pointerEvents: 'none',
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)'
+              pointerEvents: 'none'
             }}
           >
             {system.centerWord}
@@ -517,12 +516,11 @@ export const OrbitalConstellationChart = ({
                   y={pos.y - 2 * scale}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-background font-medium"
+                  className="fill-foreground font-bold"
                   style={{ 
                     fontSize: `${7 * scale}px`, 
                     pointerEvents: 'none', 
-                    userSelect: 'none',
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)'
+                    userSelect: 'none'
                   }}
                 >
                   {word.word}
@@ -532,12 +530,11 @@ export const OrbitalConstellationChart = ({
                   y={pos.y + 6 * scale}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-background/80 font-semibold"
+                  className="fill-muted-foreground font-semibold"
                   style={{ 
                     fontSize: `${6 * scale}px`, 
                     pointerEvents: 'none', 
-                    userSelect: 'none',
-                    textShadow: '0 1px 3px rgba(0, 0, 0, 0.6)'
+                    userSelect: 'none'
                   }}
                 >
                   {word.strength}%
@@ -665,8 +662,7 @@ export const OrbitalConstellationChart = ({
               x={centerX}
               y={centerY - 4}
               textAnchor="middle"
-              className="fill-background font-bold text-[13px]"
-              style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)' }}
+              className="fill-primary-foreground font-bold text-[13px]"
             >
               {songName}
             </text>
@@ -674,8 +670,7 @@ export const OrbitalConstellationChart = ({
               x={centerX}
               y={centerY + 9}
               textAnchor="middle"
-              className="fill-background text-[11px]"
-              style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)' }}
+              className="fill-primary-foreground text-[11px]"
             >
               {artistName}
             </text>
@@ -713,8 +708,7 @@ export const OrbitalConstellationChart = ({
                     y={y}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    className="fill-background font-semibold text-[11px]"
-                    style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)' }}
+                    className="fill-primary-foreground font-bold text-[11px]"
                   >
                     {word.word}
                   </text>
@@ -788,8 +782,7 @@ export const OrbitalConstellationChart = ({
                   y={y}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-background font-bold text-[11px] pointer-events-none"
-                  style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)' }}
+                  className="fill-primary-foreground font-bold text-[11px] pointer-events-none"
                 >
                   {system.centerWord}
                 </text>

@@ -568,8 +568,12 @@ export default function Analise() {
         </Button>
       </div>
 
-      <Tabs defaultValue="dominios" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="corpus" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="corpus" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Corpus
+          </TabsTrigger>
           <TabsTrigger value="dominios" className="gap-2">
             <FileText className="h-4 w-4" />
             Domínios
@@ -591,6 +595,67 @@ export default function Analise() {
             Nuvem
           </TabsTrigger>
         </TabsList>
+
+        {/* Tab: Corpus */}
+        <TabsContent value="corpus" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>Quando o verso vem pras casa</CardTitle>
+                    <CardDescription>Luiz Marenco - Letra completa da música</CardDescription>
+                  </div>
+                </div>
+                <a 
+                  href="https://music.youtube.com/watch?v=uaRc4k-Rxpo" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-sm flex items-center gap-2"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  Ouça a canção
+                </a>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <div className="whitespace-pre-line text-foreground leading-relaxed">
+{`Daí um verso de campo se chegou da campereada
+Desencilhou na ramada, já cansado das lonjuras
+Pela várzea espichada com o sol da tarde caindo
+Os pingos quedaram vigiando a uma cuia e uma bomba
+Recostada na cambona
+
+A calma do tarumã, ganhou sombra mais copada
+Ficaram arreios suados e o silencio de esporas
+Pela cancela encostada também ficou um balaio
+E um ventito da coxilha trouxe coplas entre as asas
+
+Cevou um mate pura-folha, jujado de maçanilha
+Prá querência galponeira, onde o verso é mais caseiro
+Um pañuelo maragato se abriu no horizonte
+Templado a luz de candeeiro e um "quarto gordo nas brasa"
+A mansidão da campanha traz saudades feito açoite
+
+E uma saudade redomona pelos cantos do galpão
+E o verso que tinha sonhos prá rondar na madrugada
+No lombo de uma gateada frente aberta de respeito
+Ou um gateado prá encilha
+
+E o verso sonhou ser várzea com sombra de tarumã
+Sonhou com os olhos da prenda vestidos de primavera
+Adormecidos na espera do sol pontear na coxilha`}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Tab: Domínios */}
         <TabsContent value="dominios" className="space-y-6">
