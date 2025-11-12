@@ -1212,39 +1212,37 @@ export const OrbitalConstellationChart = ({
 
   return (
     <div className={`space-y-3 ${isFullscreen ? 'fixed inset-0 z-50 bg-background p-4' : ''}`}>
-      {/* Cabeçalho com navegação - apenas para universe e constellations */}
-      {(viewMode === 'universe' || viewMode === 'constellations') && (
-        <div className="bg-background border rounded-lg p-2 shadow-sm">
-          <div className="flex gap-2">
-            <button 
-              onClick={() => setViewMode('overview')} 
-              className="px-4 py-2 text-sm rounded-lg transition-colors font-medium bg-muted hover:bg-muted/80"
-            >
-              ← Visão Geral
-            </button>
-            <button 
-              onClick={() => setViewMode('universe')} 
-              className={`px-4 py-2 text-sm rounded-lg transition-colors font-medium ${
-                viewMode === 'universe' 
-                  ? 'bg-primary text-primary-foreground shadow-sm' 
-                  : 'bg-muted hover:bg-muted/80'
-              }`}
-            >
-              Universo Semântico
-            </button>
-            <button 
-              onClick={() => setViewMode('constellations')} 
-              className={`px-4 py-2 text-sm rounded-lg transition-colors font-medium ${
-                viewMode === 'constellations' 
-                  ? 'bg-primary text-primary-foreground shadow-sm' 
-                  : 'bg-muted hover:bg-muted/80'
-              }`}
-            >
-              Constelações Semânticas
-            </button>
-          </div>
+      {/* Cabeçalho com navegação - visível em todos os níveis */}
+      <div className="bg-background border rounded-lg p-2 shadow-sm">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setViewMode('overview')} 
+            className="px-4 py-2 text-sm rounded-lg transition-colors font-medium bg-muted hover:bg-muted/80"
+          >
+            ← Visão Geral
+          </button>
+          <button 
+            onClick={() => setViewMode('universe')} 
+            className={`px-4 py-2 text-sm rounded-lg transition-colors font-medium ${
+              viewMode === 'universe' 
+                ? 'bg-primary text-primary-foreground shadow-sm' 
+                : 'bg-muted hover:bg-muted/80'
+            }`}
+          >
+            Universo Semântico
+          </button>
+          <button 
+            onClick={() => setViewMode('constellations')} 
+            className={`px-4 py-2 text-sm rounded-lg transition-colors font-medium ${
+              viewMode === 'constellations' 
+                ? 'bg-primary text-primary-foreground shadow-sm' 
+                : 'bg-muted hover:bg-muted/80'
+            }`}
+          >
+            Constelações Semânticas
+          </button>
         </div>
-      )}
+      </div>
 
       <div 
         ref={containerRef} 
@@ -1261,21 +1259,19 @@ export const OrbitalConstellationChart = ({
         onMouseUp={handleCanvasPanEnd}
         onMouseLeave={handleCanvasPanEnd}
       >
-        {/* Controles de Zoom - apenas para overview e universe */}
-        {(viewMode === 'overview' || viewMode === 'universe') && (
-          <NavigationToolbar
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onReset={handleResetZoom}
-            onFitToView={() => {
-              setZoomLevel(1);
-              setPanOffset({ x: 0, y: 0 });
-            }}
-            onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
-            isFullscreen={isFullscreen}
-            className="absolute top-4 right-4 z-10"
-          />
-        )}
+        {/* Controles de Zoom - visível em todos os níveis */}
+        <NavigationToolbar
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onReset={handleResetZoom}
+          onFitToView={() => {
+            setZoomLevel(1);
+            setPanOffset({ x: 0, y: 0 });
+          }}
+          onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+          isFullscreen={isFullscreen}
+          className="absolute top-4 right-4 z-10"
+        />
 
         <div 
           className="pan-area" 
