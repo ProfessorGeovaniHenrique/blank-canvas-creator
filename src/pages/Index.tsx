@@ -15,7 +15,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <main className="pt-[88px]">
+      <main className="pt-[120px]">
         <HeroSection onCtaClick={scrollToEmailCapture} />
         <HowItWorksSection />
         <BenefitsSection />
