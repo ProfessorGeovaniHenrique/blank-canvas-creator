@@ -546,7 +546,7 @@ export const OrbitalConstellationChart = ({
       </g>;
   };
 
-  // Renderiza o gráfico mãe (nível principal com todas as palavras)
+  // Renderiza o gráfico mãe (nível principal com todas as palavras) - RECRIADO
   const renderMotherOrbital = () => {
     const centerX = 575;
     const centerY = 400;
@@ -558,97 +558,305 @@ export const OrbitalConstellationChart = ({
       systemColor: centerWordColors[system.centerWord]
     })));
 
-    // Organiza palavras por órbita
+    // Organiza palavras por órbita baseado na força
     const wordsByOrbit = allWords.reduce((acc, word) => {
       const orbit = getOrbit(word.strength);
       if (!acc[orbit]) acc[orbit] = [];
       acc[orbit].push(word);
       return acc;
     }, {} as Record<number, typeof allWords>);
+
     const motherOrbitRadii = {
       1: 160,
       2: 235,
       3: 310,
       4: 385
     };
-    return <>
-        
-        <svg width="1150" height="800" viewBox="0 0 1150 800" className="w-full h-auto animate-fade-in">
-          {/* Órbitas principais */}
-          {[1, 2, 3, 4].map(orbit => <circle key={`mother-orbit-${orbit}`} cx={centerX} cy={centerY} r={motherOrbitRadii[orbit as keyof typeof motherOrbitRadii]} fill="none" stroke="hsl(var(--border))" strokeWidth="1" strokeDasharray="4 4" opacity={0.3} />)}
 
-          {/* Centro - Título da obra */}
+    return (
+      <>
+        <svg width="1150" height="800" viewBox="0 0 1150 800" className="w-full h-auto animate-fade-in">
+          {/* Órbitas principais com animação */}
+          {[1, 2, 3, 4].map(orbit => {
+            const radius = motherOrbitRadii[orbit as keyof typeof motherOrbitRadii];
+            const circumference = 2 * Math.PI * radius;
+            return (
+              <g key={`mother-orbit-${orbit}`}>
+                {/* Órbita base */}
+                <circle 
+                  cx={centerX} 
+                  cy={centerY} 
+                  r={radius} 
+                  fill="none" 
+                  stroke="hsl(var(--border))" 
+                  strokeWidth="2" 
+                  strokeDasharray="8 8" 
+                  opacity={0.2} 
+                />
+                {/* Órbita animada */}
+                <circle 
+                  cx={centerX} 
+                  cy={centerY} 
+                  r={radius} 
+                  fill="none" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth="1.5" 
+                  strokeDasharray={`${circumference * 0.15} ${circumference * 0.85}`}
+                  opacity={0.3}
+                  style={{
+                    animation: `orbit-slide ${12 + orbit * 2}s linear infinite`,
+                    transformOrigin: `${centerX}px ${centerY}px`
+                  }}
+                />
+              </g>
+            );
+          })}
+
+          {/* Centro - Título da obra com destaque */}
           <g>
-            <circle cx={centerX} cy={centerY} r={45} fill="hsl(var(--primary))" opacity="0.9" />
-            <text x={centerX} y={centerY - 4} textAnchor="middle" className="fill-primary-foreground font-bold text-[13px]">
+            {/* Glow externo */}
+            <circle cx={centerX} cy={centerY} r={60} fill="hsl(var(--primary))" opacity="0.05" className="animate-pulse" />
+            <circle cx={centerX} cy={centerY} r={52} fill="hsl(var(--primary))" opacity="0.1" />
+            
+            {/* Círculo principal */}
+            <circle 
+              cx={centerX} 
+              cy={centerY} 
+              r={45} 
+              fill="hsl(var(--primary))" 
+              opacity="0.9"
+              style={{ filter: 'drop-shadow(0 6px 20px rgba(0, 0, 0, 0.3))' }}
+            />
+            
+            {/* Borda brilhante */}
+            <circle 
+              cx={centerX} 
+              cy={centerY} 
+              r={45} 
+              fill="none" 
+              stroke="hsl(var(--background))" 
+              strokeWidth="2" 
+              opacity="0.4" 
+            />
+            
+            {/* Texto */}
+            <text 
+              x={centerX} 
+              y={centerY - 4} 
+              textAnchor="middle" 
+              className="fill-primary-foreground font-bold text-[13px]"
+            >
               {songName}
             </text>
-            <text x={centerX} y={centerY + 9} textAnchor="middle" className="fill-primary-foreground text-[11px]">
+            <text 
+              x={centerX} 
+              y={centerY + 9} 
+              textAnchor="middle" 
+              className="fill-primary-foreground text-[11px]"
+            >
               {artistName}
             </text>
           </g>
 
-          {/* Todas as palavras distribuídas */}
-          {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) => wordsInOrbit.map((word, index) => {
-          const radius = motherOrbitRadii[parseInt(orbit) as keyof typeof motherOrbitRadii];
-          const angle = index / wordsInOrbit.length * 2 * Math.PI - Math.PI / 2;
-          const x = centerX + radius * Math.cos(angle);
-          const y = centerY + radius * Math.sin(angle);
-          return <g key={`mother-word-${word.system}-${word.word}-${index}`}>
+          {/* Todas as palavras distribuídas com tooltips */}
+          {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) => 
+            wordsInOrbit.map((word, index) => {
+              const radius = motherOrbitRadii[parseInt(orbit) as keyof typeof motherOrbitRadii];
+              const angle = (index / wordsInOrbit.length) * 2 * Math.PI - Math.PI / 2;
+              const x = centerX + radius * Math.cos(angle);
+              const y = centerY + radius * Math.sin(angle);
+              
+              // Busca estatísticas da palavra
+              const stats = palavraStats[word.word];
+              
+              return (
+                <g 
+                  key={`mother-word-${word.system}-${word.word}-${index}`}
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isDragging) {
+                      setSelectedWordForKwic(word.word);
+                      setKwicModalOpen(true);
+                    }
+                  }}
+                >
                   {/* Linha conectando ao centro */}
-                  <line x1={centerX} y1={centerY} x2={x} y2={y} stroke={word.systemColor} strokeWidth="0.5" opacity="0.1" />
+                  <line 
+                    x1={centerX} 
+                    y1={centerY} 
+                    x2={x} 
+                    y2={y} 
+                    stroke={word.systemColor} 
+                    strokeWidth="1" 
+                    opacity="0.15" 
+                  />
                   
-                  {/* Background maior para legibilidade */}
-                  <circle cx={x} cy={y} r={24} fill={word.systemColor} opacity="0.08" />
-                  <circle cx={x} cy={y} r={20} fill={word.systemColor} opacity="0.15" />
-                  <circle cx={x} cy={y} r={16} fill={word.systemColor} opacity="0.85" stroke="hsl(var(--background))" strokeWidth="1.5" />
+                  {/* Camadas de glow para as palavras */}
+                  <circle cx={x} cy={y} r={26} fill={word.systemColor} opacity="0.05" className="animate-pulse" />
+                  <circle cx={x} cy={y} r={22} fill={word.systemColor} opacity="0.1" />
+                  <circle cx={x} cy={y} r={18} fill={word.systemColor} opacity="0.15" />
+                  
+                  {/* Círculo principal da palavra */}
+                  <circle 
+                    cx={x} 
+                    cy={y} 
+                    r={14} 
+                    fill={word.systemColor} 
+                    opacity="0.85" 
+                    stroke="hsl(var(--background))" 
+                    strokeWidth="2"
+                    style={{ 
+                      filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',
+                      transition: 'all 0.2s ease'
+                    }}
+                    className="hover:opacity-100"
+                  />
+                  
+                  {/* Área de hover maior para melhor UX */}
+                  <circle 
+                    cx={x} 
+                    cy={y} 
+                    r={30} 
+                    fill="transparent"
+                  >
+                    {/* Tooltip com estatísticas */}
+                    {stats && (
+                      <title>
+                        {`${word.word}\nForça: ${word.strength}%\nFreq. Bruta: ${stats.frequenciaBruta}\nFreq. Normalizada: ${stats.frequenciaNormalizada}\nProsódia: ${stats.prosodia === 'positiva' ? 'Positiva ✓' : stats.prosodia === 'negativa' ? 'Negativa ✗' : 'Neutra −'}\nSistema: ${word.system}\n\nClique para ver concordância (KWIC)`}
+                      </title>
+                    )}
+                  </circle>
                   
                   {/* Texto da palavra */}
-                  <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-primary-foreground font-bold text-[11px]">
+                  <text 
+                    x={x} 
+                    y={y - 2} 
+                    textAnchor="middle" 
+                    dominantBaseline="middle" 
+                    className="fill-primary-foreground font-bold text-[10px] pointer-events-none"
+                  >
                     {word.word}
                   </text>
-                </g>;
-        }))}
+                </g>
+              );
+            })
+          )}
 
           {/* Legendas dos sistemas ao redor - Botões flutuantes interativos */}
           {orbitalSystems.map((system, index) => {
-          const angle = index / orbitalSystems.length * 2 * Math.PI;
-          const legendRadius = 460;
-          const x = centerX + legendRadius * Math.cos(angle);
-          const y = centerY + legendRadius * Math.sin(angle);
-          const buttonId = `legend-${system.centerWord}`;
-          return <g key={buttonId} data-button-id={buttonId} data-original-x={x} data-original-y={y} style={{
-            cursor: draggedButton === buttonId ? 'grabbing' : 'grab',
-            transform: buttonOffsets[buttonId] ? `translate(${buttonOffsets[buttonId].x}px, ${buttonOffsets[buttonId].y}px)` : 'none',
-            transition: draggedButton === buttonId ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
-          }} onMouseDown={e => handleButtonMouseDown(e, buttonId)} onClick={e => {
-            if (!draggedButton) {
-              setSelectedSystem(system.centerWord);
-              setViewMode('systems');
-            }
-          }}>
-                {/* Sombra externa (glow) */}
-                <circle cx={x} cy={y} r={35} fill={centerWordColors[system.centerWord]} opacity="0.08" className="animate-pulse" />
+            const angle = (index / orbitalSystems.length) * 2 * Math.PI;
+            const legendRadius = 480;
+            const x = centerX + legendRadius * Math.cos(angle);
+            const y = centerY + legendRadius * Math.sin(angle);
+            const buttonId = `legend-${system.centerWord}`;
+            
+            return (
+              <g 
+                key={buttonId}
+                data-button-id={buttonId}
+                data-original-x={x}
+                data-original-y={y}
+                style={{
+                  cursor: draggedButton === buttonId ? 'grabbing' : 'pointer',
+                  transform: buttonOffsets[buttonId] 
+                    ? `translate(${buttonOffsets[buttonId].x}px, ${buttonOffsets[buttonId].y}px)` 
+                    : 'none',
+                  transition: draggedButton === buttonId 
+                    ? 'none' 
+                    : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
+                onMouseDown={(e) => handleButtonMouseDown(e, buttonId)}
+                onClick={(e) => {
+                  if (!draggedButton) {
+                    setSelectedSystem(system.centerWord);
+                    setViewMode('systems');
+                  }
+                }}
+              >
+                {/* Sombra externa (glow) animada */}
+                <circle 
+                  cx={x} 
+                  cy={y} 
+                  r={42} 
+                  fill={centerWordColors[system.centerWord]} 
+                  opacity="0.08" 
+                  className="animate-pulse" 
+                />
                 
                 {/* Sombra média */}
-                <circle cx={x} cy={y} r={30} fill={centerWordColors[system.centerWord]} opacity="0.15" />
+                <circle 
+                  cx={x} 
+                  cy={y} 
+                  r={35} 
+                  fill={centerWordColors[system.centerWord]} 
+                  opacity="0.15" 
+                />
                 
-                {/* Botão principal */}
-                <circle cx={x} cy={y} r={24} fill={centerWordColors[system.centerWord]} opacity="0.85" className="transition-all" style={{
-              filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))'
-            }} />
+                {/* Botão principal com hover effect */}
+                <circle 
+                  cx={x} 
+                  cy={y} 
+                  r={28} 
+                  fill={centerWordColors[system.centerWord]} 
+                  opacity="0.85" 
+                  className="transition-all hover:opacity-100"
+                  style={{
+                    filter: 'drop-shadow(0 4px 16px rgba(0, 0, 0, 0.4))'
+                  }}
+                />
                 
                 {/* Borda brilhante */}
-                <circle cx={x} cy={y} r={24} fill="none" stroke="hsl(var(--background))" strokeWidth="1.5" opacity="0.4" />
+                <circle 
+                  cx={x} 
+                  cy={y} 
+                  r={28} 
+                  fill="none" 
+                  stroke="hsl(var(--background))" 
+                  strokeWidth="2" 
+                  opacity="0.5" 
+                />
                 
-                {/* Texto */}
-                <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-primary-foreground font-bold text-[12px] pointer-events-none">
+                {/* Contador de palavras no sistema */}
+                <circle 
+                  cx={x + 18} 
+                  cy={y - 18} 
+                  r={8} 
+                  fill="hsl(var(--background))" 
+                  stroke={centerWordColors[system.centerWord]} 
+                  strokeWidth="2"
+                />
+                <text 
+                  x={x + 18} 
+                  y={y - 18} 
+                  textAnchor="middle" 
+                  dominantBaseline="middle" 
+                  className="fill-foreground font-bold text-[9px] pointer-events-none"
+                >
+                  {system.words.length}
+                </text>
+                
+                {/* Texto do sistema */}
+                <text 
+                  x={x} 
+                  y={y} 
+                  textAnchor="middle" 
+                  dominantBaseline="middle" 
+                  className="fill-primary-foreground font-bold text-[13px] pointer-events-none"
+                >
                   {system.centerWord}
                 </text>
-              </g>;
-        })}
+                
+                {/* Tooltip para o sistema */}
+                <title>
+                  {`Sistema: ${system.centerWord}\n${system.words.length} palavras associadas\nCategoria: ${system.words[0]?.category || ''}\n\nClique para explorar este sistema`}
+                </title>
+              </g>
+            );
+          })}
         </svg>
-      </>;
+      </>
+    );
   };
 
   // Renderiza grid de sistemas
