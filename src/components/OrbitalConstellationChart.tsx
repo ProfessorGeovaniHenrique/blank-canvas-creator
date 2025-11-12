@@ -19,7 +19,16 @@ interface OrbitalConstellationChartProps {
 export const OrbitalConstellationChart = ({ 
   centerWord = "verso" 
 }: OrbitalConstellationChartProps) => {
-  // Cores da análise de prosódia semântica
+  // Cores da análise de prosódia semântica e mapeamento de cores por palavra central
+  const centerWordColors: Record<string, string> = {
+    "verso": "hsl(var(--primary))", // Protagonista Personificado
+    "saudade": "hsl(var(--destructive))", // Dor e Nostalgia
+    "sonhos": "#a855f7", // Refúgio e Frustração (purple)
+    "cansado": "#f59e0b", // Fim de Ciclo (amber)
+    "silêncio": "#64748b", // Solidão e Abandono (slate)
+    "arreios": "#3b82f6", // Extensão de Identidade (blue)
+  };
+
   // Definição dos 6 sistemas orbitais
   const orbitalSystems: OrbitalSystem[] = [
     {
@@ -157,7 +166,7 @@ export const OrbitalConstellationChart = ({
             cx={centerX}
             cy={centerY}
             r="18"
-            fill="hsl(var(--primary))"
+            fill={centerWordColors[system.centerWord]}
             opacity="0.9"
           />
           <text
