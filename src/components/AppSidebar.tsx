@@ -24,12 +24,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar className={open ? "w-60" : "w-14"} collapsible="icon">
-      <SidebarTrigger className="m-2 self-end" />
+      <div className="flex items-center justify-between px-2 py-2 border-b">
+        {open && <span className="text-sm font-semibold text-muted-foreground">Menu Principal</span>}
+        <SidebarTrigger className={open ? "" : "mx-auto"} />
+      </div>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
-          
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
