@@ -4,871 +4,1898 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { KWICModal } from "@/components/KWICModal";
+import { InteractiveSemanticNetwork } from "@/components/InteractiveSemanticNetwork";
+import { OrbitalConstellationChart } from "@/components/OrbitalConstellationChart";
+import { NavigationToolbar } from "@/components/NavigationToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  Download, 
-  FileText, 
-  Network, 
-  BarChart3, 
-  FileBarChart, 
-  Cloud, 
-  ZoomIn, 
-  ZoomOut, 
-  Maximize2, 
-  Minimize2,
-  RotateCcw,
-  Maximize,
-  TrendingUp,
-  TrendingDown,
-  HelpCircle
-} from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
+import { Download, FileText, Network, Sparkles, BarChart3, FileBarChart, Cloud, HelpCircle, TrendingUp, TrendingDown } from "lucide-react";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
-// ==================== MOCK DATA ====================
-
+// Mock data KWIC completo baseado na letra da música
 const kwicDataMap: Record<string, Array<{
   leftContext: string;
   keyword: string;
   rightContext: string;
   source: string;
 }>> = {
-  "verso": [
-    { leftContext: "Daí um", keyword: "verso", rightContext: "de campo se chegou da campereada", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "Prá querência galponeira, onde o", keyword: "verso", rightContext: "é mais caseiro", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "E o", keyword: "verso", rightContext: "que tinha sonhos prá rondar na madrugada", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "E o", keyword: "verso", rightContext: "sonhou ser várzea com sombra de tarumã", source: "Luiz Marenco - Quando o verso vem pras casa" }
-  ],
-  "tarumã": [
-    { leftContext: "A calma do", keyword: "tarumã", rightContext: ", ganhou sombra mais copada", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "E o verso sonhou ser várzea com sombra de", keyword: "tarumã", rightContext: "", source: "Luiz Marenco - Quando o verso vem pras casa" }
-  ],
-  "saudade": [
-    { leftContext: "A mansidão da campanha traz", keyword: "saudade", rightContext: "feito açoite", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "E uma", keyword: "saudade", rightContext: "redomona pelos cantos do galpão", source: "Luiz Marenco - Quando o verso vem pras casa" }
-  ],
-  "várzea": [
-    { leftContext: "Pela", keyword: "várzea", rightContext: "espichada com o sol da tarde caindo", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "E o verso sonhou ser", keyword: "várzea", rightContext: "com sombra de tarumã", source: "Luiz Marenco - Quando o verso vem pras casa" }
-  ],
-  "coxilha": [
-    { leftContext: "E um ventito da", keyword: "coxilha", rightContext: "trouxe coplas entre as asas", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "Adormecidos na espera do sol pontear na", keyword: "coxilha", rightContext: "", source: "Luiz Marenco - Quando o verso vem pras casa" }
-  ],
-  "galpão": [{ leftContext: "E uma saudade redomona pelos cantos do", keyword: "galpão", rightContext: "", source: "Luiz Marenco - Quando o verso vem pras casa" }],
-  "sonhos": [{ leftContext: "E o verso que tinha", keyword: "sonhos", rightContext: "prá rondar na madrugada", source: "Luiz Marenco - Quando o verso vem pras casa" }],
-  "gateada": [{ leftContext: "No lombo de uma", keyword: "gateada", rightContext: "frente aberta de respeito", source: "Luiz Marenco - Quando o verso vem pras casa" }],
-  "mate": [{ leftContext: "Cevou um", keyword: "mate", rightContext: "pura-folha, jujado de maçanilha", source: "Luiz Marenco - Quando o verso vem pras casa" }],
-  "sombra": [
-    { leftContext: "A calma do tarumã, ganhou", keyword: "sombra", rightContext: "mais copada", source: "Luiz Marenco - Quando o verso vem pras casa" },
-    { leftContext: "E o verso sonhou ser várzea com", keyword: "sombra", rightContext: "de tarumã", source: "Luiz Marenco - Quando o verso vem pras casa" }
-  ],
+  "verso": [{
+    leftContext: "Daí um",
+    keyword: "verso",
+    rightContext: "de campo se chegou da campereada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "Prá querência galponeira, onde o",
+    keyword: "verso",
+    rightContext: "é mais caseiro",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "E o",
+    keyword: "verso",
+    rightContext: "que tinha sonhos prá rondar na madrugada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "E o",
+    keyword: "verso",
+    rightContext: "sonhou ser várzea com sombra de tarumã",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "tarumã": [{
+    leftContext: "A calma do",
+    keyword: "tarumã",
+    rightContext: ", ganhou sombra mais copada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "E o verso sonhou ser várzea com sombra de",
+    keyword: "tarumã",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "saudade": [{
+    leftContext: "A mansidão da campanha traz",
+    keyword: "saudade",
+    rightContext: "feito açoite",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "E uma",
+    keyword: "saudade",
+    rightContext: "redomona pelos cantos do galpão",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "galpão": [{
+    leftContext: "E uma saudade redomona pelos cantos do",
+    keyword: "galpão",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "várzea": [{
+    leftContext: "Pela",
+    keyword: "várzea",
+    rightContext: "espichada com o sol da tarde caindo",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "E o verso sonhou ser",
+    keyword: "várzea",
+    rightContext: "com sombra de tarumã",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "sonhos": [{
+    leftContext: "E o verso que tinha",
+    keyword: "sonhos",
+    rightContext: "prá rondar na madrugada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "gateada": [{
+    leftContext: "No lombo de uma",
+    keyword: "gateada",
+    rightContext: "frente aberta de respeito",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "mate": [{
+    leftContext: "Cevou um",
+    keyword: "mate",
+    rightContext: "pura-folha, jujado de maçanilha",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "coxilha": [{
+    leftContext: "E um ventito da",
+    keyword: "coxilha",
+    rightContext: "trouxe coplas entre as asas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "Adormecidos na espera do sol pontear na",
+    keyword: "coxilha",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "sombra": [{
+    leftContext: "A calma do tarumã, ganhou",
+    keyword: "sombra",
+    rightContext: "mais copada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "E o verso sonhou ser várzea com",
+    keyword: "sombra",
+    rightContext: "de tarumã",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "arreios": [{
+    leftContext: "Ficaram",
+    keyword: "arreios",
+    rightContext: "suados e o silencio de esporas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "esporas": [{
+    leftContext: "Ficaram arreios suados e o silencio de",
+    keyword: "esporas",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "prenda": [{
+    leftContext: "Sonhou com os olhos da",
+    keyword: "prenda",
+    rightContext: "vestidos de primavera",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "ramada": [{
+    leftContext: "Desencilhou na",
+    keyword: "ramada",
+    rightContext: ", já cansado das lonjuras",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "candeeiro": [{
+    leftContext: "Templado a luz de",
+    keyword: "candeeiro",
+    rightContext: "e um \"quarto gordo nas brasa\"",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "querência": [{
+    leftContext: "Prá",
+    keyword: "querência",
+    rightContext: "galponeira, onde o verso é mais caseiro",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "cuia": [{
+    leftContext: "Uma",
+    keyword: "cuia",
+    rightContext: "e uma bomba recostada na cambona",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "maragato": [{
+    leftContext: "Um pañuelo",
+    keyword: "maragato",
+    rightContext: "se abriu no horizonte",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "campereada": [{
+    leftContext: "Daí um verso de campo se chegou da",
+    keyword: "campereada",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "calma": [{
+    leftContext: "A",
+    keyword: "calma",
+    rightContext: "do tarumã, ganhou sombra mais copada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "encilha": [{
+    leftContext: "Ser um galo prás manhãs, ou um gateado prá",
+    keyword: "encilha",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "campo": [{
+    leftContext: "Daí um verso de",
+    keyword: "campo",
+    rightContext: "se chegou da campereada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "campanha": [{
+    leftContext: "A mansidão da",
+    keyword: "campanha",
+    rightContext: "traz saudades feito açoite",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "horizonte": [{
+    leftContext: "Um pañuelo maragato se abriu no",
+    keyword: "horizonte",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "sol": [{
+    leftContext: "Pela várzea espichada com o",
+    keyword: "sol",
+    rightContext: "da tarde caindo",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "Adormecidos na espera do",
+    keyword: "sol",
+    rightContext: "pontear na coxilha",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "tropa": [{
+    leftContext: "Deixou a cancela encostada e a",
+    keyword: "tropa",
+    rightContext: "se desgarrou",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "lombo": [{
+    leftContext: "No",
+    keyword: "lombo",
+    rightContext: "de uma gateada frente aberta de respeito",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "cambona": [{
+    leftContext: "Uma cuia e uma bomba recostada na",
+    keyword: "cambona",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "fogo": [{
+    leftContext: "Um cerne com cor de aurora queimando em",
+    keyword: "fogo",
+    rightContext: "de chão",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "chão": [{
+    leftContext: "Um cerne com cor de aurora queimando em fogo de",
+    keyword: "chão",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "bomba": [{
+    leftContext: "Uma cuia e uma",
+    keyword: "bomba",
+    rightContext: "recostada na cambona",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "coplas": [{
+    leftContext: "E um ventito da coxilha trouxe",
+    keyword: "coplas",
+    rightContext: "entre as asas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "mansidão": [{
+    leftContext: "A",
+    keyword: "mansidão",
+    rightContext: "da campanha traz saudades feito açoite",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "silêncio": [{
+    leftContext: "Ficaram arreios suados e o",
+    keyword: "silêncio",
+    rightContext: "de esporas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "pañuelo": [{
+    leftContext: "Um",
+    keyword: "pañuelo",
+    rightContext: "maragato se abriu no horizonte",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "maçanilha": [{
+    leftContext: "Cevou um mate pura-folha, jujado de",
+    keyword: "maçanilha",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }]
 };
 
-const dominiosData = [
-  {
-    dominio: "Natureza e Paisagem Campeira",
-    ocorrencias: 48,
-    percentual: 28.2,
-    palavras: ["tarumã", "várzea", "coxilha", "campo", "campanha", "horizonte", "sombra", "sol"],
-    nomeCompleto: "Natureza e Paisagem Campeira",
-    representatividade: "Domínio mais presente na música, evidenciando forte conexão com o ambiente rural",
-    densidadeLexical: "Alta",
-    descricaoContextual: "Reflete a relação íntima do poeta com a paisagem gaúcha, destacando elementos naturais característicos do pampa.",
-    fragmentoExemplo: "\"A calma do tarumã, ganhou sombra mais copada / Pela várzea espichada com o sol da tarde caindo\"",
-    cor: "hsl(142, 35%, 25%)",
-    corTexto: "hsl(142, 80%, 75%)"
-  },
-  {
-    dominio: "Cavalo e Aperos",
-    ocorrencias: 38,
-    percentual: 22.4,
-    palavras: ["gateada", "encilha", "arreios", "esporas", "tropa", "lombo", "ramada", "cambona"],
-    nomeCompleto: "Cavalo e Aperos",
-    representatividade: "Segundo domínio mais relevante, simbolizando o trabalho campeiro e a tradição equestre",
-    densidadeLexical: "Alta",
-    descricaoContextual: "Representa a cultura do trabalho com o cavalo, elemento central na vida do gaúcho.",
-    fragmentoExemplo: "\"No lombo de uma gateada frente aberta de respeito / Desencilhou na ramada\"",
-    cor: "hsl(221, 40%, 25%)",
-    corTexto: "hsl(221, 85%, 75%)"
-  },
-  {
-    dominio: "Vida no Galpão",
-    ocorrencias: 32,
-    percentual: 18.8,
-    palavras: ["galpão", "ramada", "candeeiro", "mate", "querência", "fogo", "chão", "cuia", "bomba"],
-    nomeCompleto: "Vida no Galpão",
-    representatividade: "Espaço de convívio social e descanso do trabalhador campeiro",
-    densidadeLexical: "Média-Alta",
-    descricaoContextual: "O galpão como centro da vida social campeira, local de chimarrão, descanso e confraternização.",
-    fragmentoExemplo: "\"Prá querência galponeira, onde o verso é mais caseiro / Templado a luz de candeeiro\"",
-    cor: "hsl(45, 40%, 25%)",
-    corTexto: "hsl(45, 95%, 75%)"
-  },
-  {
-    dominio: "Sentimentos e Poesia",
-    ocorrencias: 28,
-    percentual: 16.5,
-    palavras: ["verso", "saudade", "sonhos", "coplas", "mansidão", "calma", "silêncio"],
-    nomeCompleto: "Sentimentos e Poesia",
-    representatividade: "Dimensão lírica e emocional da composição, explorando a subjetividade do poeta",
-    densidadeLexical: "Alta",
-    descricaoContextual: "A introspecção poética e o sentimento de saudade, elementos fundamentais da lírica gauchesca.",
-    fragmentoExemplo: "\"E o verso que tinha sonhos prá rondar na madrugada / A mansidão da campanha traz saudades feito açoite\"",
-    cor: "hsl(291, 35%, 25%)",
-    corTexto: "hsl(291, 75%, 75%)"
-  },
-  {
-    dominio: "Tradição Gaúcha",
-    ocorrencias: 24,
-    percentual: 14.1,
-    palavras: ["maragato", "pañuelo", "mate", "maçanilha", "prenda", "campereada"],
-    nomeCompleto: "Tradição Gaúcha",
-    representatividade: "Elementos culturais específicos da tradição regional sul-rio-grandense",
-    densidadeLexical: "Média",
-    descricaoContextual: "Vocabulário específico da cultura gaúcha, marcando a identidade regional da composição.",
-    fragmentoExemplo: "\"Um pañuelo maragato se abriu no horizonte / Cevou um mate pura-folha, jujado de maçanilha\"",
-    cor: "hsl(0, 35%, 25%)",
-    corTexto: "hsl(0, 80%, 75%)"
-  }
-];
+const dominiosData = [{
+  dominio: "Natureza e Paisagem Campeira",
+  ocorrencias: 48,
+  percentual: 28.2,
+  palavras: ["tarumã", "várzea", "coxilha", "campo", "campanha", "horizonte", "sombra", "sol"],
+  cor: "hsl(142, 35%, 25%)",
+  corTexto: "hsl(142, 80%, 75%)"
+}, {
+  dominio: "Cavalo e Aperos",
+  ocorrencias: 38,
+  percentual: 22.4,
+  palavras: ["gateada", "encilha", "arreios", "esporas", "tropa", "lombo", "ramada", "cambona"],
+  cor: "hsl(221, 40%, 25%)",
+  corTexto: "hsl(221, 85%, 75%)"
+}, {
+  dominio: "Vida no Galpão",
+  ocorrencias: 32,
+  percentual: 18.8,
+  palavras: ["galpão", "ramada", "candeeiro", "mate", "querência", "fogo", "chão", "cuia", "bomba"],
+  cor: "hsl(45, 40%, 25%)",
+  corTexto: "hsl(45, 95%, 75%)"
+}, {
+  dominio: "Sentimentos e Poesia",
+  ocorrencias: 28,
+  percentual: 16.5,
+  palavras: ["verso", "saudade", "sonhos", "coplas", "mansidão", "calma", "silêncio"],
+  cor: "hsl(291, 35%, 25%)",
+  corTexto: "hsl(291, 75%, 75%)"
+}, {
+  dominio: "Tradição Gaúcha",
+  ocorrencias: 24,
+  percentual: 14.1,
+  palavras: ["maragato", "pañuelo", "mate", "maçanilha", "prenda", "campereada"],
+  cor: "hsl(0, 35%, 25%)",
+  corTexto: "hsl(0, 80%, 75%)"
+}];
 
-const palavrasChaveData = [
-  { palavra: "verso", ll: 52.8, mi: 9.2, frequenciaBruta: 4, frequenciaNormalizada: 23.5, significancia: "Alta", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-  { palavra: "tarumã", ll: 48.3, mi: 8.8, frequenciaBruta: 2, frequenciaNormalizada: 11.8, significancia: "Alta", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-  { palavra: "saudade", ll: 38.7, mi: 8.5, frequenciaBruta: 2, frequenciaNormalizada: 11.8, significancia: "Alta", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-  { palavra: "galpão", ll: 45.2, mi: 7.9, frequenciaBruta: 1, frequenciaNormalizada: 5.9, significancia: "Alta", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-  { palavra: "várzea", ll: 32.4, mi: 7.2, frequenciaBruta: 2, frequenciaNormalizada: 11.8, significancia: "Alta", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-  { palavra: "coxilha", ll: 28.9, mi: 5.8, frequenciaBruta: 2, frequenciaNormalizada: 11.8, significancia: "Média", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-  { palavra: "sombra", ll: 22.3, mi: 4.2, frequenciaBruta: 2, frequenciaNormalizada: 11.8, significancia: "Média", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-  { palavra: "sol", ll: 21.7, mi: 4.0, frequenciaBruta: 2, frequenciaNormalizada: 11.8, significancia: "Média", efeito: "Sobre-uso", efeitoIcon: TrendingUp },
-];
+const lematizacaoData = [{
+  original: "sonhos",
+  lema: "sonho",
+  classe: "NOUN"
+}, {
+  original: "adormecidos",
+  lema: "adormecer",
+  classe: "VERB"
+}, {
+  original: "coplas",
+  lema: "copla",
+  classe: "NOUN"
+}, {
+  original: "suados",
+  lema: "suado",
+  classe: "ADJ"
+}, {
+  original: "vestidos",
+  lema: "vestir",
+  classe: "VERB"
+}, {
+  original: "arreios",
+  lema: "arreio",
+  classe: "NOUN"
+}];
 
-const prosodiaData = [
-  { palavra: "verso", prosodia: "positiva", contexto: "Elemento lírico central, portador de sonhos e identidade", intensidade: "alta" },
-  { palavra: "tarumã", prosodia: "positiva", contexto: "Símbolo de abrigo e tranquilidade campeira", intensidade: "média" },
-  { palavra: "saudade", prosodia: "negativa", contexto: "Sentimento melancólico de ausência e distância", intensidade: "alta" },
-  { palavra: "sonhos", prosodia: "positiva", contexto: "Aspirações e desejos do eu-lírico", intensidade: "média" },
-  { palavra: "silêncio", prosodia: "negativa", contexto: "Ausência que marca a solidão", intensidade: "baixa" },
-  { palavra: "calma", prosodia: "positiva", contexto: "Serenidade da paisagem campeira", intensidade: "média" },
-];
+const logLikelihoodData = [{
+  palavra: "verso",
+  valor: 52.8,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "tarumã",
+  valor: 48.3,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "galpão",
+  valor: 45.2,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "saudade",
+  valor: 38.7,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "várzea",
+  valor: 32.4,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "coxilha",
+  valor: 28.9,
+  cor: "hsl(0, 72%, 51%)"
+}, {
+  palavra: "gateada",
+  valor: 24.1,
+  cor: "hsl(0, 72%, 51%)"
+}, {
+  palavra: "campanha",
+  valor: 18.5,
+  cor: "hsl(0, 72%, 51%)"
+}, {
+  palavra: "horizonte",
+  valor: 8.3,
+  cor: "hsl(45, 93%, 47%)"
+}];
 
-const networkData = {
-  nodes: [
-    { id: "verso", label: "verso", size: 40, color: "hsl(291, 75%, 75%)", category: "Sentimentos e Poesia" },
-    { id: "tarumã", label: "tarumã", size: 32, color: "hsl(142, 80%, 75%)", category: "Natureza e Paisagem" },
-    { id: "saudade", label: "saudade", size: 32, color: "hsl(291, 75%, 75%)", category: "Sentimentos e Poesia" },
-    { id: "várzea", label: "várzea", size: 28, color: "hsl(142, 80%, 75%)", category: "Natureza e Paisagem" },
-    { id: "galpão", label: "galpão", size: 26, color: "hsl(45, 95%, 75%)", category: "Vida no Galpão" },
-    { id: "coxilha", label: "coxilha", size: 28, color: "hsl(142, 80%, 75%)", category: "Natureza e Paisagem" },
-    { id: "sonhos", label: "sonhos", size: 24, color: "hsl(291, 75%, 75%)", category: "Sentimentos e Poesia" },
-    { id: "mate", label: "mate", size: 20, color: "hsl(45, 95%, 75%)", category: "Vida no Galpão" },
-  ],
-  links: [
-    { source: "verso", target: "saudade", strength: 0.9 },
-    { source: "verso", target: "tarumã", strength: 0.8 },
-    { source: "verso", target: "sonhos", strength: 0.85 },
-    { source: "tarumã", target: "várzea", strength: 0.7 },
-    { source: "várzea", target: "coxilha", strength: 0.6 },
-    { source: "galpão", target: "mate", strength: 0.75 },
-    { source: "saudade", target: "galpão", strength: 0.65 },
-  ]
+const miScoreData = [{
+  palavra: "verso",
+  valor: 9.2,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "tarumã",
+  valor: 8.8,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "saudade",
+  valor: 8.5,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "galpão",
+  valor: 7.9,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "várzea",
+  valor: 7.2,
+  cor: "hsl(142, 71%, 45%)"
+}, {
+  palavra: "sonhos",
+  valor: 5.8,
+  cor: "hsl(0, 72%, 51%)"
+}, {
+  palavra: "mate",
+  valor: 4.9,
+  cor: "hsl(0, 72%, 51%)"
+}, {
+  palavra: "horizonte",
+  valor: 3.2,
+  cor: "hsl(45, 93%, 47%)"
+}];
+
+const palavrasChaveData = [{
+  palavra: "verso",
+  ll: 52.8,
+  mi: 9.2,
+  frequenciaBruta: 4,
+  frequenciaNormalizada: 23.5,
+  significancia: "Alta",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "tarumã",
+  ll: 48.3,
+  mi: 8.8,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Alta",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "saudade",
+  ll: 38.7,
+  mi: 8.5,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Alta",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "galpão",
+  ll: 45.2,
+  mi: 7.9,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Alta",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "várzea",
+  ll: 32.4,
+  mi: 7.2,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Alta",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "coxilha",
+  ll: 28.9,
+  mi: 5.8,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "gateada",
+  ll: 24.1,
+  mi: 4.9,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "sonhos",
+  ll: 18.5,
+  mi: 3.8,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "campanha",
+  ll: 15.2,
+  mi: 3.2,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Baixa",
+  efeito: "Normal",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "campo",
+  ll: 14.8,
+  mi: 3.1,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Baixa",
+  efeito: "Normal",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "horizonte",
+  ll: 13.5,
+  mi: 2.9,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Baixa",
+  efeito: "Normal",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "sombra",
+  ll: 22.3,
+  mi: 4.2,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "sol",
+  ll: 21.7,
+  mi: 4.0,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "encilha",
+  ll: 19.2,
+  mi: 3.6,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "arreios",
+  ll: 17.8,
+  mi: 3.4,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "esporas",
+  ll: 16.9,
+  mi: 3.3,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "tropa",
+  ll: 16.2,
+  mi: 3.2,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Baixa",
+  efeito: "Normal",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "lombo",
+  ll: 15.8,
+  mi: 3.1,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Baixa",
+  efeito: "Normal",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "ramada",
+  ll: 18.4,
+  mi: 3.5,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "cambona",
+  ll: 17.1,
+  mi: 3.3,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "mate",
+  ll: 20.5,
+  mi: 3.9,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "candeeiro",
+  ll: 19.8,
+  mi: 3.7,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "querência",
+  ll: 18.6,
+  mi: 3.5,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "fogo",
+  ll: 17.3,
+  mi: 3.3,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "chão",
+  ll: 16.8,
+  mi: 3.2,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Baixa",
+  efeito: "Normal",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "cuia",
+  ll: 21.4,
+  mi: 4.1,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "bomba",
+  ll: 20.1,
+  mi: 3.8,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "coplas",
+  ll: 19.5,
+  mi: 3.7,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "mansidão",
+  ll: 18.9,
+  mi: 3.6,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "calma",
+  ll: 14.2,
+  mi: 2.8,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Baixa",
+  efeito: "Normal",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "silêncio",
+  ll: 17.6,
+  mi: 3.4,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "maragato",
+  ll: 22.7,
+  mi: 4.3,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Alta",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "pañuelo",
+  ll: 21.9,
+  mi: 4.2,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "maçanilha",
+  ll: 20.8,
+  mi: 4.0,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "prenda",
+  ll: 19.1,
+  mi: 3.7,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}, {
+  palavra: "campereada",
+  ll: 18.3,
+  mi: 3.5,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
+  significancia: "Média",
+  efeito: "Sobre-uso",
+  efeitoIcon: TrendingUp
+}];
+
+// Mock data para estatísticas de palavras (para tooltips)
+const palavraStats: Record<string, {
+  frequenciaBruta: number;
+  frequenciaNormalizada: number;
+  prosodia: "positiva" | "negativa" | "neutra";
+}> = {
+  "verso": { frequenciaBruta: 4, frequenciaNormalizada: 23.5, prosodia: "positiva" },
+  "tarumã": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+  "saudade": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "negativa" },
+  "galpão": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "várzea": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+  "sonhos": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+  "gateada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "mate": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "coxilha": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "neutra" },
+  "sombra": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+  "arreios": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "esporas": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "prenda": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "ramada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "candeeiro": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "querência": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "cuia": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "maragato": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "campereada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "calma": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "encilha": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "campo": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "campanha": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "horizonte": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "sol": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+  "tropa": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "lombo": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "cambona": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "fogo": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "chão": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "bomba": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "coplas": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "mansidão": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+  "silêncio": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
+  "pañuelo": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+  "maçanilha": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" }
 };
-
-// ==================== COMPONENT ====================
 
 export default function Dashboard2() {
-  const [selectedWord, setSelectedWord] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [selectedWord, setSelectedWord] = useState("");
+  const [domainModalOpen, setDomainModalOpen] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState<typeof dominiosData[0] | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMouseOverChart, setIsMouseOverChart] = useState(false);
+  const [orbitProgress, setOrbitProgress] = useState<Record<string, number>>({});
+  const [isDraggingWord, setIsDraggingWord] = useState(false);
+  const [draggedWord, setDraggedWord] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const chartRef = useRef<HTMLDivElement>(null);
-  const networkRef = useRef<SVGSVGElement>(null);
-
-  // ==================== ZOOM & PAN HANDLERS ====================
-
-  const handleZoomIn = useCallback(() => {
-    setZoomLevel(prev => Math.min(prev + 0.2, 3));
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
-  }, []);
-
-  const handleReset = useCallback(() => {
-    setZoomLevel(1);
-    setPanOffset({ x: 0, y: 0 });
-  }, []);
-
-  const handleFitToView = useCallback(() => {
-    setZoomLevel(1);
-    setPanOffset({ x: 0, y: 0 });
-  }, []);
-
-  const handleToggleFullscreen = useCallback(() => {
-    setIsFullscreen(prev => !prev);
-  }, []);
-
-  // Wheel handler para zoom isolado
-  const handleWheel = useCallback((e: WheelEvent) => {
-    if (isMouseOverChart) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const delta = e.deltaY * -0.001;
-      setZoomLevel(prev => Math.max(0.5, Math.min(3, prev + delta)));
+  const handleWordClick = (word: string) => {
+    if (isDraggingWord || isPanning) return;
+    setSelectedWord(word);
+    setModalOpen(true);
+  };
+  
+  const handleDomainClick = (domainName: string) => {
+    const domain = dominiosData.find(d => d.dominio === domainName);
+    if (domain) {
+      setSelectedDomain(domain);
+      setDomainModalOpen(true);
     }
-  }, [isMouseOverChart]);
+  };
 
+  // Handler para mudança de progresso na órbita
+  const handleOrbitProgressChange = (wordKey: string, progress: number) => {
+    setOrbitProgress(prev => ({
+      ...prev,
+      [wordKey]: progress
+    }));
+  };
+
+  // Handler para arrastar palavra na órbita
+  const handleMouseDown = useCallback((e: React.MouseEvent<SVGGElement>, wordKey: string, centerX: number, centerY: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggedWord(wordKey);
+    setIsDraggingWord(false);
+    
+    const target = e.currentTarget;
+    target.dataset.centerX = centerX.toString();
+    target.dataset.centerY = centerY.toString();
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!draggedWord || !svgRef.current) return;
+    
+    setIsDraggingWord(true);
+    
+    const svg = svgRef.current;
+    const rect = svg.getBoundingClientRect();
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+
+    const draggedElement = svg.querySelector(`[data-word-key="${draggedWord}"]`);
+    if (!draggedElement) return;
+    
+    const centerX = parseFloat(draggedElement.getAttribute('data-center-x') || '0');
+    const centerY = parseFloat(draggedElement.getAttribute('data-center-y') || '0');
+
+    const dx = svgP.x - centerX;
+    const dy = svgP.y - centerY;
+    const angle = Math.atan2(dy, dx);
+    
+    // Converte o ângulo para progresso (0-100)
+    const normalizedAngle = ((angle + Math.PI / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    const progress = (normalizedAngle / (2 * Math.PI)) * 100;
+    
+    setOrbitProgress(prev => ({
+      ...prev,
+      [draggedWord]: progress
+    }));
+  }, [draggedWord]);
+
+  const handleMouseUp = useCallback(() => {
+    setDraggedWord(null);
+    setTimeout(() => setIsDraggingWord(false), 50);
+  }, []);
+
+  // Efeito para gerenciar eventos de drag
   useEffect(() => {
-    const currentRef = chartRef.current;
-    if (currentRef) {
-      currentRef.addEventListener('wheel', handleWheel, { passive: false });
-      return () => currentRef.removeEventListener('wheel', handleWheel);
+    if (draggedWord) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
     }
-  }, [handleWheel]);
+  }, [draggedWord, handleMouseMove, handleMouseUp]);
 
-  // Pan handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 0) {
+  // Handlers de Pan (arrastar canvas)
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Verifica se clicou em área vazia (não em um elemento do gráfico)
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'svg' || target.classList.contains('pan-area')) {
       setIsPanning(true);
       setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
     }
   }, [panOffset]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isPanning) {
-      setPanOffset({
-        x: e.clientX - panStart.x,
-        y: e.clientY - panStart.y
-      });
-    }
+  const handleCanvasPanMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPanning) return;
+    setPanOffset({
+      x: e.clientX - panStart.x,
+      y: e.clientY - panStart.y
+    });
   }, [isPanning, panStart]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleCanvasPanEnd = useCallback(() => {
     setIsPanning(false);
   }, []);
 
-  // ==================== WORD CLICK HANDLER ====================
+  // Handlers de zoom com foco no cursor
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!containerRef.current || !svgRef.current) return;
+    
+    const container = containerRef.current;
+    const rect = container.getBoundingClientRect();
+    
+    // Posição do cursor relativa ao container
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Calcula novo zoom
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    const newZoom = Math.max(0.5, Math.min(3, zoomLevel + delta));
+    
+    // Ajusta pan para manter o foco no cursor
+    const zoomRatio = newZoom / zoomLevel;
+    const newPanX = mouseX - (mouseX - panOffset.x) * zoomRatio;
+    const newPanY = mouseY - (mouseY - panOffset.y) * zoomRatio;
+    
+    setZoomLevel(newZoom);
+    setPanOffset({ x: newPanX, y: newPanY });
+  }, [zoomLevel, panOffset]);
 
-  const handleWordClick = (word: string) => {
-    setSelectedWord(word);
-    setModalOpen(true);
+  const handleZoomIn = () => {
+    const newZoom = Math.min(3, zoomLevel + 0.2);
+    setZoomLevel(newZoom);
+  };
+  
+  const handleZoomOut = () => {
+    const newZoom = Math.max(0.5, zoomLevel - 0.2);
+    setZoomLevel(newZoom);
+  };
+  
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
   };
 
-  // ==================== RENDER HELPERS ====================
+  const handleFitToView = () => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
 
-  const renderFloatingToolbar = () => (
-    <div className="absolute bottom-6 right-6 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-2 flex items-center gap-1 z-10">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={handleZoomIn} className="h-9 w-9">
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Aumentar Zoom</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={handleZoomOut} className="h-9 w-9">
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Diminuir Zoom</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <div className="w-px h-6 bg-border mx-1" />
-
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={handleFitToView} className="h-9 w-9">
-              <Minimize2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Ajustar à Tela</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={handleReset} className="h-9 w-9">
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Resetar Visualização</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <div className="w-px h-6 bg-border mx-1" />
-
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={handleToggleFullscreen} className="h-9 w-9">
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
+  const handleToggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header Section */}
-      <div className="pt-[120px] px-8 pb-6 border-b border-border/50">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-5xl font-bold mb-3 text-foreground">Dashboard 2.0</h1>
-          <p className="text-lg text-muted-foreground/90 max-w-3xl">
-            Análise estilística otimizada de <span className="text-primary font-semibold">"Quando o verso vem pras casa"</span> — Luiz Marenco
+    <div className={`pt-[150px] px-8 pb-8 space-y-8 ${isFullscreen ? 'fixed inset-0 z-50 bg-background p-4 pt-20' : ''}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">
+            Dashboard 2.0: 'Quando o verso vem pras casa'
+          </h1>
+          <p className="text-muted-foreground">
+            Análise semântica completa do corpus - Versão otimizada
           </p>
         </div>
+        <Button variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Exportar Dados
+        </Button>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-8 py-10">
-        <Tabs defaultValue="corpus" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-6 h-auto p-1 bg-muted/30">
-            <TabsTrigger value="corpus" className="gap-2 py-3">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Corpus</span>
-            </TabsTrigger>
-            <TabsTrigger value="dominios" className="gap-2 py-3">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Domínios</span>
-            </TabsTrigger>
-            <TabsTrigger value="rede" className="gap-2 py-3">
-              <Network className="h-4 w-4" />
-              <span className="hidden sm:inline">Rede</span>
-            </TabsTrigger>
-            <TabsTrigger value="frequencia" className="gap-2 py-3">
-              <FileBarChart className="h-4 w-4" />
-              <span className="hidden sm:inline">Frequência</span>
-            </TabsTrigger>
-            <TabsTrigger value="estatistica" className="gap-2 py-3">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Estatística</span>
-            </TabsTrigger>
-            <TabsTrigger value="nuvem" className="gap-2 py-3">
-              <Cloud className="h-4 w-4" />
-              <span className="hidden sm:inline">Nuvem</span>
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="corpus" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="corpus" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Corpus
+          </TabsTrigger>
+          <TabsTrigger value="dominios" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Domínios
+          </TabsTrigger>
+          <TabsTrigger value="rede" className="gap-2">
+            <Network className="h-4 w-4" />
+            Rede
+          </TabsTrigger>
+          <TabsTrigger value="frequencia" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Frequência
+          </TabsTrigger>
+          <TabsTrigger value="estatistica" className="gap-2">
+            <FileBarChart className="h-4 w-4" />
+            Estatística
+          </TabsTrigger>
+          <TabsTrigger value="nuvem" className="gap-2">
+            <Cloud className="h-4 w-4" />
+            Nuvem
+          </TabsTrigger>
+        </TabsList>
 
-          {/* ==================== CORPUS TAB ==================== */}
-          <TabsContent value="corpus" className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl">Informações do Corpus</CardTitle>
-                <CardDescription className="text-base">
-                  Detalhes estatísticos e metadados do texto analisado
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="p-5 bg-muted/20 rounded-lg border border-border/50">
-                    <div className="text-sm text-muted-foreground mb-2">Total de Palavras</div>
-                    <div className="text-3xl font-bold text-foreground">170</div>
-                  </div>
-                  <div className="p-5 bg-muted/20 rounded-lg border border-border/50">
-                    <div className="text-sm text-muted-foreground mb-2">Palavras Únicas</div>
-                    <div className="text-3xl font-bold text-foreground">127</div>
-                  </div>
-                  <div className="p-5 bg-muted/20 rounded-lg border border-border/50">
-                    <div className="text-sm text-muted-foreground mb-2">Densidade Lexical</div>
-                    <div className="text-3xl font-bold text-foreground">74.7%</div>
-                  </div>
-                </div>
-
-                <div className="pt-4">
-                  <h3 className="text-lg font-semibold mb-4 text-foreground">Metadados</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm text-muted-foreground">Título</span>
-                      <span className="text-base font-medium text-foreground">Quando o verso vem pras casa</span>
+        {/* Tab: Corpus */}
+        <TabsContent value="corpus" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileText className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm text-muted-foreground">Artista</span>
-                      <span className="text-base font-medium text-foreground">Luiz Marenco</span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm text-muted-foreground">Gênero</span>
-                      <span className="text-base font-medium text-foreground">Música Gaúcha / Regional</span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm text-muted-foreground">Estilo</span>
-                      <span className="text-base font-medium text-foreground">Lírica Campeira</span>
+                    <div>
+                      <CardTitle>Quando o verso vem pras casa</CardTitle>
+                      <CardDescription>Luiz Marenco - Letra completa da música</CardDescription>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <div className="whitespace-pre-line text-foreground leading-relaxed">
+{`A calma do tarumã, ganhou sombra mais copada
+Pela várzea espichada com o sol da tarde caindo
+Um pañuelo maragato se abriu no horizonte
+Trazendo um novo reponte, prá um fim de tarde bem lindo
+Daí um verso de campo se chegou da campereada
+No lombo de uma gateada frente aberta de respeito
+Desencilhou na ramada, já cansado das lonjuras
+Mas estampando a figura, campeira, bem do seu jeito
+Cevou um mate pura-folha, jujado de maçanilha
+E um ventito da coxilha trouxe coplas entre as asas
+Prá querência galponeira, onde o verso é mais caseiro
+Templado a luz de candeeiro e um "quarto gordo nas brasa"
+A mansidão da campanha traz saudades feito açoite
+Com os olhos negros de noite que ela mesmo aquerenciou
+E o verso que tinha sonhos prá rondar na madrugada
+Deixou a cancela encostada e a tropa se desgarrou
+E o verso sonhou ser várzea com sombra de tarumã
+Ser um galo prás manhãs, ou um gateado prá encilha
+Sonhou com os olhos da prenda vestidos de primavera
+Adormecidos na espera do sol pontear na coxilha
+Ficaram arreios suados e o silencio de esporas
+Um cerne com cor de aurora queimando em fogo de chão
+Uma cuia e uma bomba recostada na cambona
+E uma saudade redomona pelos cantos do galpão`}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* ==================== DOMÍNIOS TAB ==================== */}
-          <TabsContent value="dominios" className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl">Domínios Semânticos</CardTitle>
-                <CardDescription className="text-base">
-                  Agrupamentos temáticos das palavras-chave identificadas
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                {/* Bar Chart */}
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dominiosData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                      <XAxis 
-                        dataKey="dominio" 
-                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                        tickFormatter={(value) => value.split(' ')[0]}
-                      />
-                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                      <RechartsTooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          color: 'hsl(var(--foreground))'
-                        }}
-                        formatter={(value: any) => [`${value} ocorrências`, 'Total']}
-                      />
-                      <Bar dataKey="ocorrencias" radius={[6, 6, 0, 0]}>
-                        {dominiosData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.corTexto} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Ouça a canção</CardTitle>
+                  <CardDescription>Player integrado do YouTube</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video rounded-lg overflow-hidden border shadow-sm">
+                    <iframe 
+                      width="100%" 
+                      height="100%" 
+                      src="https://www.youtube.com/embed/uaRc4k-Rxpo" 
+                      title="Quando o verso vem pras casa - Luiz Marenco"
+                      frameBorder="0" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
 
-                {/* Domain Cards */}
-                <div className="space-y-6">
-                  {dominiosData.map((dominio) => (
-                    <Card key={dominio.dominio} className="border-border/50 hover:border-primary/30 transition-colors">
-                      <CardHeader className="pb-3">
+        {/* Tab: Domínios - Seção Completa */}
+        <TabsContent value="dominios" className="space-y-6">
+          <TooltipProvider delayDuration={100}>
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <FileText className="h-5 w-5 text-success" />
+                      </div>
+                      <div>
+                        <CardTitle>Domínios Semânticos Identificados</CardTitle>
+                        <CardDescription>
+                          Análise baseada em IA - 5 domínios detectados em 170 palavras
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {dominiosData.map((item, index) => (
+                      <div key={index} className="space-y-3 p-4 rounded-lg border bg-card hover:shadow-md transition-all">
                         <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle className="text-xl mb-2">{dominio.nomeCompleto}</CardTitle>
-                            <CardDescription className="text-sm">{dominio.descricaoContextual}</CardDescription>
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full shadow-sm" 
+                              style={{ backgroundColor: item.cor }} 
+                            />
+                            <div>
+                              <h3 className="font-bold text-lg">{item.dominio}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {index === 0 && "Elementos naturais da paisagem pampeana que formam o cenário poético"}
+                                {index === 1 && "Vocabulário técnico relacionado ao cavalo e seu equipamento"}
+                                {index === 2 && "Espaço de convivência, tradição e pertencimento gaúcho"}
+                                {index === 3 && "Campo emocional e criativo que permeia toda a narrativa"}
+                                {index === 4 && "Símbolos e práticas culturais distintivas do Rio Grande do Sul"}
+                              </p>
+                            </div>
                           </div>
-                          <TooltipProvider>
-                            <Tooltip>
+                          <div className="flex flex-col items-end gap-1">
+                            <UITooltip>
                               <TooltipTrigger asChild>
-                                <Badge 
-                                  variant="outline" 
-                                  className="ml-4 text-base px-3 py-1"
-                                  style={{ 
-                                    backgroundColor: dominio.cor,
-                                    color: dominio.corTexto,
-                                    borderColor: dominio.corTexto
-                                  }}
-                                >
-                                  {dominio.percentual}%
-                                </Badge>
+                                <div className="flex items-center gap-2 cursor-help">
+                                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-2xl font-bold" style={{ color: item.cor }}>
+                                    {item.percentual}%
+                                  </span>
+                                </div>
                               </TooltipTrigger>
-                              <TooltipContent side="left" className="max-w-xs">
-                                <div className="space-y-1">
-                                  <p className="font-semibold">Representatividade: {dominio.percentual}%</p>
-                                  <p className="text-xs">{dominio.representatividade}</p>
-                                  <p className="text-xs mt-2"><strong>Densidade:</strong> {dominio.densidadeLexical}</p>
+                              <TooltipContent className="max-w-sm">
+                                <div className="space-y-2">
+                                  <p className="font-semibold text-foreground">{item.dominio}</p>
+                                  <p className="text-xs text-foreground">
+                                    Este domínio representa <strong>{item.percentual}%</strong> do total de palavras analisadas, 
+                                    com <strong>{item.ocorrencias} ocorrências</strong> distribuídas em {item.palavras.length} palavras-chave.
+                                  </p>
+                                  <div className="pt-2 border-t border-border">
+                                    <p className="text-xs font-medium text-foreground">Densidade lexical:</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(item.ocorrencias / item.palavras.length).toFixed(1)} ocorrências por palavra
+                                    </p>
+                                  </div>
                                 </div>
                               </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                            </UITooltip>
+                            <span className="text-xs text-muted-foreground">
+                              {item.ocorrencias} ocorrências
+                            </span>
+                          </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                        
+                        {/* Barra de progresso animada */}
+                        <div className="relative w-full bg-muted/30 rounded-full h-3 overflow-hidden">
+                          <div 
+                            className="h-3 rounded-full transition-all duration-500 relative"
+                            style={{
+                              width: `${item.percentual}%`,
+                              backgroundColor: item.cor,
+                              boxShadow: `0 0 10px ${item.cor}40`
+                            }}
+                          >
+                            <div 
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Palavras com tooltips individuais */}
                         <div className="flex flex-wrap gap-2">
-                          {dominio.palavras.map((palavra) => {
-                            const stats = palavrasChaveData.find(p => p.palavra === palavra);
+                          {item.palavras.map((palavra, idx) => {
+                            const palavraChave = palavrasChaveData.find(p => p.palavra === palavra);
+                            const kwicEntries = kwicDataMap[palavra];
+                            
                             return (
-                              <TooltipProvider key={palavra}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge 
-                                      variant="secondary"
-                                      className="cursor-pointer hover:opacity-80 transition-opacity px-3 py-1 text-sm"
-                                      onClick={() => handleWordClick(palavra)}
-                                    >
-                                      {palavra}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  {stats && (
-                                    <TooltipContent side="top" className="max-w-xs z-50">
-                                      <div className="space-y-2">
-                                        <p className="font-bold text-sm">{palavra}</p>
-                                        <div className="space-y-1 text-xs">
-                                          <p><strong>Frequência no Corpus:</strong> {stats.frequenciaBruta} ({stats.frequenciaNormalizada}/10k palavras)</p>
-                                          <p><strong>Significância:</strong> {stats.significancia}</p>
-                                          <p><strong>Log-Likelihood:</strong> {stats.ll.toFixed(1)}</p>
-                                          <p className="flex items-center gap-1">
-                                            <strong>Efeito:</strong> 
-                                            <span className={stats.efeito === "Sobre-uso" ? "text-success" : "text-muted-foreground"}>
-                                              {stats.efeito}
-                                            </span>
-                                            {stats.efeito === "Sobre-uso" && <TrendingUp className="h-3 w-3 text-success" />}
+                              <UITooltip key={idx}>
+                                <TooltipTrigger asChild>
+                                  <Badge 
+                                    className="cursor-pointer hover:scale-110 transition-all border-0 shadow-sm" 
+                                    style={{
+                                      backgroundColor: item.cor,
+                                      color: item.corTexto
+                                    }}
+                                    onClick={() => handleWordClick(palavra)}
+                                  >
+                                    {palavra}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-md p-4 z-50">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between gap-4">
+                                      <p className="font-bold text-lg text-foreground">{palavra}</p>
+                                      {palavraChave && (
+                                        <Badge 
+                                          variant={palavraChave.significancia === "Alta" ? "default" : "secondary"} 
+                                          className="text-xs"
+                                        >
+                                          {palavraChave.significancia}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Estatísticas detalhadas */}
+                                    <div className="grid grid-cols-2 gap-3 py-2 border-y border-border">
+                                      <div>
+                                        <p className="text-xs text-muted-foreground">Frequência no Corpus</p>
+                                        <p className="text-sm font-semibold text-foreground">
+                                          {palavraChave?.frequenciaBruta || kwicEntries?.length || 1}x
+                                        </p>
+                                      </div>
+                                      {palavraChave && (
+                                        <>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">Significância</p>
+                                            <div className="flex items-center gap-1">
+                                              <p className="text-sm font-semibold text-foreground">{palavraChave.significancia}</p>
+                                              {palavraChave.significancia === "Alta" && (
+                                                <TrendingUp className="h-3 w-3 text-success" />
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">Log-Likelihood</p>
+                                            <p className="text-sm font-semibold text-foreground">{palavraChave.ll.toFixed(1)}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">Efeito</p>
+                                            <div className="flex items-center gap-1">
+                                              <p className="text-sm font-semibold text-foreground">{palavraChave.efeito}</p>
+                                              {palavraChave.efeito === "Sobre-uso" && (
+                                                <TrendingUp className="h-3 w-3 text-success" />
+                                              )}
+                                            </div>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Contexto KWIC */}
+                                    <div className="text-xs space-y-1">
+                                      <p className="text-muted-foreground font-medium">Contexto na música:</p>
+                                      {kwicEntries && kwicEntries.length > 0 ? (
+                                        <div className="bg-muted/50 p-2 rounded">
+                                          <p className="italic text-foreground">
+                                            "{kwicEntries[0].leftContext}{" "}
+                                            <strong className="text-primary">{kwicEntries[0].keyword}</strong>
+                                            {" "}{kwicEntries[0].rightContext}"
                                           </p>
                                         </div>
-                                        <p className="text-xs italic pt-1 border-t border-border">Clique para ver contexto (KWIC)</p>
-                                      </div>
-                                    </TooltipContent>
-                                  )}
-                                </Tooltip>
-                              </TooltipProvider>
+                                      ) : (
+                                        <p className="text-muted-foreground italic">Clique para ver concordância completa</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </UITooltip>
                             );
                           })}
                         </div>
-                        
-                        {dominio.fragmentoExemplo && (
-                          <div className="pt-3 mt-3 border-t border-border/30">
-                            <p className="text-xs text-muted-foreground mb-1">Exemplo na música:</p>
-                            <p className="text-sm italic text-foreground/80">{dominio.fragmentoExemplo}</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
 
-          {/* ==================== REDE TAB ==================== */}
-          <TabsContent value="rede" className="space-y-6">
+                {/* Gráfico de Comparação */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Distribuição dos Domínios Semânticos</CardTitle>
+                    <CardDescription>Comparativo de ocorrências entre domínios</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={dominiosData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="dominio" 
+                          angle={-20} 
+                          textAnchor="end" 
+                          height={120}
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis stroke="hsl(var(--muted-foreground))" />
+                        <Tooltip 
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                            color: 'hsl(var(--foreground))'
+                          }}
+                          formatter={(value: any) => [`${value} ocorrências`, 'Total']}
+                          labelFormatter={(label) => `${label}`}
+                        />
+                        <Bar dataKey="ocorrencias" radius={[6, 6, 0, 0]}>
+                          {dominiosData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.cor} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                {/* Card de insights */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      Insights da Análise
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-success mt-1.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Domínio Dominante</p>
+                          <p className="text-xs text-muted-foreground">
+                            "Natureza e Paisagem Campeira" lidera com {dominiosData[0].percentual}%, evidenciando 
+                            a centralidade do ambiente pampeano na construção poética
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Equilíbrio Temático</p>
+                          <p className="text-xs text-muted-foreground">
+                            Os 5 domínios cobrem {dominiosData.reduce((acc, d) => acc + d.percentual, 0).toFixed(1)}% 
+                            do corpus, demonstrando forte coesão semântica
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Densidade Lexical</p>
+                          <p className="text-xs text-muted-foreground">
+                            Média de {(dominiosData.reduce((acc, d) => acc + d.ocorrencias, 0) / 
+                            dominiosData.reduce((acc, d) => acc + d.palavras.length, 0)).toFixed(1)} 
+                            ocorrências por palavra-chave no corpus
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card de ações */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Exportar Dados</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Baixar como CSV
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <FileBarChart className="h-4 w-4 mr-2" />
+                      Gerar Relatório
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TooltipProvider>
+        </TabsContent>
+
+        {/* Tab: Rede */}
+        <TabsContent value="rede" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Network className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle>Rede Semântica Interativa</CardTitle>
+                    <CardDescription>
+                      Visualização da força de associação entre palavras-chave no corpus.
+                    </CardDescription>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="gap-1">
+                  <Network className="h-3 w-3" />
+                  6 conexões mapeadas
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted/30 rounded-lg border">
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      Sistema Orbital Hierárquico - Prosódia Semântica
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Visualização hierárquica em 3 níveis: <strong>(1)</strong> Clique em "Canção Analisada" para ver os sistemas orbitais, 
+                      <strong>(2)</strong> clique em um sistema (verso, saudade, sonhos, etc.) para ver em detalhe suas palavras e força de associação semântica.
+                    </p>
+                  </div>
+                  <OrbitalConstellationChart 
+                    songName="Quando o verso vem pras casa"
+                    artistName="Luiz Marenco"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Frequência */}
+        <TabsContent value="frequencia" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl">Rede Semântica</CardTitle>
-                <CardDescription className="text-base">
-                  Visualização das conexões entre palavras-chave por coocorrência
-                </CardDescription>
+              <CardHeader>
+                <CardTitle>Log-Likelihood (LL)</CardTitle>
+                <CardDescription>Medida estatística de significância das palavras-chave</CardDescription>
               </CardHeader>
               <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={logLikelihoodData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="palavra" angle={-45} textAnchor="end" height={80} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      color: 'hsl(var(--foreground))'
+                    }} />
+                    <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
+                      {logLikelihoodData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.cor} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Mutual Information (MI)</CardTitle>
+                <CardDescription>Força da associação entre palavra e corpus</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={miScoreData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="palavra" angle={-45} textAnchor="end" height={80} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      color: 'hsl(var(--foreground))'
+                    }} />
+                    <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
+                      {miScoreData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.cor} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Tab: Estatística */}
+        <TabsContent value="estatistica" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tabela de Palavras-Chave Estatísticas</CardTitle>
+              <CardDescription>
+                Análise combinada de Log-Likelihood e MI Score
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Palavra</TableHead>
+                    <TableHead className="text-right">Freq. Bruta</TableHead>
+                    <TableHead className="text-right">Freq. Normalizada</TableHead>
+                    <TableHead className="text-right">Log-Likelihood</TableHead>
+                    <TableHead className="text-right">MI Score</TableHead>
+                    <TableHead>Significância</TableHead>
+                    <TableHead>Efeito</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {palavrasChaveData.map((item, index) => {
+                    const EfeitoIcon = item.efeitoIcon;
+                    return (
+                      <TableRow 
+                        key={index} 
+                        className="cursor-pointer hover:bg-muted/50" 
+                        onClick={() => handleWordClick(item.palavra)}
+                      >
+                        <TableCell className="font-mono font-semibold">{item.palavra}</TableCell>
+                        <TableCell className="text-right">{item.frequenciaBruta}</TableCell>
+                        <TableCell className="text-right">{item.frequenciaNormalizada.toFixed(1)}</TableCell>
+                        <TableCell className={`text-right font-semibold ${item.ll > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {item.ll.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">{item.mi.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="secondary" 
+                            className={
+                              item.significancia === "Alta" 
+                                ? "bg-success/10 text-success" 
+                                : item.significancia === "Média" 
+                                ? "bg-destructive/10 text-destructive" 
+                                : "bg-[hsl(45,93%,47%)]/10 text-[hsl(45,93%,47%)]"
+                            }
+                          >
+                            {item.significancia}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <EfeitoIcon 
+                              className={`h-4 w-4 ${
+                                item.efeito === 'Sobre-uso' 
+                                  ? 'text-destructive' 
+                                  : item.efeito === 'Sub-uso' 
+                                  ? 'text-primary' 
+                                  : 'text-success'
+                              }`} 
+                            />
+                            <span className="text-sm">{item.efeito}</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Nuvem */}
+        <TabsContent value="nuvem" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Nuvem de Domínios Semânticos - Constelação Orbital</CardTitle>
+              <CardDescription>
+                Clique e arraste para mover o gráfico. Use a roda do mouse para zoom. Arraste as palavras para movê-las na órbita. Clique nas palavras para ver concordância (KWIC).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-2">
+              <TooltipProvider>
                 <div 
-                  ref={chartRef}
-                  className={`relative bg-muted/10 rounded-lg border border-border/50 overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : 'h-[600px]'}`}
-                  onMouseEnter={() => setIsMouseOverChart(true)}
-                  onMouseLeave={() => {
-                    setIsMouseOverChart(false);
-                    handleMouseUp();
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
+                  ref={containerRef}
+                  className={`relative h-[750px] bg-gradient-to-br from-background via-muted/10 to-background rounded-lg border overflow-hidden ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+                  style={{ height: isFullscreen ? 'calc(100vh - 200px)' : '750px' }}
+                  onMouseDown={handleCanvasMouseDown}
+                  onMouseMove={handleCanvasPanMove}
+                  onMouseUp={handleCanvasPanEnd}
+                  onMouseLeave={handleCanvasPanEnd}
+                  onWheel={handleWheel}
                 >
-                  <svg
-                    ref={networkRef}
-                    width="100%"
-                    height="100%"
+                  {/* Controles de Zoom - Interno */}
+                  <NavigationToolbar
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    onReset={handleResetZoom}
+                    onFitToView={handleFitToView}
+                    onToggleFullscreen={handleToggleFullscreen}
+                    isFullscreen={isFullscreen}
+                    className="absolute top-4 right-4 z-30"
+                  />
+
+                  <div 
+                    className="pan-area absolute inset-0"
                     style={{
-                      transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
-                      transformOrigin: 'center',
-                      transition: isPanning ? 'none' : 'transform 0.1s ease-out'
+                      transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+                      transformOrigin: 'top left',
+                      pointerEvents: 'none'
                     }}
                   >
-                    {/* Links */}
-                    <g>
-                      {networkData.links.map((link, i) => {
-                        const sourceNode = networkData.nodes.find(n => n.id === link.source);
-                        const targetNode = networkData.nodes.find(n => n.id === link.target);
-                        if (!sourceNode || !targetNode) return null;
+                    <svg
+                      ref={svgRef}
+                      width={1300}
+                      height={975}
+                      viewBox="0 0 1300 975"
+                      className="w-auto h-auto"
+                      style={{ 
+                        transform: `scale(${zoomLevel})`,
+                        transformOrigin: 'top left',
+                        pointerEvents: 'auto'
+                      }}
+                    >
+                      {dominiosData.map((dominio, index) => {
+                        const positions = [
+                          { x: 650, y: 487 },
+                          { x: 390, y: 195 },
+                          { x: 910, y: 195 },
+                          { x: 364, y: 754 },
+                          { x: 936, y: 754 }
+                        ];
                         
-                        const x1 = 100 + (i % 3) * 250;
-                        const y1 = 100 + Math.floor(i / 3) * 150;
-                        const x2 = x1 + 200;
-                        const y2 = y1 + 100;
-
+                        const position = positions[index];
+                        const centerX = position.x;
+                        const centerY = position.y;
+                        
+                        const sizeScale = (0.6 + (dominio.percentual / 28.2) * 0.8) * 1.3;
+                        
+                        const orbitRadii = [
+                          91 * sizeScale,
+                          143 * sizeScale,
+                          195 * sizeScale,
+                          247 * sizeScale
+                        ];
+                        
+                        const totalWords = dominio.palavras.length;
+                        const wordsPerOrbit = Math.ceil(totalWords / 4);
+                        
                         return (
-                          <line
-                            key={`link-${i}`}
-                            x1={x1}
-                            y1={y1}
-                            x2={x2}
-                            y2={y2}
-                            stroke="hsl(var(--border))"
-                            strokeWidth={link.strength * 3}
-                            opacity={0.3}
-                          />
-                        );
-                      })}
-                    </g>
+                          <g key={dominio.dominio}>
+                            {orbitRadii.map((radius, orbitIndex) => {
+                              const circumference = 2 * Math.PI * radius;
+                              return (
+                                <g key={`orbit-${orbitIndex}`}>
+                                  <circle 
+                                    cx={centerX} 
+                                    cy={centerY} 
+                                    r={radius} 
+                                    fill="none" 
+                                    stroke={dominio.cor} 
+                                    strokeWidth={3.9 - orbitIndex * 0.65} 
+                                    opacity={0.25 - orbitIndex * 0.05} 
+                                  />
+                                  <circle 
+                                    cx={centerX} 
+                                    cy={centerY} 
+                                    r={radius} 
+                                    fill="none" 
+                                    stroke={dominio.cor} 
+                                    strokeWidth={3.9 - orbitIndex * 0.65} 
+                                    strokeDasharray={`${circumference * 0.1} ${circumference * 0.9}`} 
+                                    opacity={0.4}
+                                    style={{ 
+                                      animation: 'spin 60s linear infinite', 
+                                      transformOrigin: `${centerX}px ${centerY}px` 
+                                    }} 
+                                  />
+                                </g>
+                              );
+                            })}
 
-                    {/* Nodes */}
-                    <g>
-                      {networkData.nodes.map((node, i) => {
-                        const x = 100 + (i % 3) * 250;
-                        const y = 100 + Math.floor(i / 3) * 150;
-
-                        return (
-                          <g key={node.id}>
-                            <circle
-                              cx={x}
-                              cy={y}
-                              r={node.size}
-                              fill={node.color}
-                              stroke="hsl(var(--border))"
-                              strokeWidth="2"
-                              className="cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => handleWordClick(node.label)}
-                            />
-                            <text
-                              x={x}
-                              y={y}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              fill="hsl(var(--background))"
-                              fontSize="12"
-                              fontWeight="600"
-                              className="pointer-events-none"
+                            <g 
+                              style={{ cursor: 'pointer' }} 
+                              onClick={() => handleDomainClick(dominio.dominio)}
                             >
-                              {node.label}
-                            </text>
+                              <circle 
+                                cx={centerX} 
+                                cy={centerY} 
+                                r={36.4 * sizeScale} 
+                                fill={dominio.cor} 
+                                opacity="0.1" 
+                                className="animate-pulse" 
+                              />
+                              <circle 
+                                cx={centerX} 
+                                cy={centerY} 
+                                r={29.9 * sizeScale} 
+                                fill={dominio.cor} 
+                                opacity="0.2" 
+                              />
+                              <circle 
+                                cx={centerX} 
+                                cy={centerY} 
+                                r={23.4 * sizeScale} 
+                                fill={dominio.cor} 
+                                opacity="0.85" 
+                                style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))' }} 
+                              />
+                              <text 
+                                x={centerX} 
+                                y={centerY} 
+                                textAnchor="middle" 
+                                dominantBaseline="middle" 
+                                className="fill-primary-foreground font-bold pointer-events-none"
+                                style={{ fontSize: `${18.2 * sizeScale}px` }}
+                              >
+                                {dominio.dominio.split(' ')[0]}
+                              </text>
+                            </g>
+
+                            {dominio.palavras.map((palavra, wordIndex) => {
+                              const orbitLevel = Math.floor(wordIndex / wordsPerOrbit);
+                              const orbit = Math.min(orbitLevel, 3);
+                              const radius = orbitRadii[orbit];
+                              const wordsInThisOrbit = Math.min(wordsPerOrbit, totalWords - orbit * wordsPerOrbit);
+                              const indexInOrbit = wordIndex % wordsPerOrbit;
+                              const wordKey = `${dominio.dominio}-${palavra}`;
+                              
+                              let angle: number;
+                              if (orbitProgress[wordKey] !== undefined) {
+                                angle = (orbitProgress[wordKey] / 100) * 2 * Math.PI - Math.PI / 2;
+                              } else {
+                                const baseAngle = (indexInOrbit / wordsInThisOrbit) * 2 * Math.PI - Math.PI / 2;
+                                const angleOffset = (Math.sin(wordIndex * 2.5) * 0.3);
+                                angle = baseAngle + angleOffset;
+                              }
+                              
+                              const radiusVariation = 1 + (Math.cos(wordIndex * 3.7) * 0.12);
+                              const finalRadius = radius * radiusVariation;
+                              const x = centerX + Math.cos(angle) * finalRadius;
+                              const y = centerY + Math.sin(angle) * finalRadius;
+                              const wordScale = (1 - (orbit * 0.12)) * 1.3;
+                              const stats = palavraStats[palavra];
+                              
+                              return (
+                                <g 
+                                  key={wordKey} 
+                                  data-word-key={wordKey} 
+                                  data-center-x={centerX} 
+                                  data-center-y={centerY} 
+                                  style={{ cursor: 'grab' }}
+                                  onMouseDown={(e) => handleMouseDown(e, wordKey, centerX, centerY)}
+                                >
+                                  <circle 
+                                    cx={x} 
+                                    cy={y} 
+                                    r={10.4 * wordScale} 
+                                    fill={dominio.cor} 
+                                    opacity="0.08" 
+                                    className="animate-pulse" 
+                                  />
+                                  <circle 
+                                    cx={x} 
+                                    cy={y} 
+                                    r={7.8 * wordScale} 
+                                    fill={dominio.cor} 
+                                    opacity="0.15" 
+                                  />
+                                  <circle 
+                                    cx={x} 
+                                    cy={y} 
+                                    r={5.2 * wordScale} 
+                                    fill={dominio.cor} 
+                                    opacity="0.85" 
+                                    style={{ filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3))' }} 
+                                  />
+                                  <circle 
+                                    cx={x} 
+                                    cy={y} 
+                                    r={15.6 * wordScale} 
+                                    fill="transparent" 
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      if (!isDraggingWord) handleWordClick(palavra); 
+                                    }}
+                                  >
+                                    {stats && (
+                                      <title>
+                                        {`${palavra}\nFreq. Bruta: ${stats.frequenciaBruta}\nFreq. Normalizada: ${stats.frequenciaNormalizada}\nProsódia: ${stats.prosodia === 'positiva' ? 'Positiva ✓' : stats.prosodia === 'negativa' ? 'Negativa ✗' : 'Neutra −'}`}
+                                      </title>
+                                    )}
+                                  </circle>
+                                  <text 
+                                    x={x} 
+                                    y={y - 2.6 * wordScale} 
+                                    textAnchor="middle" 
+                                    dominantBaseline="middle" 
+                                    className="fill-foreground font-bold pointer-events-none"
+                                    style={{ fontSize: `${9.1 * wordScale}px` }}
+                                  >
+                                    {palavra}
+                                  </text>
+                                </g>
+                              );
+                            })}
                           </g>
                         );
                       })}
-                    </g>
-                  </svg>
-                  {renderFloatingToolbar()}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ==================== FREQUÊNCIA TAB ==================== */}
-          <TabsContent value="frequencia" className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl">Análise de Frequência</CardTitle>
-                <CardDescription className="text-base">
-                  Ranking de palavras por frequência absoluta e normalizada
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-border/50">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="text-foreground font-semibold">Palavra</TableHead>
-                        <TableHead className="text-foreground font-semibold">Freq. Bruta</TableHead>
-                        <TableHead className="text-foreground font-semibold">Freq. Normalizada</TableHead>
-                        <TableHead className="text-foreground font-semibold">Significância</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {palavrasChaveData.map((item) => (
-                        <TableRow 
-                          key={item.palavra} 
-                          className="cursor-pointer hover:bg-muted/30 transition-colors"
-                          onClick={() => handleWordClick(item.palavra)}
-                        >
-                          <TableCell className="font-medium text-foreground">{item.palavra}</TableCell>
-                          <TableCell className="text-muted-foreground">{item.frequenciaBruta}</TableCell>
-                          <TableCell className="text-muted-foreground">{item.frequenciaNormalizada}</TableCell>
-                          <TableCell>
-                            <Badge variant={item.significancia === "Alta" ? "default" : "secondary"}>
-                              {item.significancia}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ==================== ESTATÍSTICA TAB ==================== */}
-          <TabsContent value="estatistica" className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl">Estatísticas de Significância</CardTitle>
-                <CardDescription className="text-base">
-                  Medidas estatísticas de relevância: Log-Likelihood e Mutual Information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                {/* Log-Likelihood Chart */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 text-foreground">Log-Likelihood</h3>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={palavrasChaveData} layout="horizontal">
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                        <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                        <YAxis 
-                          dataKey="palavra" 
-                          type="category" 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                        />
-                        <RechartsTooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            color: 'hsl(var(--foreground))'
-                          }}
-                        />
-                        <Bar dataKey="ll" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    </svg>
                   </div>
                 </div>
-
-                {/* MI Score Chart */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 text-foreground">Mutual Information (MI Score)</h3>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={palavrasChaveData} layout="horizontal">
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                        <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                        <YAxis 
-                          dataKey="palavra" 
-                          type="category" 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                        />
-                        <RechartsTooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            color: 'hsl(var(--foreground))'
-                          }}
-                        />
-                        <Bar dataKey="mi" fill="hsl(var(--success))" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+              </TooltipProvider>
+              
+              <div className="mt-4 grid grid-cols-4 gap-2 text-xs">
+                <div className="p-2.5 rounded-lg bg-muted/40 border">
+                  <div className="font-semibold mb-1 text-sm">Órbita 1</div>
+                  <div className="text-muted-foreground">20-30% de freq.</div>
                 </div>
-
-                {/* Prosódia Semântica */}
-                <div className="pt-6 border-t border-border/30">
-                  <h3 className="text-lg font-semibold mb-4 text-foreground">Prosódia Semântica</h3>
-                  <div className="rounded-lg border border-border/50">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-foreground font-semibold">Palavra</TableHead>
-                          <TableHead className="text-foreground font-semibold">Prosódia</TableHead>
-                          <TableHead className="text-foreground font-semibold">Contexto</TableHead>
-                          <TableHead className="text-foreground font-semibold">Intensidade</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {prosodiaData.map((item) => (
-                          <TableRow key={item.palavra} className="hover:bg-muted/30 transition-colors">
-                            <TableCell className="font-medium text-foreground">{item.palavra}</TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={item.prosodia === "positiva" ? "default" : item.prosodia === "negativa" ? "destructive" : "secondary"}
-                              >
-                                {item.prosodia}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground max-w-md">{item.contexto}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{item.intensidade}</Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border">
+                  <div className="font-semibold mb-1 text-sm">Órbita 2</div>
+                  <div className="text-muted-foreground">15-20% de freq.</div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ==================== NUVEM TAB ==================== */}
-          <TabsContent value="nuvem" className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl">Nuvem de Palavras</CardTitle>
-                <CardDescription className="text-base">
-                  Representação visual da frequência das palavras-chave
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[500px] flex items-center justify-center bg-muted/10 rounded-lg border border-border/50 p-8">
-                  <div className="flex flex-wrap items-center justify-center gap-6">
-                    {palavrasChaveData.map((item, index) => {
-                      const fontSize = 16 + (item.frequenciaBruta * 8);
-                      return (
-                        <TooltipProvider key={item.palavra}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span
-                                className="cursor-pointer hover:opacity-70 transition-opacity font-semibold"
-                                style={{ 
-                                  fontSize: `${fontSize}px`,
-                                  color: `hsl(${(index * 40) % 360}, 70%, 60%)`
-                                }}
-                                onClick={() => handleWordClick(item.palavra)}
-                              >
-                                {item.palavra}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="font-semibold">{item.palavra}</p>
-                              <p className="text-xs">Frequência: {item.frequenciaBruta}</p>
-                              <p className="text-xs">Clique para ver contexto</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
-                    })}
-                  </div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border">
+                  <div className="font-semibold mb-1 text-sm">Órbita 3</div>
+                  <div className="text-muted-foreground">10-15% de freq.</div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border">
+                  <div className="font-semibold mb-1 text-sm">Órbita 4</div>
+                  <div className="text-muted-foreground">{'<'}10% de freq.</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-      {/* ==================== KWIC MODAL ==================== */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      {/* Modal KWIC */}
+      <KWICModal 
+        open={modalOpen} 
+        onOpenChange={setModalOpen} 
+        word={selectedWord} 
+        data={kwicDataMap[selectedWord] || []} 
+      />
+
+      {/* Modal de Domínio Semântico */}
+      <Dialog open={domainModalOpen} onOpenChange={setDomainModalOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Concordância: <span className="text-primary">{selectedWord}</span></DialogTitle>
+            <DialogTitle className="flex items-center gap-3">
+              {selectedDomain && (
+                <>
+                  <div 
+                    className="w-4 h-4 rounded-full" 
+                    style={{ backgroundColor: selectedDomain.cor }} 
+                  />
+                  {selectedDomain.dominio}
+                </>
+              )}
+            </DialogTitle>
             <DialogDescription>
-              Todas as ocorrências da palavra no contexto da música (KWIC - Key Word In Context)
+              Dados estatísticos do domínio semântico
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 mt-4">
-            {kwicDataMap[selectedWord]?.map((item, idx) => (
-              <div key={idx} className="p-4 bg-muted/20 rounded-lg border border-border/30 hover:border-primary/30 transition-colors">
-                <div className="flex items-center gap-2 text-sm mb-2">
-                  <FileText className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">{item.source}</span>
-                </div>
-                <p className="text-base leading-relaxed">
-                  <span className="text-muted-foreground">{item.leftContext}</span>
-                  {" "}
-                  <span className="font-bold text-primary bg-primary/10 px-1 rounded">{item.keyword}</span>
-                  {" "}
-                  <span className="text-muted-foreground">{item.rightContext}</span>
-                </p>
+          {selectedDomain && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold">{selectedDomain.ocorrencias}</div>
+                    <p className="text-sm text-muted-foreground">Ocorrências</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold">{selectedDomain.percentual}%</div>
+                    <p className="text-sm text-muted-foreground">do corpus</p>
+                  </CardContent>
+                </Card>
               </div>
-            )) || (
-              <p className="text-center text-muted-foreground py-8">Nenhum contexto disponível para esta palavra.</p>
-            )}
-          </div>
+              
+              <div>
+                <h4 className="font-semibold mb-3">Palavras-chave do domínio</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedDomain.palavras.map((palavra, idx) => (
+                    <Badge 
+                      key={idx} 
+                      className="cursor-pointer hover:scale-105 transition-all text-base px-4 py-2 border-0" 
+                      style={{
+                        backgroundColor: selectedDomain.cor,
+                        color: selectedDomain.corTexto
+                      }} 
+                      onClick={() => {
+                        setDomainModalOpen(false);
+                        handleWordClick(palavra);
+                      }}
+                    >
+                      {palavra}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold">Distribuição no corpus</span>
+                </div>
+                <div className="w-full bg-background rounded-full h-4">
+                  <div 
+                    className="h-4 rounded-full transition-all" 
+                    style={{
+                      width: `${selectedDomain.percentual}%`,
+                      backgroundColor: selectedDomain.cor
+                    }} 
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
