@@ -246,24 +246,12 @@ export const OrbitalConstellationChart = ({
 
   // Renderiza o gráfico orbital "Mãe"
   const renderMotherOrbital = () => {
-    const centerX = 400;
-    const centerY = 300;
-    const systemRadius = 140;
+    const centerX = 600;
+    const centerY = 400;
+    const systemRadius = 320;
     
     return (
-      <svg width="800" height="600" viewBox="0 0 800 600" className="w-full h-auto">
-        {/* Órbita única para os 6 sistemas */}
-        <circle
-          cx={centerX}
-          cy={centerY}
-          r={systemRadius}
-          fill="none"
-          stroke="hsl(var(--border))"
-          strokeWidth="1"
-          strokeDasharray="4 4"
-          opacity={0.3}
-        />
-
+      <svg width="1200" height="800" viewBox="0 0 1200 800" className="w-full h-auto">
         {/* Linhas conectando sistemas ao centro */}
         {orbitalSystems.map((system, index) => {
           const angle = (index / orbitalSystems.length) * 2 * Math.PI - Math.PI / 2;
@@ -277,8 +265,9 @@ export const OrbitalConstellationChart = ({
               y1={centerY}
               x2={x}
               y2={y}
-              stroke={centerWordColors[system.centerWord]}
+              stroke="hsl(var(--border))"
               strokeWidth="1"
+              strokeDasharray="4 4"
               opacity="0.2"
             />
           );
@@ -295,16 +284,16 @@ export const OrbitalConstellationChart = ({
                 <circle
                   cx={centerX}
                   cy={centerY}
-                  r="45"
+                  r="50"
                   fill="hsl(var(--primary))"
                   opacity="0.9"
                 />
                 <text
                   x={centerX}
-                  y={centerY - 5}
+                  y={centerY - 8}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-primary-foreground font-bold text-sm"
+                  className="fill-primary-foreground font-bold text-base"
                 >
                   Canção
                 </text>
@@ -313,7 +302,7 @@ export const OrbitalConstellationChart = ({
                   y={centerY + 10}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-primary-foreground font-bold text-sm"
+                  className="fill-primary-foreground font-bold text-base"
                 >
                   Analisada
                 </text>
@@ -328,7 +317,7 @@ export const OrbitalConstellationChart = ({
           </Tooltip>
         </TooltipProvider>
 
-        {/* Sistemas orbitando (clicáveis) */}
+        {/* Sistemas orbitais completos em miniatura ao redor */}
         {orbitalSystems.map((system, index) => {
           const angle = (index / orbitalSystems.length) * 2 * Math.PI - Math.PI / 2;
           const x = centerX + systemRadius * Math.cos(angle);
@@ -343,31 +332,7 @@ export const OrbitalConstellationChart = ({
                 setViewMode('zoomed');
               }}
             >
-              {/* Glow effect */}
-              <circle
-                cx={x}
-                cy={y}
-                r="15"
-                fill={centerWordColors[system.centerWord]}
-                opacity="0.2"
-              />
-              <circle
-                cx={x}
-                cy={y}
-                r="10"
-                fill={centerWordColors[system.centerWord]}
-                opacity="1"
-                stroke="hsl(var(--background))"
-                strokeWidth="1.5"
-              />
-              <text
-                x={x}
-                y={y - 18}
-                textAnchor="middle"
-                className="fill-foreground font-semibold text-xs"
-              >
-                {system.centerWord}
-              </text>
+              {renderOrbitalSystem(system, x, y, false)}
             </g>
           );
         })}
