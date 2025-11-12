@@ -1,4 +1,4 @@
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2 } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -119,7 +119,7 @@ export function NavigationToolbar({
                   {isFullscreen ? (
                     <Minimize2 className="h-4 w-4" />
                   ) : (
-                    <Maximize2 className="h-4 w-4" />
+                    <Maximize className="h-4 w-4" />
                   )}
                 </Button>
               </TooltipTrigger>
