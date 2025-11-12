@@ -38,6 +38,7 @@ export const OrbitalConstellationChart = ({
   const [hoveredWord, setHoveredWord] = useState<string | null>(null);
   const [kwicModalOpen, setKwicModalOpen] = useState(false);
   const [selectedWordForKwic, setSelectedWordForKwic] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Mock KWIC data - será substituído por dados reais
@@ -151,6 +152,7 @@ export const OrbitalConstellationChart = ({
     e.preventDefault();
     e.stopPropagation();
     setDraggedWord(wordKey);
+    setIsDragging(false);
     
     const target = e.currentTarget;
     target.dataset.centerX = centerX.toString();
@@ -159,6 +161,8 @@ export const OrbitalConstellationChart = ({
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!draggedWord || !svgRef.current) return;
+    
+    setIsDragging(true);
     
     const svg = svgRef.current;
     const rect = svg.getBoundingClientRect();
@@ -500,8 +504,10 @@ export const OrbitalConstellationChart = ({
                     onMouseLeave={() => setHoveredWord(null)}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedWordForKwic(word.word);
-                      setKwicModalOpen(true);
+                      if (!isDragging) {
+                        setSelectedWordForKwic(word.word);
+                        setKwicModalOpen(true);
+                      }
                     }}
                   />
                 )}
@@ -694,9 +700,10 @@ export const OrbitalConstellationChart = ({
                     opacity="0.1"
                   />
                   
-                  {/* Ponto da palavra */}
-                  <circle cx={x} cy={y} r={8} fill={word.systemColor} opacity="0.2" />
-                  <circle cx={x} cy={y} r={5} fill={word.systemColor} opacity="1" stroke="hsl(var(--background))" strokeWidth="0.5" />
+                  {/* Background maior para legibilidade */}
+                  <circle cx={x} cy={y} r={22} fill={word.systemColor} opacity="0.15" />
+                  <circle cx={x} cy={y} r={18} fill={word.systemColor} opacity="0.3" />
+                  <circle cx={x} cy={y} r={14} fill={word.systemColor} opacity="0.95" stroke="hsl(var(--background))" strokeWidth="1.5" />
                   
                   {/* Texto da palavra */}
                   <text
@@ -704,7 +711,8 @@ export const OrbitalConstellationChart = ({
                     y={y}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    className="fill-foreground font-medium text-xs"
+                    className="fill-primary-foreground font-semibold text-[11px]"
+                    style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)' }}
                   >
                     {word.word}
                   </text>
@@ -837,7 +845,7 @@ export const OrbitalConstellationChart = ({
     return (
       <>
         {/* Cabeçalho centralizado com título e botão voltar */}
-        <div className="flex items-center justify-between mb-4 px-4 animate-fade-in">
+        <div className="flex items-center justify-between mb-4 px-4 pt-4 animate-fade-in">
           <div className="flex-1"></div>
           <div className="flex items-center gap-3">
             <span
@@ -859,7 +867,7 @@ export const OrbitalConstellationChart = ({
         </div>
 
         {/* Controles orbitais horizontais - à esquerda */}
-        <div className="mb-4 px-4 animate-fade-in">
+        <div className="mb-3 px-4 animate-fade-in">
           <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg">
             {system.words
               .sort((a, b) => b.strength - a.strength)
@@ -903,21 +911,50 @@ export const OrbitalConstellationChart = ({
                 );
               })}
           </div>
-          <p className="text-xs text-muted-foreground mt-2 px-1">
-            💡 Dica: Arraste as palavras no gráfico ou use os controles acima. Passe o mouse sobre uma palavra para ver sua concordância.
-          </p>
+          <div className="flex items-start justify-between mt-2 px-1">
+            <p className="text-xs text-muted-foreground flex-1">
+              💡 Dica: Arraste as palavras no gráfico ou use os controles acima. Passe o mouse sobre uma palavra para ver sua concordância.
+            </p>
+            
+            {/* Controles de Zoom */}
+            <div className="flex flex-col gap-1.5 bg-background border rounded-lg p-1.5 shadow-sm ml-4">
+              <button
+                onClick={handleZoomIn}
+                className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
+                title="Zoom In"
+              >
+                <span className="text-base font-bold">+</span>
+              </button>
+              <button
+                onClick={handleResetZoom}
+                className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-[10px] font-medium"
+                title="Reset Zoom"
+              >
+                {Math.round(zoomLevel * 100)}%
+              </button>
+              <button
+                onClick={handleZoomOut}
+                className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
+                title="Zoom Out"
+              >
+                <span className="text-base font-bold">−</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <svg
-          ref={svgRef}
-          width="900"
-          height="600"
-          viewBox="0 0 900 600"
-          className="w-full h-auto animate-scale-in"
-          style={{ userSelect: draggedWord ? 'none' : 'auto' }}
-        >
-          {renderOrbitalSystem(system, 450, 300, true)}
-        </svg>
+        <div className="px-4">
+          <svg
+            ref={svgRef}
+            width="900"
+            height="600"
+            viewBox="0 0 900 600"
+            className="w-full h-auto animate-scale-in"
+            style={{ userSelect: draggedWord ? 'none' : 'auto' }}
+          >
+            {renderOrbitalSystem(system, 450, 300, true)}
+          </svg>
+        </div>
       </>
     );
   };
@@ -964,33 +1001,35 @@ export const OrbitalConstellationChart = ({
       </div>
 
       <div
-        className="relative w-full bg-gradient-to-br from-background to-muted/20 rounded-lg border overflow-hidden transition-all duration-500"
+        className="relative w-full bg-gradient-to-br from-background to-muted/20 rounded-lg border overflow-hidden transition-all duration-500 p-4"
         onWheel={handleWheel}
       >
-        {/* Controles de Zoom - Dentro do gráfico */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 bg-background/90 backdrop-blur-sm border rounded-lg p-1.5 shadow-lg">
-          <button
-            onClick={handleZoomIn}
-            className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
-            title="Zoom In (Ctrl + Scroll Up)"
-          >
-            <span className="text-base font-bold">+</span>
-          </button>
-          <button
-            onClick={handleResetZoom}
-            className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-[10px] font-medium"
-            title="Reset Zoom"
-          >
-            {Math.round(zoomLevel * 100)}%
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
-            title="Zoom Out (Ctrl + Scroll Down)"
-          >
-            <span className="text-base font-bold">−</span>
-          </button>
-        </div>
+        {/* Controles de Zoom - Para visualizações mother e systems */}
+        {(viewMode === 'mother' || viewMode === 'systems') && (
+          <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 bg-background/90 backdrop-blur-sm border rounded-lg p-1.5 shadow-lg">
+            <button
+              onClick={handleZoomIn}
+              className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
+              title="Zoom In (Ctrl + Scroll Up)"
+            >
+              <span className="text-base font-bold">+</span>
+            </button>
+            <button
+              onClick={handleResetZoom}
+              className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-[10px] font-medium"
+              title="Reset Zoom"
+            >
+              {Math.round(zoomLevel * 100)}%
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
+              title="Zoom Out (Ctrl + Scroll Down)"
+            >
+              <span className="text-base font-bold">−</span>
+            </button>
+          </div>
+        )}
 
         <div
           className={`transition-all duration-300 ${viewMode === 'mother' ? 'opacity-100' : 'opacity-0 hidden'}`}
