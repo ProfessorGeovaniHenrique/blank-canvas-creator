@@ -7,6 +7,11 @@ interface WordData {
   color: string;
 }
 
+interface OrbitalSystem {
+  centerWord: string;
+  words: WordData[];
+}
+
 interface OrbitalConstellationChartProps {
   centerWord?: string;
 }
@@ -14,35 +19,63 @@ interface OrbitalConstellationChartProps {
 export const OrbitalConstellationChart = ({ 
   centerWord = "verso" 
 }: OrbitalConstellationChartProps) => {
-  // Cores da análise de prosódia semântica (mesmas cores usadas na seção)
-  // Dados de prosódia semântica com palavras organizadas por força
-  const words: WordData[] = [
-    // Órbita Interna: 90-100%
-    { word: "açoite", strength: 95, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
-    { word: "desgarrou", strength: 94, category: "Solidão e Abandono", color: "#64748b" },
-    { word: "redomona", strength: 93, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
-    { word: "suados", strength: 93, category: "Extensão de Identidade", color: "#3b82f6" },
-    { word: "campereada", strength: 92, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
-    { word: "caindo", strength: 91, category: "Fim de Ciclo", color: "#f59e0b" },
-    { word: "esporas", strength: 90, category: "Solidão e Abandono", color: "#64748b" },
-    
-    // Órbita Intermediária: 70-89%
-    { word: "várzea", strength: 89, category: "Refúgio e Frustração", color: "#a855f7" },
-    { word: "desencilhou", strength: 88, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
-    { word: "lonjuras", strength: 88, category: "Fim de Ciclo", color: "#f59e0b" },
-    { word: "gateada", strength: 88, category: "Extensão de Identidade", color: "#3b82f6" },
-    { word: "galpão", strength: 87, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
-    { word: "prenda", strength: 86, category: "Refúgio e Frustração", color: "#a855f7" },
-    { word: "encostada", strength: 86, category: "Solidão e Abandono", color: "#64748b" },
-    { word: "sonhos", strength: 85, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
-    { word: "tarde", strength: 85, category: "Fim de Ciclo", color: "#f59e0b" },
-    { word: "respeito", strength: 85, category: "Extensão de Identidade", color: "#3b82f6" },
-    { word: "gateado", strength: 84, category: "Refúgio e Frustração", color: "#a855f7" },
-    { word: "campeira", strength: 82, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
-    { word: "recostada", strength: 82, category: "Solidão e Abandono", color: "#64748b" },
-    { word: "olhos negros", strength: 81, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
-    { word: "querência", strength: 79, category: "Extensão de Identidade", color: "#3b82f6" },
-    { word: "desgarrou", strength: 78, category: "Refúgio e Frustração", color: "#a855f7" },
+  // Cores da análise de prosódia semântica
+  // Definição dos 6 sistemas orbitais
+  const orbitalSystems: OrbitalSystem[] = [
+    {
+      centerWord: "verso",
+      words: [
+        { word: "campereada", strength: 92, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
+        { word: "desencilhou", strength: 88, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
+        { word: "sonhos", strength: 85, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
+        { word: "campeira", strength: 82, category: "Protagonista Personificado", color: "hsl(var(--primary))" },
+      ]
+    },
+    {
+      centerWord: "saudade",
+      words: [
+        { word: "açoite", strength: 95, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
+        { word: "redomona", strength: 93, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
+        { word: "galpão", strength: 87, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
+        { word: "olhos negros", strength: 81, category: "Dor e Nostalgia", color: "hsl(var(--destructive))" },
+      ]
+    },
+    {
+      centerWord: "sonhos",
+      words: [
+        { word: "várzea", strength: 89, category: "Refúgio e Frustração", color: "#a855f7" },
+        { word: "prenda", strength: 86, category: "Refúgio e Frustração", color: "#a855f7" },
+        { word: "gateado", strength: 84, category: "Refúgio e Frustração", color: "#a855f7" },
+        { word: "desgarrou", strength: 78, category: "Refúgio e Frustração", color: "#a855f7" },
+      ]
+    },
+    {
+      centerWord: "cansado",
+      words: [
+        { word: "caindo", strength: 91, category: "Fim de Ciclo", color: "#f59e0b" },
+        { word: "lonjuras", strength: 88, category: "Fim de Ciclo", color: "#f59e0b" },
+        { word: "tarde", strength: 85, category: "Fim de Ciclo", color: "#f59e0b" },
+        { word: "ramada", strength: 78, category: "Fim de Ciclo", color: "#f59e0b" },
+      ]
+    },
+    {
+      centerWord: "silêncio",
+      words: [
+        { word: "desgarrou", strength: 94, category: "Solidão e Abandono", color: "#64748b" },
+        { word: "esporas", strength: 90, category: "Solidão e Abandono", color: "#64748b" },
+        { word: "encostada", strength: 86, category: "Solidão e Abandono", color: "#64748b" },
+        { word: "recostada", strength: 82, category: "Solidão e Abandono", color: "#64748b" },
+      ]
+    },
+    {
+      centerWord: "arreios",
+      words: [
+        { word: "suados", strength: 93, category: "Extensão de Identidade", color: "#3b82f6" },
+        { word: "gateada", strength: 88, category: "Extensão de Identidade", color: "#3b82f6" },
+        { word: "respeito", strength: 85, category: "Extensão de Identidade", color: "#3b82f6" },
+        { word: "querência", strength: 79, category: "Extensão de Identidade", color: "#3b82f6" },
+      ]
+    },
   ];
 
   // Calcula a órbita baseado na força (90-100% = órbita 1, 80-89% = órbita 2, etc)
@@ -53,140 +86,153 @@ export const OrbitalConstellationChart = ({
     return 4;
   };
 
-  // Organiza palavras por órbita
-  const wordsByOrbit = words.reduce((acc, word) => {
-    const orbit = getOrbit(word.strength);
-    if (!acc[orbit]) acc[orbit] = [];
-    acc[orbit].push(word);
-    return acc;
-  }, {} as Record<number, WordData[]>);
-
-  const centerX = 400;
-  const centerY = 300;
   const orbitRadii = {
-    1: 80,
-    2: 140,
-    3: 200,
-    4: 260,
+    1: 35,
+    2: 55,
+    3: 75,
+    4: 95,
   };
 
-  // Calcula posição de cada palavra em sua órbita
-  const getWordPosition = (word: WordData, index: number, totalInOrbit: number) => {
-    const orbit = getOrbit(word.strength);
-    const radius = orbitRadii[orbit as keyof typeof orbitRadii];
-    const angle = (index / totalInOrbit) * 2 * Math.PI - Math.PI / 2; // Start at top
-    
-    return {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
-      orbit,
-      radius,
+  // Renderiza um sistema orbital individual
+  const renderOrbitalSystem = (system: OrbitalSystem, centerX: number, centerY: number) => {
+    // Organiza palavras por órbita
+    const wordsByOrbit = system.words.reduce((acc, word) => {
+      const orbit = getOrbit(word.strength);
+      if (!acc[orbit]) acc[orbit] = [];
+      acc[orbit].push(word);
+      return acc;
+    }, {} as Record<number, WordData[]>);
+
+    // Calcula posição de cada palavra em sua órbita
+    const getWordPosition = (word: WordData, index: number, totalInOrbit: number) => {
+      const orbit = getOrbit(word.strength);
+      const radius = orbitRadii[orbit as keyof typeof orbitRadii];
+      const angle = (index / totalInOrbit) * 2 * Math.PI - Math.PI / 2;
+      
+      return {
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle),
+      };
     };
+
+    return (
+      <g key={system.centerWord}>
+        {/* Órbitas (círculos concêntricos) */}
+        {[1, 2, 3].map((orbit) => (
+          <circle
+            key={`${system.centerWord}-orbit-${orbit}`}
+            cx={centerX}
+            cy={centerY}
+            r={orbitRadii[orbit as keyof typeof orbitRadii]}
+            fill="none"
+            stroke="hsl(var(--border))"
+            strokeWidth="0.5"
+            strokeDasharray="2 2"
+            opacity={0.2}
+          />
+        ))}
+
+        {/* Linhas conectando palavras ao centro */}
+        {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) =>
+          wordsInOrbit.map((word, index) => {
+            const pos = getWordPosition(word, index, wordsInOrbit.length);
+            return (
+              <line
+                key={`line-${system.centerWord}-${word.word}-${index}`}
+                x1={centerX}
+                y1={centerY}
+                x2={pos.x}
+                y2={pos.y}
+                stroke={word.color}
+                strokeWidth="0.5"
+                opacity="0.15"
+              />
+            );
+          })
+        )}
+
+        {/* Palavra central */}
+        <g>
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r="18"
+            fill="hsl(var(--primary))"
+            opacity="0.9"
+          />
+          <text
+            x={centerX}
+            y={centerY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-primary-foreground font-bold text-sm"
+          >
+            {system.centerWord}
+          </text>
+        </g>
+
+        {/* Palavras orbitando */}
+        {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) =>
+          wordsInOrbit.map((word, index) => {
+            const pos = getWordPosition(word, index, wordsInOrbit.length);
+            return (
+              <g key={`word-${system.centerWord}-${word.word}-${index}`}>
+                {/* Glow effect */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r="6"
+                  fill={word.color}
+                  opacity="0.2"
+                />
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r="4"
+                  fill={word.color}
+                  opacity="1"
+                  stroke="hsl(var(--background))"
+                  strokeWidth="0.5"
+                />
+                <text
+                  x={pos.x}
+                  y={pos.y - 9}
+                  textAnchor="middle"
+                  className="fill-foreground font-medium"
+                  style={{ fontSize: '8px' }}
+                >
+                  {word.word}
+                </text>
+                <text
+                  x={pos.x}
+                  y={pos.y + 13}
+                  textAnchor="middle"
+                  className="fill-muted-foreground"
+                  style={{ fontSize: '7px' }}
+                >
+                  {word.strength}%
+                </text>
+              </g>
+            );
+          })
+        )}
+      </g>
+    );
   };
 
   return (
     <div className="space-y-4">
       <div className="relative w-full bg-gradient-to-br from-background to-muted/20 rounded-lg border p-4 overflow-hidden">
-        <svg width="800" height="600" viewBox="0 0 800 600" className="w-full h-auto">
-          {/* Órbitas (círculos concêntricos) */}
-          {[1, 2, 3, 4].map((orbit) => (
-            <circle
-              key={orbit}
-              cx={centerX}
-              cy={centerY}
-              r={orbitRadii[orbit as keyof typeof orbitRadii]}
-              fill="none"
-              stroke="hsl(var(--border))"
-              strokeWidth="1"
-              strokeDasharray={orbit === 1 ? "0" : "4 4"}
-              opacity={0.3}
-            />
-          ))}
-
-          {/* Linhas conectando palavras ao centro */}
-          {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) =>
-            wordsInOrbit.map((word, index) => {
-              const pos = getWordPosition(word, index, wordsInOrbit.length);
-              return (
-                <line
-                  key={`line-${word.word}-${index}`}
-                  x1={centerX}
-                  y1={centerY}
-                  x2={pos.x}
-                  y2={pos.y}
-                  stroke={word.color}
-                  strokeWidth="1"
-                  opacity="0.2"
-                />
-              );
-            })
-          )}
-
-          {/* Palavra central */}
-          <g>
-            <circle
-              cx={centerX}
-              cy={centerY}
-              r="35"
-              fill="hsl(var(--primary))"
-              opacity="0.9"
-            />
-            <text
-              x={centerX}
-              y={centerY}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="fill-primary-foreground font-bold text-xl"
-            >
-              {centerWord}
-            </text>
-          </g>
-
-          {/* Palavras orbitando */}
-          {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) =>
-            wordsInOrbit.map((word, index) => {
-              const pos = getWordPosition(word, index, wordsInOrbit.length);
-              return (
-                <g key={`word-${word.word}-${index}`}>
-                  {/* Glow effect */}
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r="10"
-                    fill={word.color}
-                    opacity="0.2"
-                  />
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r="7"
-                    fill={word.color}
-                    opacity="1"
-                    stroke="hsl(var(--background))"
-                    strokeWidth="1"
-                  />
-                  <text
-                    x={pos.x}
-                    y={pos.y - 14}
-                    textAnchor="middle"
-                    className="fill-foreground text-xs font-medium"
-                    style={{ fontSize: '11px' }}
-                  >
-                    {word.word}
-                  </text>
-                  <text
-                    x={pos.x}
-                    y={pos.y + 20}
-                    textAnchor="middle"
-                    className="fill-muted-foreground text-xs"
-                    style={{ fontSize: '9px' }}
-                  >
-                    {word.strength}%
-                  </text>
-                </g>
-              );
-            })
-          )}
+        <svg width="1200" height="700" viewBox="0 0 1200 700" className="w-full h-auto">
+          {/* Grid de sistemas orbitais: 3 colunas x 2 linhas */}
+          {orbitalSystems.map((system, index) => {
+            const col = index % 3;
+            const row = Math.floor(index / 3);
+            const x = 200 + col * 400;
+            const y = 180 + row * 350;
+            
+            return renderOrbitalSystem(system, x, y);
+          })}
         </svg>
       </div>
 
