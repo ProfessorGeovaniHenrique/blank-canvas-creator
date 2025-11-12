@@ -65,6 +65,45 @@ export const OrbitalConstellationChart = ({
     source: "Quando o verso vem pras casa - Luiz Marenco"
   }];
 
+  // Mock data para estatísticas de palavras (para tooltips)
+  const palavraStats: Record<string, {
+    frequenciaBruta: number;
+    frequenciaNormalizada: number;
+    prosodia: "positiva" | "negativa" | "neutra";
+  }> = {
+    "verso": { frequenciaBruta: 4, frequenciaNormalizada: 23.5, prosodia: "positiva" },
+    "campereada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "desencilhou": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "sonhos": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+    "campeira": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+    "galpão": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "querência": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+    "versos": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+    "saudade": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "negativa" },
+    "açoite": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
+    "redomona": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "caindo": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "desgarrou": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
+    "esporas": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "suados": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
+    "ramada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "cansado": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
+    "lonjuras": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "encostada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "recostada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "gateada": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "respeito": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+    "tarde": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "olhos negros": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+    "várzea": { frequenciaBruta: 2, frequenciaNormalizada: 11.8, prosodia: "positiva" },
+    "prenda": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+    "gateado": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "lonjura": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" },
+    "jurado": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "positiva" },
+    "silêncio": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "negativa" },
+    "arreios": { frequenciaBruta: 1, frequenciaNormalizada: 5.9, prosodia: "neutra" }
+  };
+
   // Cores da análise de prosódia semântica
   const centerWordColors: Record<string, string> = {
     "verso": "hsl(var(--primary))",
@@ -455,7 +494,9 @@ export const OrbitalConstellationChart = ({
               setSelectedWordForKwic(word.word);
               setKwicModalOpen(true);
             }
-          }} />}
+          }}>
+            {palavraStats[word.word] && <title>{`${word.word}\nFreq. Bruta: ${palavraStats[word.word].frequenciaBruta}\nFreq. Normalizada: ${palavraStats[word.word].frequenciaNormalizada}\nProsódia: ${palavraStats[word.word].prosodia === 'positiva' ? 'Positiva ✓' : palavraStats[word.word].prosodia === 'negativa' ? 'Negativa ✗' : 'Neutra −'}`}</title>}
+          </circle>}
 
                 <text x={pos.x} y={pos.y - 2 * scale} textAnchor="middle" dominantBaseline="middle" className="fill-foreground font-bold" style={{
             fontSize: `${7 * scale}px`,
