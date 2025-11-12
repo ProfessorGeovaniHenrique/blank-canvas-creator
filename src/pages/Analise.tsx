@@ -846,60 +846,266 @@ E uma saudade redomona pelos cantos do galpão`}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {dominiosData.map((item, index) => <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{
-                        backgroundColor: item.cor
-                      }} />
-                          <h3 className="font-semibold">{item.dominio}</h3>
+                <CardContent className="space-y-6">
+                  <TooltipProvider>
+                    {dominiosData.map((item, index) => (
+                      <div key={index} className="space-y-3 p-4 rounded-lg border bg-card hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full shadow-sm" 
+                              style={{ backgroundColor: item.cor }} 
+                            />
+                            <div>
+                              <h3 className="font-bold text-lg">{item.dominio}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {index === 0 && "Elementos naturais da paisagem pampeana que formam o cenário poético"}
+                                {index === 1 && "Vocabulário técnico relacionado ao cavalo e seu equipamento"}
+                                {index === 2 && "Espaço de convivência, tradição e pertencimento gaúcho"}
+                                {index === 3 && "Campo emocional e criativo que permeia toda a narrativa"}
+                                {index === 4 && "Símbolos e práticas culturais distintivas do Rio Grande do Sul"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <UITooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-2 cursor-help">
+                                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-2xl font-bold" style={{ color: item.cor }}>
+                                    {item.percentual}%
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-sm">
+                                <div className="space-y-2">
+                                  <p className="font-semibold">Representatividade no corpus</p>
+                                  <p className="text-xs">
+                                    Este domínio representa <strong>{item.percentual}%</strong> do total de palavras analisadas, 
+                                    com <strong>{item.ocorrencias} ocorrências</strong> distribuídas em {item.palavras.length} palavras-chave.
+                                  </p>
+                                  <div className="pt-2 border-t">
+                                    <p className="text-xs font-medium">Densidade lexical:</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(item.ocorrencias / item.palavras.length).toFixed(1)} ocorrências por palavra
+                                    </p>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </UITooltip>
+                            <span className="text-xs text-muted-foreground">
+                              {item.ocorrencias} ocorrências
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span># {item.ocorrencias} ocorrências</span>
-                          <span className="text-foreground font-semibold">{item.percentual}%</span>
+                        
+                        {/* Barra de progresso animada */}
+                        <div className="relative w-full bg-muted/30 rounded-full h-3 overflow-hidden">
+                          <div 
+                            className="h-3 rounded-full transition-all duration-500 relative"
+                            style={{
+                              width: `${item.percentual}%`,
+                              backgroundColor: item.cor,
+                              boxShadow: `0 0 10px ${item.cor}40`
+                            }}
+                          >
+                            <div 
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Palavras com tooltips individuais */}
+                        <div className="flex flex-wrap gap-2">
+                          {item.palavras.map((palavra, idx) => (
+                            <UITooltip key={idx}>
+                              <TooltipTrigger asChild>
+                                <Badge 
+                                  className="cursor-pointer hover:scale-110 transition-all border-0 shadow-sm" 
+                                  style={{
+                                    backgroundColor: item.cor,
+                                    color: item.corTexto
+                                  }}
+                                  onClick={() => handleWordClick(palavra)}
+                                >
+                                  {palavra}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-md">
+                                <div className="space-y-2">
+                                  <p className="font-bold text-base">{palavra}</p>
+                                  <div className="text-xs space-y-1">
+                                    <p className="text-muted-foreground">Contexto na música:</p>
+                                    {kwicDataMap[palavra] && kwicDataMap[palavra].length > 0 && (
+                                      <div className="bg-muted/50 p-2 rounded">
+                                        <p className="italic">
+                                          "{kwicDataMap[palavra][0].leftContext} <strong className="text-primary">{palavra}</strong> {kwicDataMap[palavra][0].rightContext}"
+                                        </p>
+                                      </div>
+                                    )}
+                                    {!kwicDataMap[palavra] && (
+                                      <p className="italic text-muted-foreground">
+                                        Palavra presente no domínio "{item.dominio}"
+                                      </p>
+                                    )}
+                                    <div className="pt-2 border-t flex justify-between items-center">
+                                      <span>Ocorrências: {kwicDataMap[palavra]?.length || 1}</span>
+                                      <span className="text-primary">Clique para ver concordância</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </UITooltip>
+                          ))}
+                        </div>
+
+                        {/* Exemplos contextuais do domínio */}
+                        <div className="pt-3 border-t">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            Fragmentos representativos:
+                          </p>
+                          <div className="space-y-1">
+                            {index === 0 && (
+                              <>
+                                <p className="text-xs italic">"A calma do <strong>tarumã</strong>, ganhou <strong>sombra</strong> mais copada"</p>
+                                <p className="text-xs italic">"Pela <strong>várzea</strong> espichada com o <strong>sol</strong> da tarde caindo"</p>
+                              </>
+                            )}
+                            {index === 1 && (
+                              <>
+                                <p className="text-xs italic">"No <strong>lombo</strong> de uma <strong>gateada</strong> frente aberta de respeito"</p>
+                                <p className="text-xs italic">"Ficaram <strong>arreios</strong> suados e o silencio de <strong>esporas</strong>"</p>
+                              </>
+                            )}
+                            {index === 2 && (
+                              <>
+                                <p className="text-xs italic">"Prá <strong>querência</strong> galponeira, onde o verso é mais caseiro"</p>
+                                <p className="text-xs italic">"Uma <strong>cuia</strong> e uma <strong>bomba</strong> recostada na <strong>cambona</strong>"</p>
+                              </>
+                            )}
+                            {index === 3 && (
+                              <>
+                                <p className="text-xs italic">"E o <strong>verso</strong> que tinha <strong>sonhos</strong> prá rondar na madrugada"</p>
+                                <p className="text-xs italic">"A <strong>mansidão</strong> da campanha traz <strong>saudade</strong> feito açoite"</p>
+                              </>
+                            )}
+                            {index === 4 && (
+                              <>
+                                <p className="text-xs italic">"Um pañuelo <strong>maragato</strong> se abriu no horizonte"</p>
+                                <p className="text-xs italic">"Cevou um <strong>mate</strong> pura-folha, jujado de <strong>maçanilha</strong>"</p>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="w-full bg-muted/30 rounded-full h-2">
-                        <div className="h-2 rounded-full transition-all" style={{
-                      width: `${item.percentual}%`,
-                      backgroundColor: item.cor
-                    }} />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {item.palavras.map((palavra, idx) => <Badge key={idx} className="cursor-pointer hover:scale-105 transition-all border-0" style={{
-                      backgroundColor: item.cor,
-                      color: item.corTexto
-                    }} onClick={() => handleWordClick(palavra)}>
-                            {palavra}
-                          </Badge>)}
-                      </div>
-                    </div>)}
+                    ))}
+                  </TooltipProvider>
                 </CardContent>
               </Card>
             </div>
 
-            <div>
+            {/* Coluna lateral com gráficos e estatísticas */}
+            <div className="space-y-6">
+              {/* Gráfico de distribuição */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Distribuição de Frequências</CardTitle>
-                  <CardDescription>Visualização comparativa dos domínios</CardDescription>
+                  <CardTitle>Distribuição por Domínio</CardTitle>
+                  <CardDescription>Comparativo de frequências absolutas</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {dominiosData.map((item, index) => <div key={index} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="truncate max-w-[140px]">{item.dominio}</span>
-                          <span className="font-semibold">{item.ocorrencias}</span>
-                        </div>
-                        <div className="w-full bg-muted/30 rounded-full h-8">
-                          <div className="h-8 rounded-full transition-all" style={{
-                        width: `${item.ocorrencias / 170 * 100}%`,
-                        backgroundColor: item.cor
-                      }} />
-                        </div>
-                      </div>)}
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={dominiosData.map(d => ({ 
+                      nome: d.dominio.split(' ').slice(0, 2).join(' '), 
+                      valor: d.ocorrencias,
+                      cor: d.cor 
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                      <XAxis 
+                        dataKey="nome" 
+                        fontSize={10} 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={80}
+                      />
+                      <YAxis fontSize={10} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--background))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Bar dataKey="valor" radius={[8, 8, 0, 0]}>
+                        {dominiosData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.cor} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Card de insights */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Insights da Análise
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-success mt-1" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Domínio Dominante</p>
+                        <p className="text-xs text-muted-foreground">
+                          "Natureza e Paisagem" lidera com {dominiosData[0].percentual}%, evidenciando 
+                          a centralidade do ambiente campeiro na construção poética
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Equilíbrio Temático</p>
+                        <p className="text-xs text-muted-foreground">
+                          Os 5 domínios cobrem {dominiosData.reduce((acc, d) => acc + d.percentual, 0).toFixed(1)}% 
+                          do corpus, demonstrando coesão semântica
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500 mt-1" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Densidade Lexical</p>
+                        <p className="text-xs text-muted-foreground">
+                          Média de {(dominiosData.reduce((acc, d) => acc + d.ocorrencias, 0) / 
+                          dominiosData.reduce((acc, d) => acc + d.palavras.length, 0)).toFixed(1)} 
+                          ocorrências por palavra-chave
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Card de ações */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Exportar Dados</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button variant="outline" className="w-full justify-start" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar como CSV
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" size="sm">
+                    <FileBarChart className="h-4 w-4 mr-2" />
+                    Gerar Relatório
+                  </Button>
                 </CardContent>
               </Card>
             </div>
