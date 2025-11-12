@@ -9,6 +9,7 @@ interface NetworkNode {
   y: number;
   distance: number; // força de associação (0-1, menor = mais forte)
   frequency: number; // frequência no corpus
+  prosody: "positive" | "neutral" | "melancholic" | "contemplative";
 }
 
 interface InteractiveSemanticNetworkProps {
