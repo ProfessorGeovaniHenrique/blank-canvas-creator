@@ -19,185 +19,265 @@ const kwicDataMap: Record<string, Array<{
   source: string;
 }>> = {
   "verso": [{
-    leftContext: "...Daí um",
+    leftContext: "Daí um",
     keyword: "verso",
-    rightContext: "de campo se chegou da campereada...",
-    source: "Luiz Marenco"
+    rightContext: "de campo se chegou da campereada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...Prá querência galponeira, onde o",
+    leftContext: "Prá querência galponeira, onde o",
     keyword: "verso",
-    rightContext: "é mais caseiro...",
-    source: "Luiz Marenco"
+    rightContext: "é mais caseiro",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...E o",
+    leftContext: "E o",
     keyword: "verso",
-    rightContext: "que tinha sonhos prá rondar na madrugada...",
-    source: "Luiz Marenco"
+    rightContext: "que tinha sonhos prá rondar na madrugada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...E o",
+    leftContext: "E o",
     keyword: "verso",
-    rightContext: "sonhou ser várzea com sombra de tarumã...",
-    source: "Luiz Marenco"
+    rightContext: "sonhou ser várzea com sombra de tarumã",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "tarumã": [{
     leftContext: "A calma do",
     keyword: "tarumã",
-    rightContext: ", ganhou sombra mais copada...",
-    source: "Luiz Marenco"
+    rightContext: ", ganhou sombra mais copada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...E o verso sonhou ser várzea com sombra de",
+    leftContext: "E o verso sonhou ser várzea com sombra de",
     keyword: "tarumã",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "saudade": [{
-    leftContext: "...A mansidão da campanha traz",
+    leftContext: "A mansidão da campanha traz",
     keyword: "saudade",
-    rightContext: "feito açoite...",
-    source: "Luiz Marenco"
+    rightContext: "feito açoite",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...E uma",
+    leftContext: "E uma",
     keyword: "saudade",
-    rightContext: "redomona pelos cantos do galpão...",
-    source: "Luiz Marenco"
+    rightContext: "redomona pelos cantos do galpão",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "galpão": [{
-    leftContext: "...E uma saudade redomona pelos cantos do",
+    leftContext: "E uma saudade redomona pelos cantos do",
     keyword: "galpão",
-    rightContext: "...",
-    source: "Luiz Marenco"
-  }, {
-    leftContext: "...Prá querência galponeira, onde o verso é mais caseiro... Templado a luz de candeeiro e um 'quarto gordo nas brasa'... A mansidão da campanha traz saudades feito açoite... pelos cantos do",
-    keyword: "galpão",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "várzea": [{
     leftContext: "Pela",
     keyword: "várzea",
-    rightContext: "espichada com o sol da tarde caindo...",
-    source: "Luiz Marenco"
+    rightContext: "espichada com o sol da tarde caindo",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...E o verso sonhou ser",
+    leftContext: "E o verso sonhou ser",
     keyword: "várzea",
-    rightContext: "com sombra de tarumã...",
-    source: "Luiz Marenco"
+    rightContext: "com sombra de tarumã",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "sonhos": [{
-    leftContext: "...E o verso que tinha",
+    leftContext: "E o verso que tinha",
     keyword: "sonhos",
-    rightContext: "prá rondar na madrugada...",
-    source: "Luiz Marenco"
-  }, {
-    leftContext: "...E o verso sonhou ser várzea... Sonhou com os olhos da prenda vestidos de primavera... Adormecidos na espera do sol pontear na coxilha",
-    keyword: "sonhos",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "prá rondar na madrugada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "gateada": [{
-    leftContext: "...No lombo de uma",
+    leftContext: "No lombo de uma",
     keyword: "gateada",
-    rightContext: "frente aberta de respeito...",
-    source: "Luiz Marenco"
-  }, {
-    leftContext: "...Ou um gateado prá",
-    keyword: "encilha",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "frente aberta de respeito",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "mate": [{
     leftContext: "Cevou um",
     keyword: "mate",
-    rightContext: "pura-folha, jujado de maçanilha...",
-    source: "Luiz Marenco"
+    rightContext: "pura-folha, jujado de maçanilha",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "coxilha": [{
-    leftContext: "...E um ventito da",
+    leftContext: "E um ventito da",
     keyword: "coxilha",
-    rightContext: "trouxe coplas entre as asas...",
-    source: "Luiz Marenco"
+    rightContext: "trouxe coplas entre as asas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...Adormecidos na espera do sol pontear na",
+    leftContext: "Adormecidos na espera do sol pontear na",
     keyword: "coxilha",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "sombra": [{
     leftContext: "A calma do tarumã, ganhou",
     keyword: "sombra",
-    rightContext: "mais copada...",
-    source: "Luiz Marenco"
+    rightContext: "mais copada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }, {
-    leftContext: "...E o verso sonhou ser várzea com",
+    leftContext: "E o verso sonhou ser várzea com",
     keyword: "sombra",
-    rightContext: "de tarumã...",
-    source: "Luiz Marenco"
+    rightContext: "de tarumã",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "arreios": [{
     leftContext: "Ficaram",
     keyword: "arreios",
-    rightContext: "suados e o silencio de esporas...",
-    source: "Luiz Marenco"
+    rightContext: "suados e o silencio de esporas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "esporas": [{
-    leftContext: "...Ficaram arreios suados e o silencio de",
+    leftContext: "Ficaram arreios suados e o silencio de",
     keyword: "esporas",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "prenda": [{
-    leftContext: "...Sonhou com os olhos da",
+    leftContext: "Sonhou com os olhos da",
     keyword: "prenda",
-    rightContext: "vestidos de primavera...",
-    source: "Luiz Marenco"
+    rightContext: "vestidos de primavera",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "ramada": [{
     leftContext: "Desencilhou na",
     keyword: "ramada",
-    rightContext: ", já cansado das lonjuras...",
-    source: "Luiz Marenco"
+    rightContext: ", já cansado das lonjuras",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "candeeiro": [{
-    leftContext: "...Templado a luz de",
+    leftContext: "Templado a luz de",
     keyword: "candeeiro",
-    rightContext: "e um 'quarto gordo nas brasa'...",
-    source: "Luiz Marenco"
+    rightContext: "e um \"quarto gordo nas brasa\"",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "querência": [{
     leftContext: "Prá",
     keyword: "querência",
-    rightContext: "galponeira, onde o verso é mais caseiro...",
-    source: "Luiz Marenco"
+    rightContext: "galponeira, onde o verso é mais caseiro",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "cuia": [{
     leftContext: "Uma",
     keyword: "cuia",
-    rightContext: "e uma bomba recostada na cambona...",
-    source: "Luiz Marenco"
+    rightContext: "e uma bomba recostada na cambona",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "maragato": [{
     leftContext: "Um pañuelo",
     keyword: "maragato",
-    rightContext: "se abriu no horizonte...",
-    source: "Luiz Marenco"
+    rightContext: "se abriu no horizonte",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "campereada": [{
-    leftContext: "...Daí um verso de campo se chegou da",
+    leftContext: "Daí um verso de campo se chegou da",
     keyword: "campereada",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "calma": [{
     leftContext: "A",
     keyword: "calma",
-    rightContext: "do tarumã, ganhou sombra mais copada...",
-    source: "Luiz Marenco"
+    rightContext: "do tarumã, ganhou sombra mais copada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }],
   "encilha": [{
-    leftContext: "...Ou um gateado prá",
+    leftContext: "Ser um galo prás manhãs, ou um gateado prá",
     keyword: "encilha",
-    rightContext: "...",
-    source: "Luiz Marenco"
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "campo": [{
+    leftContext: "Daí um verso de",
+    keyword: "campo",
+    rightContext: "se chegou da campereada",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "campanha": [{
+    leftContext: "A mansidão da",
+    keyword: "campanha",
+    rightContext: "traz saudades feito açoite",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "horizonte": [{
+    leftContext: "Um pañuelo maragato se abriu no",
+    keyword: "horizonte",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "sol": [{
+    leftContext: "Pela várzea espichada com o",
+    keyword: "sol",
+    rightContext: "da tarde caindo",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }, {
+    leftContext: "Adormecidos na espera do",
+    keyword: "sol",
+    rightContext: "pontear na coxilha",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "tropa": [{
+    leftContext: "Deixou a cancela encostada e a",
+    keyword: "tropa",
+    rightContext: "se desgarrou",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "lombo": [{
+    leftContext: "No",
+    keyword: "lombo",
+    rightContext: "de uma gateada frente aberta de respeito",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "cambona": [{
+    leftContext: "Uma cuia e uma bomba recostada na",
+    keyword: "cambona",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "fogo": [{
+    leftContext: "Um cerne com cor de aurora queimando em",
+    keyword: "fogo",
+    rightContext: "de chão",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "chão": [{
+    leftContext: "Um cerne com cor de aurora queimando em fogo de",
+    keyword: "chão",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "bomba": [{
+    leftContext: "Uma cuia e uma",
+    keyword: "bomba",
+    rightContext: "recostada na cambona",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "coplas": [{
+    leftContext: "E um ventito da coxilha trouxe",
+    keyword: "coplas",
+    rightContext: "entre as asas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "mansidão": [{
+    leftContext: "A",
+    keyword: "mansidão",
+    rightContext: "da campanha traz saudades feito açoite",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "silêncio": [{
+    leftContext: "Ficaram arreios suados e o",
+    keyword: "silêncio",
+    rightContext: "de esporas",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "pañuelo": [{
+    leftContext: "Um",
+    keyword: "pañuelo",
+    rightContext: "maragato se abriu no horizonte",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
+  }],
+  "maçanilha": [{
+    leftContext: "Cevou um mate pura-folha, jujado de",
+    keyword: "maçanilha",
+    rightContext: "",
+    source: "Luiz Marenco - Quando o verso vem pras casa"
   }]
 };
 const dominiosData = [{
@@ -335,6 +415,8 @@ const palavrasChaveData = [{
   palavra: "verso",
   ll: 52.8,
   mi: 9.2,
+  frequenciaBruta: 4,
+  frequenciaNormalizada: 23.5,
   significancia: "Alta",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -342,6 +424,8 @@ const palavrasChaveData = [{
   palavra: "tarumã",
   ll: 48.3,
   mi: 8.8,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
   significancia: "Alta",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -349,6 +433,8 @@ const palavrasChaveData = [{
   palavra: "saudade",
   ll: 38.7,
   mi: 8.5,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
   significancia: "Alta",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -356,6 +442,8 @@ const palavrasChaveData = [{
   palavra: "galpão",
   ll: 45.2,
   mi: 7.9,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
   significancia: "Alta",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -363,6 +451,8 @@ const palavrasChaveData = [{
   palavra: "várzea",
   ll: 32.4,
   mi: 7.2,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
   significancia: "Alta",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -370,6 +460,8 @@ const palavrasChaveData = [{
   palavra: "coxilha",
   ll: 28.9,
   mi: 5.8,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
   significancia: "Média",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -377,6 +469,8 @@ const palavrasChaveData = [{
   palavra: "gateada",
   ll: 24.1,
   mi: 4.9,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
   significancia: "Média",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -384,6 +478,8 @@ const palavrasChaveData = [{
   palavra: "sonhos",
   ll: 18.5,
   mi: 3.8,
+  frequenciaBruta: 2,
+  frequenciaNormalizada: 11.8,
   significancia: "Média",
   efeito: "Sobre-uso",
   efeitoIcon: TrendingUp
@@ -391,6 +487,8 @@ const palavrasChaveData = [{
   palavra: "campanha",
   ll: 15.2,
   mi: 3.2,
+  frequenciaBruta: 1,
+  frequenciaNormalizada: 5.9,
   significancia: "Baixa",
   efeito: "Normal",
   efeitoIcon: TrendingUp
@@ -1285,6 +1383,8 @@ E uma saudade redomona pelos cantos do galpão`}
                 <TableHeader>
                   <TableRow>
                     <TableHead>Palavra</TableHead>
+                    <TableHead className="text-right">Freq. Bruta</TableHead>
+                    <TableHead className="text-right">Freq. Normalizada</TableHead>
                     <TableHead className="text-right">Log-Likelihood</TableHead>
                     <TableHead className="text-right">MI Score</TableHead>
                     <TableHead>Significância</TableHead>
@@ -1296,6 +1396,8 @@ E uma saudade redomona pelos cantos do galpão`}
                   const EfeitoIcon = item.efeitoIcon;
                   return <TableRow key={index} className="cursor-pointer hover:bg-muted/50" onClick={() => handleWordClick(item.palavra)}>
                         <TableCell className="font-mono font-semibold">{item.palavra}</TableCell>
+                        <TableCell className="text-right">{item.frequenciaBruta}</TableCell>
+                        <TableCell className="text-right">{item.frequenciaNormalizada.toFixed(1)}</TableCell>
                         <TableCell className={`text-right font-semibold ${item.ll > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                           {item.ll.toFixed(2)}
                         </TableCell>
@@ -1323,20 +1425,27 @@ E uma saudade redomona pelos cantos do galpão`}
         <TabsContent value="nuvem" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Nuvem de Domínios Semânticos</CardTitle>
-              <CardDescription>Arraste os domínios para reorganizar. As palavras satélites acompanham o movimento.</CardDescription>
+              <CardTitle>Nuvem de Domínios Semânticos - Visualização Orbital</CardTitle>
+              <CardDescription>
+                Clique nas palavras para ver concordância (KWIC). Arraste os domínios para reorganizar.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div ref={containerRef} className="relative min-h-[800px] bg-muted/20 rounded-lg p-16 cursor-default select-none" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+              <div ref={containerRef} className="relative min-h-[800px] bg-gradient-to-br from-background via-muted/10 to-background rounded-lg p-16 cursor-default select-none border" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
                 {/* Natureza e Paisagem Campeira - Centro (mais saliente: 28.2%) */}
                 <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{
                 top: `${domainPositions["Natureza e Paisagem Campeira"].top}%`,
                 left: `${domainPositions["Natureza e Paisagem Campeira"].left}%`
               }} data-domain-container>
                   <div className="relative">
-                    <Badge onMouseDown={e => handleMouseDown(e, "Natureza e Paisagem Campeira")} onClick={() => handleDomainClick("Natureza e Paisagem Campeira")} className="text-3xl font-bold px-8 py-4 hover:scale-110 transition-all cursor-move shadow-lg border-0" style={{
+                    {/* Círculos orbitais de fundo */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-primary/8 pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] rounded-full border border-primary/5 pointer-events-none" />
+                    
+                    <Badge onMouseDown={e => handleMouseDown(e, "Natureza e Paisagem Campeira")} onClick={() => handleDomainClick("Natureza e Paisagem Campeira")} className="text-3xl font-bold px-8 py-4 hover:scale-110 transition-all cursor-move shadow-2xl border-0 relative z-10" style={{
                     backgroundColor: "hsl(142, 35%, 25%)",
-                    color: "hsl(142, 80%, 75%)"
+                    color: "hsl(142, 80%, 75%)",
+                    boxShadow: "0 0 40px hsla(142, 35%, 25%, 0.3)"
                   }}>
                       Natureza e Paisagem Campeira
                     </Badge>
@@ -1440,9 +1549,14 @@ E uma saudade redomona pelos cantos do galpão`}
                 left: `${domainPositions["Cavalo e Aperos"].left}%`
               }} data-domain-container>
                   <div className="relative">
-                    <Badge onMouseDown={e => handleMouseDown(e, "Cavalo e Aperos")} onClick={() => handleDomainClick("Cavalo e Aperos")} className="text-2xl font-bold px-6 py-3 hover:scale-110 transition-all cursor-move shadow-lg border-0" style={{
+                    {/* Círculos orbitais de fundo */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] rounded-full border border-primary/8 pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-primary/5 pointer-events-none" />
+                    
+                    <Badge onMouseDown={e => handleMouseDown(e, "Cavalo e Aperos")} onClick={() => handleDomainClick("Cavalo e Aperos")} className="text-2xl font-bold px-6 py-3 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
                     backgroundColor: "hsl(221, 40%, 25%)",
-                    color: "hsl(221, 85%, 75%)"
+                    color: "hsl(221, 85%, 75%)",
+                    boxShadow: "0 0 30px hsla(221, 40%, 25%, 0.3)"
                   }}>
                       Cavalo e Aperos
                     </Badge>
@@ -1545,9 +1659,14 @@ E uma saudade redomona pelos cantos do galpão`}
                 right: `${domainPositions["Vida no Galpão"].right}%`
               }} data-domain-container>
                   <div className="relative">
-                    <Badge onMouseDown={e => handleMouseDown(e, "Vida no Galpão")} onClick={() => handleDomainClick("Vida no Galpão")} className="text-xl font-bold px-5 py-3 hover:scale-110 transition-all cursor-move shadow-lg border-0" style={{
+                    {/* Círculos orbitais de fundo */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] rounded-full border border-primary/8 pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-primary/5 pointer-events-none" />
+                    
+                    <Badge onMouseDown={e => handleMouseDown(e, "Vida no Galpão")} onClick={() => handleDomainClick("Vida no Galpão")} className="text-xl font-bold px-5 py-3 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
                     backgroundColor: "hsl(45, 40%, 25%)",
-                    color: "hsl(45, 95%, 75%)"
+                    color: "hsl(45, 95%, 75%)",
+                    boxShadow: "0 0 30px hsla(45, 40%, 25%, 0.3)"
                   }}>
                       Vida no Galpão
                     </Badge>
@@ -1650,9 +1769,14 @@ E uma saudade redomona pelos cantos do galpão`}
                 left: `${domainPositions["Sentimentos e Poesia"].left}%`
               }} data-domain-container>
                   <div className="relative">
-                    <Badge onMouseDown={e => handleMouseDown(e, "Sentimentos e Poesia")} onClick={() => handleDomainClick("Sentimentos e Poesia")} className="text-xl font-bold px-5 py-2.5 hover:scale-110 transition-all cursor-move shadow-lg border-0" style={{
+                    {/* Círculos orbitais de fundo */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160px] h-[160px] rounded-full border border-primary/8 pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px] h-[220px] rounded-full border border-primary/5 pointer-events-none" />
+                    
+                    <Badge onMouseDown={e => handleMouseDown(e, "Sentimentos e Poesia")} onClick={() => handleDomainClick("Sentimentos e Poesia")} className="text-xl font-bold px-5 py-2.5 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
                     backgroundColor: "hsl(291, 35%, 25%)",
-                    color: "hsl(291, 75%, 75%)"
+                    color: "hsl(291, 75%, 75%)",
+                    boxShadow: "0 0 28px hsla(291, 35%, 25%, 0.3)"
                   }}>
                       Sentimentos e Poesia
                     </Badge>
@@ -1751,9 +1875,14 @@ E uma saudade redomona pelos cantos do galpão`}
                 right: `${domainPositions["Tradição Gaúcha"].right}%`
               }} data-domain-container>
                   <div className="relative">
-                    <Badge onMouseDown={e => handleMouseDown(e, "Tradição Gaúcha")} onClick={() => handleDomainClick("Tradição Gaúcha")} className="text-lg font-bold px-4 py-2 hover:scale-110 transition-all cursor-move shadow-lg border-0" style={{
+                    {/* Círculos orbitais de fundo */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140px] h-[140px] rounded-full border border-primary/8 pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] rounded-full border border-primary/5 pointer-events-none" />
+                    
+                    <Badge onMouseDown={e => handleMouseDown(e, "Tradição Gaúcha")} onClick={() => handleDomainClick("Tradição Gaúcha")} className="text-lg font-bold px-4 py-2 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
                     backgroundColor: "hsl(0, 35%, 25%)",
-                    color: "hsl(0, 80%, 75%)"
+                    color: "hsl(0, 80%, 75%)",
+                    boxShadow: "0 0 25px hsla(0, 35%, 25%, 0.3)"
                   }}>
                       Tradição Gaúcha
                     </Badge>
