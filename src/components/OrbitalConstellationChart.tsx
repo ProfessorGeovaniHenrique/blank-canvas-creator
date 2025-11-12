@@ -28,6 +28,7 @@ export const OrbitalConstellationChart = ({
   const [draggedWord, setDraggedWord] = useState<string | null>(null);
   const [draggedButton, setDraggedButton] = useState<string | null>(null);
   const [buttonOffsets, setButtonOffsets] = useState<Record<string, { x: number; y: number }>>({});
+  const [orbitProgress, setOrbitProgress] = useState<Record<string, number>>({});
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Cores da análise de prosódia semântica
@@ -104,6 +105,14 @@ export const OrbitalConstellationChart = ({
     if (strength >= 80) return 2;
     if (strength >= 70) return 3;
     return 4;
+  };
+
+  // Handler para mudança de progresso na órbita
+  const handleOrbitProgressChange = (wordKey: string, progress: number) => {
+    setOrbitProgress(prev => ({
+      ...prev,
+      [wordKey]: progress
+    }));
   };
 
   // Handlers de drag and drop
@@ -223,9 +232,15 @@ export const OrbitalConstellationChart = ({
       const radius = orbitRadii[orbit as keyof typeof orbitRadii];
       const wordKey = `${system.centerWord}-${word.word}`;
 
-      const angle = customAngles[wordKey] !== undefined 
-        ? customAngles[wordKey] 
-        : (index / totalInOrbit * 2 * Math.PI - Math.PI / 2);
+      // Usa o progresso da órbita se existir, senão usa ângulo customizado ou padrão
+      let angle: number;
+      if (orbitProgress[wordKey] !== undefined) {
+        angle = (orbitProgress[wordKey] / 100) * 2 * Math.PI - Math.PI / 2;
+      } else if (customAngles[wordKey] !== undefined) {
+        angle = customAngles[wordKey];
+      } else {
+        angle = (index / totalInOrbit * 2 * Math.PI - Math.PI / 2);
+      }
       
       return {
         x: centerX + radius * Math.cos(angle),
@@ -237,20 +252,42 @@ export const OrbitalConstellationChart = ({
 
     return (
       <g key={system.centerWord}>
-        {/* Órbitas */}
-        {[1, 2, 3, 4].map(orbit => (
-          <circle
-            key={`orbit-${orbit}`}
-            cx={centerX}
-            cy={centerY}
-            r={orbitRadii[orbit as keyof typeof orbitRadii]}
-            fill="none"
-            stroke="hsl(var(--border))"
-            strokeWidth={isZoomed ? "1" : "0.5"}
-            strokeDasharray="2 2"
-            opacity={0.2}
-          />
-        ))}
+        {/* Órbitas com animação de linha deslizante */}
+        {[1, 2, 3, 4].map(orbit => {
+          const radius = orbitRadii[orbit as keyof typeof orbitRadii];
+          const circumference = 2 * Math.PI * radius;
+          
+          return (
+            <g key={`orbit-${orbit}`}>
+              {/* Linha base da órbita */}
+              <circle
+                cx={centerX}
+                cy={centerY}
+                r={radius}
+                fill="none"
+                stroke="hsl(var(--border))"
+                strokeWidth={isZoomed ? "2" : "1"}
+                opacity={0.15}
+              />
+              
+              {/* Linha deslizante animada */}
+              <circle
+                cx={centerX}
+                cy={centerY}
+                r={radius}
+                fill="none"
+                stroke="hsl(var(--primary))"
+                strokeWidth={isZoomed ? "2" : "1"}
+                strokeDasharray={`${circumference * 0.1} ${circumference * 0.9}`}
+                opacity={0.4}
+                style={{
+                  animation: 'orbit-slide 8s linear infinite',
+                  transformOrigin: `${centerX}px ${centerY}px`
+                }}
+              />
+            </g>
+          );
+        })}
 
         {/* Linhas conectando ao centro */}
         {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) =>
@@ -422,18 +459,33 @@ export const OrbitalConstellationChart = ({
                 
                 <text
                   x={pos.x}
-                  y={pos.y}
+                  y={pos.y - 2 * scale}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   className="fill-foreground font-medium"
                   style={{ 
-                    fontSize: `${8 * scale}px`, 
+                    fontSize: `${7 * scale}px`, 
                     pointerEvents: 'none', 
                     userSelect: 'none',
                     textShadow: '0 1px 2px rgba(0, 0, 0, 0.4)'
                   }}
                 >
                   {word.word}
+                </text>
+                <text
+                  x={pos.x}
+                  y={pos.y + 6 * scale}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-muted-foreground font-semibold"
+                  style={{ 
+                    fontSize: `${6 * scale}px`, 
+                    pointerEvents: 'none', 
+                    userSelect: 'none',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.4)'
+                  }}
+                >
+                  {word.strength}%
                 </text>
               </g>
             );
@@ -713,27 +765,50 @@ export const OrbitalConstellationChart = ({
         >
           {renderOrbitalSystem(system, 400, 300, true)}
         </svg>
-        <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-          <h4 className="font-semibold mb-2">Palavras por Força de Associação</h4>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="mt-4 p-4 bg-muted/30 rounded-lg space-y-4">
+          <h4 className="font-semibold mb-2">Controles de Posição Orbital</h4>
+          <div className="space-y-3">
             {system.words
               .sort((a, b) => b.strength - a.strength)
-              .map(word => (
-                <div key={word.word} className="flex items-center justify-between">
-                  <span className="font-medium">{word.word}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full"
-                        style={{ width: `${word.strength}%`, backgroundColor: word.color }}
-                      />
+              .map((word, index) => {
+                const wordKey = `${system.centerWord}-${word.word}`;
+                const currentProgress = orbitProgress[wordKey] ?? (index / system.words.length * 100);
+                
+                return (
+                  <div key={word.word} className="space-y-1.5 animate-fade-in">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{word.word}</span>
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="text-xs font-semibold px-2 py-0.5 rounded"
+                          style={{ 
+                            backgroundColor: `${word.color}20`,
+                            color: word.color
+                          }}
+                        >
+                          {word.strength}%
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground w-10 text-right">
-                      {word.strength}%
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={currentProgress}
+                        onChange={(e) => handleOrbitProgressChange(wordKey, parseFloat(e.target.value))}
+                        className="flex-1 h-2 rounded-lg appearance-none cursor-pointer slider-orbit"
+                        style={{
+                          background: `linear-gradient(to right, ${word.color} 0%, ${word.color} ${currentProgress}%, hsl(var(--muted)) ${currentProgress}%, hsl(var(--muted)) 100%)`
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground w-12 text-right">
+                        {Math.round(currentProgress)}°
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </div>
       </>

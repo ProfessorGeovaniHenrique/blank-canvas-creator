@@ -61,3 +61,54 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Custom slider styles for orbit controls */
+  .slider-orbit::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease-out;
+  }
+
+  .slider-orbit::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  .slider-orbit::-webkit-slider-thumb:active {
+    transform: scale(1.1);
+  }
+
+  .slider-orbit::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease-out;
+  }
+
+  .slider-orbit::-moz-range-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  .slider-orbit::-moz-range-thumb:active {
+    transform: scale(1.1);
+  }
+
+  /* Orbit animation */
+  @keyframes orbit-slide {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
