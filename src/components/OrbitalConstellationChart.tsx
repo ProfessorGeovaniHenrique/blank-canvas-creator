@@ -341,47 +341,96 @@ export const OrbitalConstellationChart = ({
           </text>
         </g>
 
-        {/* Palavras orbitando */}
+        {/* Palavras orbitando - Botões flutuantes interativos */}
         {Object.entries(wordsByOrbit).map(([orbit, wordsInOrbit]) =>
           wordsInOrbit.map((word, index) => {
             const pos = getWordPosition(word, index, wordsInOrbit.length);
             const wordKey = `${system.centerWord}-${word.word}`;
-            const isBeingDragged = draggedWord === wordKey;
+            const isBeingDraggedWord = draggedWord === wordKey;
+            const buttonId = `word-button-${wordKey}`;
+            const isBeingDraggedButton = draggedButton === buttonId;
 
             return (
               <g
                 key={`word-${wordKey}`}
                 data-word-key={wordKey}
+                data-button-id={buttonId}
                 data-center-x={centerX}
                 data-center-y={centerY}
-                style={{ cursor: isZoomed ? (isBeingDragged ? 'grabbing' : 'grab') : 'default' }}
-                onMouseDown={(e) => isZoomed && handleMouseDown(e, wordKey, centerX, centerY)}
+                data-original-x={pos.x}
+                data-original-y={pos.y}
+                style={{ 
+                  cursor: isZoomed ? (isBeingDraggedWord ? 'grabbing' : 'grab') : (isBeingDraggedButton ? 'grabbing' : 'grab'),
+                  transform: buttonOffsets[buttonId] 
+                    ? `translate(${buttonOffsets[buttonId].x}px, ${buttonOffsets[buttonId].y}px)` 
+                    : 'none',
+                  transition: isBeingDraggedButton ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
+                onMouseDown={(e) => {
+                  if (isZoomed) {
+                    handleMouseDown(e, wordKey, centerX, centerY);
+                  } else {
+                    handleButtonMouseDown(e, buttonId);
+                  }
+                }}
               >
-                {/* Glow effect */}
+                {/* Glow externo animado */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={8 * scale}
+                  fill={word.color}
+                  opacity="0.15"
+                  className="animate-pulse"
+                  style={{ pointerEvents: 'none' }}
+                />
+                
+                {/* Glow médio */}
                 <circle
                   cx={pos.x}
                   cy={pos.y}
                   r={6 * scale}
                   fill={word.color}
-                  opacity="0.2"
+                  opacity="0.3"
                   style={{ pointerEvents: 'none' }}
                 />
+                
+                {/* Botão principal */}
                 <circle
                   cx={pos.x}
                   cy={pos.y}
                   r={4 * scale}
                   fill={word.color}
-                  opacity="1"
+                  opacity="0.95"
+                  style={{ 
+                    pointerEvents: 'none',
+                    filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3))'
+                  }}
+                />
+                
+                {/* Borda brilhante */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={4 * scale}
+                  fill="none"
                   stroke="hsl(var(--background))"
                   strokeWidth={0.5 * scale}
+                  opacity="0.5"
                   style={{ pointerEvents: 'none' }}
                 />
+                
                 <text
                   x={pos.x}
                   y={pos.y - 9 * scale}
                   textAnchor="middle"
                   className="fill-foreground font-medium"
-                  style={{ fontSize: `${8 * scale}px`, pointerEvents: 'none', userSelect: 'none' }}
+                  style={{ 
+                    fontSize: `${8 * scale}px`, 
+                    pointerEvents: 'none', 
+                    userSelect: 'none',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.4)'
+                  }}
                 >
                   {word.word}
                 </text>
@@ -390,7 +439,12 @@ export const OrbitalConstellationChart = ({
                   y={pos.y + 13 * scale}
                   textAnchor="middle"
                   className="fill-muted-foreground"
-                  style={{ fontSize: `${7 * scale}px`, pointerEvents: 'none', userSelect: 'none' }}
+                  style={{ 
+                    fontSize: `${7 * scale}px`, 
+                    pointerEvents: 'none', 
+                    userSelect: 'none',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                  }}
                 >
                   {word.strength}%
                 </text>
