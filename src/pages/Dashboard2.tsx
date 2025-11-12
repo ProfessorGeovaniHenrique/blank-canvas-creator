@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Download, FileText, Network, Sparkles, BarChart3, FileBarChart, Cloud, HelpCircle, TrendingUp, TrendingDown, Maximize2 } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { toast } from "sonner";
 
 // Mock data KWIC completo baseado na letra da música
 const kwicDataMap: Record<string, Array<{
@@ -960,6 +963,143 @@ export default function Dashboard2() {
     setIsFullscreen(!isFullscreen);
   };
 
+  const handleExportPDF = async () => {
+    try {
+      toast.info("Gerando PDF...", { description: "Por favor, aguarde enquanto capturamos todos os dados." });
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let yPosition = margin;
+
+      // Página 1: Capa
+      pdf.setFontSize(24);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Análise de Estilística de Corpus", pageWidth / 2, 40, { align: 'center' });
+      
+      pdf.setFontSize(16);
+      pdf.setFont(undefined, 'normal');
+      pdf.text("'Quando o verso vem pras casa'", pageWidth / 2, 55, { align: 'center' });
+      pdf.text("Luiz Marenco", pageWidth / 2, 65, { align: 'center' });
+      
+      pdf.setFontSize(10);
+      pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 80, { align: 'center' });
+
+      // Página 2: Domínios Semânticos
+      pdf.addPage();
+      yPosition = margin;
+      pdf.setFontSize(18);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Domínios Semânticos", margin, yPosition);
+      yPosition += 10;
+
+      dominiosData.forEach((dominio) => {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(`${dominio.dominio} (${dominio.percentual}%)`, margin, yPosition);
+        yPosition += 6;
+        
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'normal');
+        const palavras = `Palavras: ${dominio.palavras.join(', ')}`;
+        const splitPalavras = pdf.splitTextToSize(palavras, pageWidth - 2 * margin);
+        pdf.text(splitPalavras, margin + 5, yPosition);
+        yPosition += splitPalavras.length * 5 + 5;
+      });
+
+      // Página 3: Palavras-Chave
+      pdf.addPage();
+      yPosition = margin;
+      pdf.setFontSize(18);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Palavras-Chave por Frequência", margin, yPosition);
+      yPosition += 12;
+
+      palavrasChaveData.slice(0, 15).forEach((palavra, index) => {
+        if (yPosition > pageHeight - 20) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'normal');
+        pdf.text(`${index + 1}. ${palavra.palavra} - ${palavra.frequenciaBruta} ocorrências (${palavra.frequenciaNormalizada.toFixed(1)} norm.)`, margin, yPosition);
+        yPosition += 7;
+      });
+
+      // Página 4: Prosódia Semântica
+      pdf.addPage();
+      yPosition = margin;
+      pdf.setFontSize(18);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Prosódia Semântica", margin, yPosition);
+      yPosition += 12;
+
+      const prosodiaGroups = {
+        positiva: Object.entries(palavraStats).filter(([, data]) => data.prosodia === "positiva"),
+        negativa: Object.entries(palavraStats).filter(([, data]) => data.prosodia === "negativa"),
+        neutra: Object.entries(palavraStats).filter(([, data]) => data.prosodia === "neutra")
+      };
+
+      Object.entries(prosodiaGroups).forEach(([tipo, palavras]) => {
+        if (palavras.length > 0) {
+          if (yPosition > pageHeight - 30) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          
+          pdf.setFontSize(12);
+          pdf.setFont(undefined, 'bold');
+          pdf.text(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} (${palavras.length})`, margin, yPosition);
+          yPosition += 7;
+          
+          pdf.setFontSize(9);
+          pdf.setFont(undefined, 'normal');
+          const listaPalavras = palavras.map(([palavra]) => palavra).join(", ");
+          const splitLista = pdf.splitTextToSize(listaPalavras, pageWidth - 2 * margin);
+          pdf.text(splitLista, margin + 5, yPosition);
+          yPosition += splitLista.length * 4 + 8;
+        }
+      });
+
+      // Capturar gráficos se possível
+      const chartElements = document.querySelectorAll('[data-chart-export]');
+      for (let i = 0; i < Math.min(chartElements.length, 2); i++) {
+        try {
+          const canvas = await html2canvas(chartElements[i] as HTMLElement, {
+            scale: 2,
+            backgroundColor: '#1a1a1a'
+          });
+          
+          pdf.addPage();
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = pageWidth - 2 * margin;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          pdf.setFontSize(14);
+          pdf.setFont(undefined, 'bold');
+          pdf.text(`Gráfico ${i + 1}`, margin, margin);
+          pdf.addImage(imgData, 'PNG', margin, margin + 10, imgWidth, Math.min(imgHeight, pageHeight - 30));
+        } catch (error) {
+          console.warn('Erro ao capturar gráfico:', error);
+        }
+      }
+
+      // Salvar PDF
+      pdf.save(`Analise_Estilistica_Corpus_${new Date().getTime()}.pdf`);
+      toast.success("PDF gerado com sucesso!", { description: "O arquivo foi baixado para seu computador." });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error("Erro ao gerar PDF", { description: "Tente novamente ou contate o suporte." });
+    }
+  };
+
   return (
     <div className={`pt-[150px] px-8 pb-12 space-y-10 ${isFullscreen ? 'fixed inset-0 z-50 bg-background p-4 pt-20' : ''}`}>
       {/* Badge verde com título */}
@@ -982,7 +1122,7 @@ export default function Dashboard2() {
               Análise semântica completa do corpus | Versão otimizada com navegação aprimorada
             </p>
           </div>
-          <Button variant="outline" className="gap-2 h-11 px-6">
+          <Button variant="outline" className="gap-2 h-11 px-6" onClick={handleExportPDF}>
             <Download className="h-5 w-5" />
             Exportar Dados
           </Button>
@@ -1298,7 +1438,7 @@ E uma saudade redomona pelos cantos do galpão`}
                 </Card>
 
                 {/* Gráfico de Comparação com mais destaque */}
-                <Card className="border-border/60 shadow-sm">
+                <Card className="border-border/60 shadow-sm" data-chart-export>
                   <CardHeader className="pb-6">
                     <CardTitle className="text-2xl font-bold text-foreground">Distribuição dos Domínios Semânticos</CardTitle>
                     <CardDescription className="text-base text-muted-foreground/80">Comparativo de ocorrências entre domínios</CardDescription>
@@ -1463,7 +1603,7 @@ E uma saudade redomona pelos cantos do galpão`}
         {/* Tab: Frequência */}
         <TabsContent value="frequencia" className="space-y-8 mt-8">
           <div className="grid gap-8 lg:grid-cols-2">
-            <Card className="border-border/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm" data-chart-export>
               <CardHeader className="pb-6">
                 <CardTitle className="text-2xl font-bold text-foreground">Log-Likelihood (LL)</CardTitle>
                 <CardDescription className="text-base text-muted-foreground/80">Medida estatística de significância das palavras-chave</CardDescription>
@@ -1490,7 +1630,7 @@ E uma saudade redomona pelos cantos do galpão`}
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm" data-chart-export>
               <CardHeader className="pb-6">
                 <CardTitle className="text-2xl font-bold text-foreground">Mutual Information (MI)</CardTitle>
                 <CardDescription className="text-base text-muted-foreground/80">Força da associação entre palavra e corpus</CardDescription>
