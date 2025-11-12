@@ -1411,64 +1411,13 @@ E uma saudade redomona pelos cantos do galpão`}
             <CardHeader>
               <CardTitle>Nuvem de Domínios Semânticos - Constelação Orbital</CardTitle>
               <CardDescription>
-                Use os sliders abaixo ou arraste as palavras no gráfico. Clique nas palavras para ver concordância (KWIC). Passe o mouse para ver estatísticas.
+                Arraste as palavras para movê-las na órbita. Clique nas palavras para ver concordância (KWIC). Use o zoom e as barras de rolagem para navegar.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-2">
               <TooltipProvider>
-                {/* Controles orbitais - Sliders */}
-                <div className="mb-4 animate-fade-in">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-                    {dominiosData.flatMap((dominio) =>
-                      dominio.palavras.map((palavra) => {
-                        const wordKey = `${dominio.dominio}-${palavra}`;
-                        const currentProgress = orbitProgress[wordKey] ?? 0;
-                        
-                        return (
-                          <div key={wordKey} className="flex items-center gap-3">
-                            <div className="flex flex-col gap-1 flex-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium">{palavra}</span>
-                                <span 
-                                  className="text-xs font-semibold px-2 py-0.5 rounded"
-                                  style={{ 
-                                    backgroundColor: `${dominio.cor}20`,
-                                    color: dominio.cor
-                                  }}
-                                >
-                                  {dominio.dominio}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={currentProgress}
-                                  onChange={(e) => handleOrbitProgressChange(wordKey, parseFloat(e.target.value))}
-                                  className="flex-1 h-1.5 rounded-lg appearance-none cursor-pointer slider-orbit"
-                                  style={{
-                                    background: `linear-gradient(to right, ${dominio.cor} 0%, ${dominio.cor} ${currentProgress}%, hsl(var(--muted)) ${currentProgress}%, hsl(var(--muted)) 100%)`
-                                  }}
-                                />
-                                <span className="text-xs text-muted-foreground w-8 text-right">
-                                  {Math.round(currentProgress)}°
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2 px-1">
-                    💡 Dica: Arraste as palavras no gráfico ou use os controles acima. Passe o mouse sobre uma palavra para ver suas estatísticas.
-                  </p>
-                </div>
-
-                {/* Gráfico SVG */}
-                <div className="relative">
-                  {/* Controles de Zoom - Igual ao das constelações */}
+                <div className="relative h-[750px] bg-gradient-to-br from-background via-muted/10 to-background rounded-lg border overflow-auto">
+                  {/* Controles de Zoom - Interno */}
                   <div className="absolute top-4 right-4 z-30 flex flex-col gap-1 bg-background/95 backdrop-blur-sm border rounded-lg p-1 shadow-lg">
                     <button
                       onClick={handleZoomIn}
@@ -1493,242 +1442,110 @@ E uma saudade redomona pelos cantos do galpão`}
                     </button>
                   </div>
 
-                  <div 
-                    className="bg-gradient-to-br from-background via-muted/10 to-background rounded-lg border"
-                    style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center', transition: 'transform 0.3s' }}
+                  <svg
+                    ref={svgRef}
+                    width={1300 * zoomLevel}
+                    height={975 * zoomLevel}
+                    viewBox="0 0 1300 975"
+                    className="w-auto h-auto"
                   >
-                    <svg
-                      ref={svgRef}
-                      width="1000"
-                      height="750"
-                      viewBox="0 0 1000 750"
-                      className="w-full h-auto"
-                    >
-                      {dominiosData.map((dominio, index) => {
-                        // Posições dos domínios
-                        const positions = [
-                          { x: 500, y: 375 },  // Centro - Natureza
-                          { x: 300, y: 150 },  // Topo esquerda - Cavalo
-                          { x: 700, y: 150 },  // Topo direita - Vida
-                          { x: 280, y: 580 },  // Baixo esquerda - Sentimentos
-                          { x: 720, y: 580 }   // Baixo direita - Tradição
-                        ];
-                        
-                        const position = positions[index];
-                        const centerX = position.x;
-                        const centerY = position.y;
-                        
-                        // Tamanho baseado na relevância
-                        const sizeScale = 0.6 + (dominio.percentual / 28.2) * 0.8;
-                        
-                        // 4 órbitas
-                        const orbitRadii = [
-                          70 * sizeScale,
-                          110 * sizeScale,
-                          150 * sizeScale,
-                          190 * sizeScale
-                        ];
-                        
-                        const totalWords = dominio.palavras.length;
-                        const wordsPerOrbit = Math.ceil(totalWords / 4);
-                        
-                        return (
-                          <g key={dominio.dominio}>
-                            {/* Órbitas animadas */}
-                            {orbitRadii.map((radius, orbitIndex) => {
-                              const circumference = 2 * Math.PI * radius;
-                              return (
-                                <g key={`orbit-${orbitIndex}`}>
-                                  <circle
-                                    cx={centerX}
-                                    cy={centerY}
-                                    r={radius}
-                                    fill="none"
-                                    stroke={dominio.cor}
-                                    strokeWidth={3 - orbitIndex * 0.5}
-                                    opacity={0.25 - orbitIndex * 0.05}
-                                  />
-                                  <circle
-                                    cx={centerX}
-                                    cy={centerY}
-                                    r={radius}
-                                    fill="none"
-                                    stroke={dominio.cor}
-                                    strokeWidth={3 - orbitIndex * 0.5}
-                                    strokeDasharray={`${circumference * 0.1} ${circumference * 0.9}`}
-                                    opacity={0.4}
-                                    style={{
-                                      animation: 'spin 60s linear infinite',
-                                      transformOrigin: `${centerX}px ${centerY}px`
-                                    }}
-                                  />
-                                </g>
-                              );
-                            })}
+                    {dominiosData.map((dominio, index) => {
+                      const positions = [
+                        { x: 650, y: 487 },
+                        { x: 390, y: 195 },
+                        { x: 910, y: 195 },
+                        { x: 364, y: 754 },
+                        { x: 936, y: 754 }
+                      ];
+                      
+                      const position = positions[index];
+                      const centerX = position.x;
+                      const centerY = position.y;
+                      
+                      const sizeScale = (0.6 + (dominio.percentual / 28.2) * 0.8) * 1.3;
+                      
+                      const orbitRadii = [
+                        91 * sizeScale,
+                        143 * sizeScale,
+                        195 * sizeScale,
+                        247 * sizeScale
+                      ];
+                      
+                      const totalWords = dominio.palavras.length;
+                      const wordsPerOrbit = Math.ceil(totalWords / 4);
+                      
+                      return (
+                        <g key={dominio.dominio}>
+                          {orbitRadii.map((radius, orbitIndex) => {
+                            const circumference = 2 * Math.PI * radius;
+                            return (
+                              <g key={`orbit-${orbitIndex}`}>
+                                <circle cx={centerX} cy={centerY} r={radius} fill="none" stroke={dominio.cor} strokeWidth={3.9 - orbitIndex * 0.65} opacity={0.25 - orbitIndex * 0.05} />
+                                <circle cx={centerX} cy={centerY} r={radius} fill="none" stroke={dominio.cor} strokeWidth={3.9 - orbitIndex * 0.65} strokeDasharray={`${circumference * 0.1} ${circumference * 0.9}`} opacity={0.4}
+                                  style={{ animation: 'spin 60s linear infinite', transformOrigin: `${centerX}px ${centerY}px` }} />
+                              </g>
+                            );
+                          })}
 
-                            {/* Domínio central */}
-                            <g
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleDomainClick(dominio.dominio)}
-                            >
-                              <circle
-                                cx={centerX}
-                                cy={centerY}
-                                r={28 * sizeScale}
-                                fill={dominio.cor}
-                                opacity="0.1"
-                                className="animate-pulse"
-                              />
-                              <circle
-                                cx={centerX}
-                                cy={centerY}
-                                r={23 * sizeScale}
-                                fill={dominio.cor}
-                                opacity="0.2"
-                              />
-                              <circle
-                                cx={centerX}
-                                cy={centerY}
-                                r={18 * sizeScale}
-                                fill={dominio.cor}
-                                opacity="0.85"
-                                style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))' }}
-                              />
-                              <text
-                                x={centerX}
-                                y={centerY}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                className="fill-primary-foreground font-bold pointer-events-none"
-                                style={{ fontSize: `${14 * sizeScale}px` }}
-                              >
-                                {dominio.dominio.split(' ')[0]}
-                              </text>
-                            </g>
-
-                            {/* Palavras orbitando */}
-                            {dominio.palavras.map((palavra, wordIndex) => {
-                              const orbitLevel = Math.floor(wordIndex / wordsPerOrbit);
-                              const orbit = Math.min(orbitLevel, 3);
-                              const radius = orbitRadii[orbit];
-                              
-                              const wordsInThisOrbit = Math.min(wordsPerOrbit, totalWords - orbit * wordsPerOrbit);
-                              const indexInOrbit = wordIndex % wordsPerOrbit;
-                              
-                              const wordKey = `${dominio.dominio}-${palavra}`;
-                              
-                              // Usa o progresso orbital se existir
-                              let angle: number;
-                              if (orbitProgress[wordKey] !== undefined) {
-                                angle = (orbitProgress[wordKey] / 100) * 2 * Math.PI - Math.PI / 2;
-                              } else {
-                                const baseAngle = (indexInOrbit / wordsInThisOrbit) * 2 * Math.PI - Math.PI / 2;
-                                const angleOffset = (Math.sin(wordIndex * 2.5) * 0.3);
-                                angle = baseAngle + angleOffset;
-                              }
-                              
-                              const radiusVariation = 1 + (Math.cos(wordIndex * 3.7) * 0.12);
-                              const finalRadius = radius * radiusVariation;
-                              
-                              const x = centerX + Math.cos(angle) * finalRadius;
-                              const y = centerY + Math.sin(angle) * finalRadius;
-                              
-                              const wordScale = 1 - (orbit * 0.12);
-                              const stats = palavraStats[palavra];
-                              
-                              return (
-                                <g
-                                  key={wordKey}
-                                  data-word-key={wordKey}
-                                  data-center-x={centerX}
-                                  data-center-y={centerY}
-                                  style={{ cursor: 'grab' }}
-                                  onMouseDown={(e) => handleMouseDown(e, wordKey, centerX, centerY)}
-                                >
-                                  <circle
-                                    cx={x}
-                                    cy={y}
-                                    r={8 * wordScale}
-                                    fill={dominio.cor}
-                                    opacity="0.08"
-                                    className="animate-pulse"
-                                  />
-                                  <circle
-                                    cx={x}
-                                    cy={y}
-                                    r={6 * wordScale}
-                                    fill={dominio.cor}
-                                    opacity="0.15"
-                                  />
-                                  <circle
-                                    cx={x}
-                                    cy={y}
-                                    r={4 * wordScale}
-                                    fill={dominio.cor}
-                                    opacity="0.85"
-                                    style={{ filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3))' }}
-                                  />
-                                  
-                                  {/* Área de tooltip e clique */}
-                                  <circle
-                                    cx={x}
-                                    cy={y}
-                                    r={12 * wordScale}
-                                    fill="transparent"
-                                    style={{ cursor: 'pointer' }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (!isDragging) {
-                                        handleWordClick(palavra);
-                                      }
-                                    }}
-                                  >
-                                    {stats && (
-                                      <title>
-                                        {`${palavra}\nFreq. Bruta: ${stats.frequenciaBruta}\nFreq. Normalizada: ${stats.frequenciaNormalizada}\nProsódia: ${stats.prosodia === 'positiva' ? 'Positiva ✓' : stats.prosodia === 'negativa' ? 'Negativa ✗' : 'Neutra −'}`}
-                                      </title>
-                                    )}
-                                  </circle>
-                                  
-                                  <text
-                                    x={x}
-                                    y={y - 2 * wordScale}
-                                    textAnchor="middle"
-                                    dominantBaseline="middle"
-                                    className="fill-foreground font-bold pointer-events-none"
-                                    style={{ fontSize: `${7 * wordScale}px` }}
-                                  >
-                                    {palavra}
-                                  </text>
-                                </g>
-                              );
-                            })}
+                          <g style={{ cursor: 'pointer' }} onClick={() => handleDomainClick(dominio.dominio)}>
+                            <circle cx={centerX} cy={centerY} r={36.4 * sizeScale} fill={dominio.cor} opacity="0.1" className="animate-pulse" />
+                            <circle cx={centerX} cy={centerY} r={29.9 * sizeScale} fill={dominio.cor} opacity="0.2" />
+                            <circle cx={centerX} cy={centerY} r={23.4 * sizeScale} fill={dominio.cor} opacity="0.85" style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4))' }} />
+                            <text x={centerX} y={centerY} textAnchor="middle" dominantBaseline="middle" className="fill-primary-foreground font-bold pointer-events-none"
+                              style={{ fontSize: `${18.2 * sizeScale}px` }}>{dominio.dominio.split(' ')[0]}</text>
                           </g>
-                        );
-                      })}
-                    </svg>
-                  </div>
+
+                          {dominio.palavras.map((palavra, wordIndex) => {
+                            const orbitLevel = Math.floor(wordIndex / wordsPerOrbit);
+                            const orbit = Math.min(orbitLevel, 3);
+                            const radius = orbitRadii[orbit];
+                            const wordsInThisOrbit = Math.min(wordsPerOrbit, totalWords - orbit * wordsPerOrbit);
+                            const indexInOrbit = wordIndex % wordsPerOrbit;
+                            const wordKey = `${dominio.dominio}-${palavra}`;
+                            
+                            let angle: number;
+                            if (orbitProgress[wordKey] !== undefined) {
+                              angle = (orbitProgress[wordKey] / 100) * 2 * Math.PI - Math.PI / 2;
+                            } else {
+                              const baseAngle = (indexInOrbit / wordsInThisOrbit) * 2 * Math.PI - Math.PI / 2;
+                              const angleOffset = (Math.sin(wordIndex * 2.5) * 0.3);
+                              angle = baseAngle + angleOffset;
+                            }
+                            
+                            const radiusVariation = 1 + (Math.cos(wordIndex * 3.7) * 0.12);
+                            const finalRadius = radius * radiusVariation;
+                            const x = centerX + Math.cos(angle) * finalRadius;
+                            const y = centerY + Math.sin(angle) * finalRadius;
+                            const wordScale = (1 - (orbit * 0.12)) * 1.3;
+                            const stats = palavraStats[palavra];
+                            
+                            return (
+                              <g key={wordKey} data-word-key={wordKey} data-center-x={centerX} data-center-y={centerY} style={{ cursor: 'grab' }}
+                                onMouseDown={(e) => handleMouseDown(e, wordKey, centerX, centerY)}>
+                                <circle cx={x} cy={y} r={10.4 * wordScale} fill={dominio.cor} opacity="0.08" className="animate-pulse" />
+                                <circle cx={x} cy={y} r={7.8 * wordScale} fill={dominio.cor} opacity="0.15" />
+                                <circle cx={x} cy={y} r={5.2 * wordScale} fill={dominio.cor} opacity="0.85" style={{ filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3))' }} />
+                                <circle cx={x} cy={y} r={15.6 * wordScale} fill="transparent" style={{ cursor: 'pointer' }}
+                                  onClick={(e) => { e.stopPropagation(); if (!isDragging) handleWordClick(palavra); }}>
+                                  {stats && <title>{`${palavra}\nFreq. Bruta: ${stats.frequenciaBruta}\nFreq. Normalizada: ${stats.frequenciaNormalizada}\nProsódia: ${stats.prosodia === 'positiva' ? 'Positiva ✓' : stats.prosodia === 'negativa' ? 'Negativa ✗' : 'Neutra −'}`}</title>}
+                                </circle>
+                                <text x={x} y={y - 2.6 * wordScale} textAnchor="middle" dominantBaseline="middle" className="fill-foreground font-bold pointer-events-none"
+                                  style={{ fontSize: `${9.1 * wordScale}px` }}>{palavra}</text>
+                              </g>
+                            );
+                          })}
+                        </g>
+                      );
+                    })}
+                  </svg>
                 </div>
               </TooltipProvider>
               
-              {/* Legenda das órbitas com porcentagens */}
               <div className="mt-4 grid grid-cols-4 gap-2 text-xs">
-                <div className="p-2.5 rounded-lg bg-muted/40 border">
-                  <div className="font-semibold mb-1 text-sm">Órbita 1</div>
-                  <div className="text-muted-foreground">20-30% de freq.</div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-muted/40 border">
-                  <div className="font-semibold mb-1 text-sm">Órbita 2</div>
-                  <div className="text-muted-foreground">15-20% de freq.</div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-muted/40 border">
-                  <div className="font-semibold mb-1 text-sm">Órbita 3</div>
-                  <div className="text-muted-foreground">10-15% de freq.</div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-muted/40 border">
-                  <div className="font-semibold mb-1 text-sm">Órbita 4</div>
-                  <div className="text-muted-foreground">{'<'}10% de freq.</div>
-                </div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border"><div className="font-semibold mb-1 text-sm">Órbita 1</div><div className="text-muted-foreground">20-30% de freq.</div></div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border"><div className="font-semibold mb-1 text-sm">Órbita 2</div><div className="text-muted-foreground">15-20% de freq.</div></div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border"><div className="font-semibold mb-1 text-sm">Órbita 3</div><div className="text-muted-foreground">10-15% de freq.</div></div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border"><div className="font-semibold mb-1 text-sm">Órbita 4</div><div className="text-muted-foreground">{'<'}10% de freq.</div></div>
               </div>
             </CardContent>
           </Card>
