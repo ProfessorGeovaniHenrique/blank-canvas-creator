@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const recentProjects = [{
@@ -20,6 +21,7 @@ export default function Dashboard() {
     description: "Primeira análise",
     date: "Há 1 semana"
   }];
+
   return <div className="pt-[150px] px-8 pb-8 space-y-8">
       <div>
         <h1 className="text-4xl font-bold mb-2">Dashboard de Análise</h1>
@@ -28,21 +30,22 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Análise Rápida */}
+      {/* Demonstração Interativa */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Análise Rápida</h2>
+        <h2 className="text-2xl font-semibold">Demonstração Interativa</h2>
         <Card className="border-success/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">Corpus de Estudo - Quando o verso vem pras casa                    <FileText className="h-5 w-5 text-success" />
-              Corpus de Estudo - Clássicos Gaúchos
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-success" />
+              Demo: "Quando o verso vem pras casa" - Luiz Marenco
             </CardTitle>
             <CardDescription>
-              Explore os insights da canção "Quando o verso vem pras casa" de Luiz Marenco
+              Experimente as funcionalidades da ferramenta com uma análise completa desta canção gaúcha clássica
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => navigate("/analise/classicos-gauchos")} className="w-full sm:w-auto">
-              Analisar "Clássicos Gaúchos" Agora
+              Explorar Demonstração
             </Button>
           </CardContent>
         </Card>
