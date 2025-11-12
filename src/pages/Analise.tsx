@@ -506,11 +506,11 @@ export default function Analise() {
       left: 50
     },
     "Cavalo e Aperos": {
-      top: 6,
+      top: 18,
       left: 10
     },
     "Vida no Galpão": {
-      top: 8,
+      top: 18,
       right: 10
     },
     "Sentimentos e Poesia": {
@@ -537,6 +537,7 @@ export default function Analise() {
     y: 0
   });
   const [hasDragged, setHasDragged] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(0.85);
   const containerRef = useRef<HTMLDivElement>(null);
   const handleWordClick = (word: string) => {
     if (hasDragged) return; // Não abre modal se arrastou
@@ -650,6 +651,11 @@ export default function Analise() {
     setDraggingDomain(null);
     setDraggingSatellite(null);
   };
+
+  // Handlers de zoom
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(1.5, prev + 0.1));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(0.5, prev - 0.1));
+  const handleResetZoom = () => setZoomLevel(0.85);
   return <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div>
@@ -1431,7 +1437,39 @@ E uma saudade redomona pelos cantos do galpão`}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div ref={containerRef} className="relative min-h-[800px] bg-gradient-to-br from-background via-muted/10 to-background rounded-lg p-16 cursor-default select-none border" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+              {/* Controles de Zoom */}
+              <div className="absolute top-8 right-8 z-10 flex flex-col gap-1.5 bg-background/90 backdrop-blur-sm border rounded-lg p-1.5 shadow-lg">
+                <button
+                  onClick={handleZoomIn}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
+                  title="Zoom In"
+                >
+                  <span className="text-base font-bold">+</span>
+                </button>
+                <button
+                  onClick={handleResetZoom}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors text-[10px] font-medium"
+                  title="Reset Zoom"
+                >
+                  {Math.round(zoomLevel * 100)}%
+                </button>
+                <button
+                  onClick={handleZoomOut}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-muted rounded transition-colors"
+                  title="Zoom Out"
+                >
+                  <span className="text-base font-bold">−</span>
+                </button>
+              </div>
+              
+              <div 
+                ref={containerRef} 
+                className="relative min-h-[800px] bg-gradient-to-br from-background via-muted/10 to-background rounded-lg p-16 cursor-default select-none border transition-transform duration-300" 
+                onMouseMove={handleMouseMove} 
+                onMouseUp={handleMouseUp} 
+                onMouseLeave={handleMouseUp}
+                style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center' }}
+              >
                 {/* Natureza e Paisagem Campeira - Centro (mais saliente: 28.2%) */}
                 <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{
                 top: `${domainPositions["Natureza e Paisagem Campeira"].top}%`,
@@ -1442,104 +1480,32 @@ E uma saudade redomona pelos cantos do galpão`}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-primary/8 pointer-events-none" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] rounded-full border border-primary/5 pointer-events-none" />
                     
-                    <Badge onMouseDown={e => handleMouseDown(e, "Natureza e Paisagem Campeira")} onClick={() => handleDomainClick("Natureza e Paisagem Campeira")} className="text-3xl font-bold px-8 py-4 hover:scale-110 transition-all cursor-move shadow-2xl border-0 relative z-10" style={{
+                    <Badge onMouseDown={e => handleMouseDown(e, "Natureza e Paisagem Campeira")} onClick={() => handleDomainClick("Natureza e Paisagem Campeira")} className="text-3xl font-bold px-8 py-4 hover:scale-110 transition-all cursor-move shadow-2xl border-0 relative z-10 text-center" style={{
                     backgroundColor: "hsl(142, 35%, 25%)",
                     color: "hsl(142, 80%, 75%)",
                     boxShadow: "0 0 40px hsla(142, 35%, 25%, 0.3)"
                   }}>
                       Natureza e Paisagem Campeira
                     </Badge>
-                    {/* Distribuição circular com mais espaço */}
-                    {[{
-                    word: "tarumã",
-                    key: "nat-tarumã",
-                    defaultPos: {
-                      top: -96,
-                      left: '5%'
-                    }
-                  }, {
-                    word: "várzea",
-                    key: "nat-várzea",
-                    defaultPos: {
-                      top: -96,
-                      right: '5%'
-                    }
-                  }, {
-                    word: "coxilha",
-                    key: "nat-coxilha",
-                    defaultPos: {
-                      right: -112,
-                      top: 8
-                    }
-                  }, {
-                    word: "campo",
-                    key: "nat-campo",
-                    defaultPos: {
-                      right: -112,
-                      bottom: 8
-                    }
-                  }, {
-                    word: "campanha",
-                    key: "nat-campanha",
-                    defaultPos: {
-                      bottom: -96,
-                      right: '5%'
-                    }
-                  }, {
-                    word: "horizonte",
-                    key: "nat-horizonte",
-                    defaultPos: {
-                      bottom: -96,
-                      left: '5%'
-                    }
-                  }, {
-                    word: "sombra",
-                    key: "nat-sombra",
-                    defaultPos: {
-                      left: -112,
-                      bottom: 8
-                    }
-                  }, {
-                    word: "sol",
-                    key: "nat-sol",
-                    defaultPos: {
-                      left: -112,
-                      top: 8
-                    }
-                  }].map(({
-                    word,
-                    key,
-                    defaultPos
-                  }) => {
-                    const pos = satellitePositions[key] || defaultPos;
-                    const style: React.CSSProperties = {
-                      backgroundColor: "hsl(142, 35%, 25%, 0.7)",
-                      color: "hsl(142, 80%, 75%)",
-                      ...(typeof pos.left === 'number' ? {
-                        left: `${pos.left}px`
-                      } : pos.left ? {
-                        left: pos.left
-                      } : {}),
-                      ...(typeof pos.right === 'number' ? {
-                        right: `${pos.right}px`
-                      } : pos.right ? {
-                        right: pos.right
-                      } : {}),
-                      ...(typeof pos.top === 'number' ? {
-                        top: `${pos.top}px`
-                      } : pos.top ? {
-                        top: pos.top
-                      } : {}),
-                      ...(typeof pos.bottom === 'number' ? {
-                        bottom: `${pos.bottom}px`
-                      } : pos.bottom ? {
-                        bottom: pos.bottom
-                      } : {})
-                    };
-                    return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, defaultPos)} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
+                    {/* Distribuição orbital */}
+                    {["tarumã", "várzea", "coxilha", "campo", "campanha", "horizonte", "sombra", "sol"].map((word, idx) => {
+                      const angle = (idx / 8) * 2 * Math.PI - Math.PI / 2;
+                      const radius = 120;
+                      const x = Math.cos(angle) * radius;
+                      const y = Math.sin(angle) * radius;
+                      const key = `nat-${word}`;
+                      const pos = satellitePositions[key] || { left: x, top: y };
+                      const style: React.CSSProperties = {
+                        backgroundColor: "hsl(142, 35%, 25%, 0.7)",
+                        color: "hsl(142, 80%, 75%)",
+                        left: typeof pos.left === 'number' ? `calc(50% + ${pos.left}px)` : pos.left,
+                        top: typeof pos.top === 'number' ? `calc(50% + ${pos.top}px)` : pos.top,
+                        transform: 'translate(-50%, -50%)'
+                      };
+                      return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, { left: x, top: y })} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
                           {word}
                         </Badge>;
-                  })}
+                    })}
                   </div>
                 </div>
 
@@ -1553,103 +1519,32 @@ E uma saudade redomona pelos cantos do galpão`}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] rounded-full border border-primary/8 pointer-events-none" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-primary/5 pointer-events-none" />
                     
-                    <Badge onMouseDown={e => handleMouseDown(e, "Cavalo e Aperos")} onClick={() => handleDomainClick("Cavalo e Aperos")} className="text-2xl font-bold px-6 py-3 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
+                    <Badge onMouseDown={e => handleMouseDown(e, "Cavalo e Aperos")} onClick={() => handleDomainClick("Cavalo e Aperos")} className="text-2xl font-bold px-6 py-3 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10 text-center" style={{
                     backgroundColor: "hsl(221, 40%, 25%)",
                     color: "hsl(221, 85%, 75%)",
                     boxShadow: "0 0 30px hsla(221, 40%, 25%, 0.3)"
                   }}>
                       Cavalo e Aperos
                     </Badge>
-                    {[{
-                    word: "gateada",
-                    key: "cav-gateada",
-                    defaultPos: {
-                      top: -64,
-                      left: '5%'
-                    }
-                  }, {
-                    word: "tropa",
-                    key: "cav-tropa",
-                    defaultPos: {
-                      top: -64,
-                      right: '5%'
-                    }
-                  }, {
-                    word: "arreios",
-                    key: "cav-arreios",
-                    defaultPos: {
-                      left: -72,
-                      top: 8
-                    }
-                  }, {
-                    word: "esporas",
-                    key: "cav-esporas",
-                    defaultPos: {
-                      right: -72,
-                      top: 8
-                    }
-                  }, {
-                    word: "lombo",
-                    key: "cav-lombo",
-                    defaultPos: {
-                      left: -72,
-                      bottom: 24
-                    }
-                  }, {
-                    word: "ramada",
-                    key: "cav-ramada",
-                    defaultPos: {
-                      right: -72,
-                      bottom: 24
-                    }
-                  }, {
-                    word: "encilha",
-                    key: "cav-encilha",
-                    defaultPos: {
-                      bottom: -64,
-                      left: '15%'
-                    }
-                  }, {
-                    word: "cambona",
-                    key: "cav-cambona",
-                    defaultPos: {
-                      bottom: -64,
-                      right: '15%'
-                    }
-                  }].map(({
-                    word,
-                    key,
-                    defaultPos
-                  }) => {
-                    const pos = satellitePositions[key] || defaultPos;
-                    const style: React.CSSProperties = {
-                      backgroundColor: "hsl(221, 40%, 25%, 0.7)",
-                      color: "hsl(221, 85%, 75%)",
-                      ...(typeof pos.left === 'number' ? {
-                        left: `${pos.left}px`
-                      } : pos.left ? {
-                        left: pos.left
-                      } : {}),
-                      ...(typeof pos.right === 'number' ? {
-                        right: `${pos.right}px`
-                      } : pos.right ? {
-                        right: pos.right
-                      } : {}),
-                      ...(typeof pos.top === 'number' ? {
-                        top: `${pos.top}px`
-                      } : pos.top ? {
-                        top: pos.top
-                      } : {}),
-                      ...(typeof pos.bottom === 'number' ? {
-                        bottom: `${pos.bottom}px`
-                      } : pos.bottom ? {
-                        bottom: pos.bottom
-                      } : {})
-                    };
-                    return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, defaultPos)} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
+                    {/* Distribuição orbital */}
+                    {["gateada", "tropa", "arreios", "esporas", "lombo", "ramada", "encilha", "cambona"].map((word, idx) => {
+                      const angle = (idx / 8) * 2 * Math.PI - Math.PI / 2;
+                      const radius = 95;
+                      const x = Math.cos(angle) * radius;
+                      const y = Math.sin(angle) * radius;
+                      const key = `cav-${word}`;
+                      const pos = satellitePositions[key] || { left: x, top: y };
+                      const style: React.CSSProperties = {
+                        backgroundColor: "hsl(221, 40%, 25%, 0.7)",
+                        color: "hsl(221, 85%, 75%)",
+                        left: typeof pos.left === 'number' ? `calc(50% + ${pos.left}px)` : pos.left,
+                        top: typeof pos.top === 'number' ? `calc(50% + ${pos.top}px)` : pos.top,
+                        transform: 'translate(-50%, -50%)'
+                      };
+                      return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, { left: x, top: y })} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
                           {word}
                         </Badge>;
-                  })}
+                    })}
                   </div>
                 </div>
 
@@ -1663,103 +1558,32 @@ E uma saudade redomona pelos cantos do galpão`}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] rounded-full border border-primary/8 pointer-events-none" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-primary/5 pointer-events-none" />
                     
-                    <Badge onMouseDown={e => handleMouseDown(e, "Vida no Galpão")} onClick={() => handleDomainClick("Vida no Galpão")} className="text-xl font-bold px-5 py-3 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
+                    <Badge onMouseDown={e => handleMouseDown(e, "Vida no Galpão")} onClick={() => handleDomainClick("Vida no Galpão")} className="text-xl font-bold px-5 py-3 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10 text-center" style={{
                     backgroundColor: "hsl(45, 40%, 25%)",
                     color: "hsl(45, 95%, 75%)",
                     boxShadow: "0 0 30px hsla(45, 40%, 25%, 0.3)"
                   }}>
                       Vida no Galpão
                     </Badge>
-                    {[{
-                    word: "galpão",
-                    key: "gal-galpão",
-                    defaultPos: {
-                      top: -64,
-                      left: '5%'
-                    }
-                  }, {
-                    word: "mate",
-                    key: "gal-mate",
-                    defaultPos: {
-                      top: -64,
-                      right: '5%'
-                    }
-                  }, {
-                    word: "candeeiro",
-                    key: "gal-candeeiro",
-                    defaultPos: {
-                      right: -88,
-                      top: 8
-                    }
-                  }, {
-                    word: "fogo",
-                    key: "gal-fogo",
-                    defaultPos: {
-                      left: -72,
-                      top: 8
-                    }
-                  }, {
-                    word: "chão",
-                    key: "gal-chão",
-                    defaultPos: {
-                      left: -72,
-                      bottom: 24
-                    }
-                  }, {
-                    word: "cuia",
-                    key: "gal-cuia",
-                    defaultPos: {
-                      right: -72,
-                      bottom: 24
-                    }
-                  }, {
-                    word: "querência",
-                    key: "gal-querência",
-                    defaultPos: {
-                      bottom: -64,
-                      left: '10%'
-                    }
-                  }, {
-                    word: "bomba",
-                    key: "gal-bomba",
-                    defaultPos: {
-                      bottom: -64,
-                      right: '10%'
-                    }
-                  }].map(({
-                    word,
-                    key,
-                    defaultPos
-                  }) => {
-                    const pos = satellitePositions[key] || defaultPos;
-                    const style: React.CSSProperties = {
-                      backgroundColor: "hsl(45, 40%, 25%, 0.7)",
-                      color: "hsl(45, 95%, 75%)",
-                      ...(typeof pos.left === 'number' ? {
-                        left: `${pos.left}px`
-                      } : pos.left ? {
-                        left: pos.left
-                      } : {}),
-                      ...(typeof pos.right === 'number' ? {
-                        right: `${pos.right}px`
-                      } : pos.right ? {
-                        right: pos.right
-                      } : {}),
-                      ...(typeof pos.top === 'number' ? {
-                        top: `${pos.top}px`
-                      } : pos.top ? {
-                        top: pos.top
-                      } : {}),
-                      ...(typeof pos.bottom === 'number' ? {
-                        bottom: `${pos.bottom}px`
-                      } : pos.bottom ? {
-                        bottom: pos.bottom
-                      } : {})
-                    };
-                    return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, defaultPos)} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
+                    {/* Distribuição orbital */}
+                    {["galpão", "mate", "candeeiro", "fogo", "chão", "cuia", "querência", "bomba"].map((word, idx) => {
+                      const angle = (idx / 8) * 2 * Math.PI - Math.PI / 2;
+                      const radius = 95;
+                      const x = Math.cos(angle) * radius;
+                      const y = Math.sin(angle) * radius;
+                      const key = `gal-${word}`;
+                      const pos = satellitePositions[key] || { left: x, top: y };
+                      const style: React.CSSProperties = {
+                        backgroundColor: "hsl(45, 40%, 25%, 0.7)",
+                        color: "hsl(45, 95%, 75%)",
+                        left: typeof pos.left === 'number' ? `calc(50% + ${pos.left}px)` : pos.left,
+                        top: typeof pos.top === 'number' ? `calc(50% + ${pos.top}px)` : pos.top,
+                        transform: 'translate(-50%, -50%)'
+                      };
+                      return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, { left: x, top: y })} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
                           {word}
                         </Badge>;
-                  })}
+                    })}
                   </div>
                 </div>
 
@@ -1773,99 +1597,32 @@ E uma saudade redomona pelos cantos do galpão`}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160px] h-[160px] rounded-full border border-primary/8 pointer-events-none" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px] h-[220px] rounded-full border border-primary/5 pointer-events-none" />
                     
-                    <Badge onMouseDown={e => handleMouseDown(e, "Sentimentos e Poesia")} onClick={() => handleDomainClick("Sentimentos e Poesia")} className="text-xl font-bold px-5 py-2.5 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
+                    <Badge onMouseDown={e => handleMouseDown(e, "Sentimentos e Poesia")} onClick={() => handleDomainClick("Sentimentos e Poesia")} className="text-xl font-bold px-5 py-2.5 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10 text-center" style={{
                     backgroundColor: "hsl(291, 35%, 25%)",
                     color: "hsl(291, 75%, 75%)",
                     boxShadow: "0 0 28px hsla(291, 35%, 25%, 0.3)"
                   }}>
                       Sentimentos e Poesia
                     </Badge>
-                    {[{
-                    word: "verso",
-                    key: "sent-verso",
-                    defaultPos: {
-                      top: -64,
-                      left: '10%'
-                    }
-                  }, {
-                    word: "saudade",
-                    key: "sent-saudade",
-                    defaultPos: {
-                      top: -64,
-                      right: '10%'
-                    }
-                  }, {
-                    word: "sonhos",
-                    key: "sent-sonhos",
-                    defaultPos: {
-                      left: -72,
-                      top: 8
-                    }
-                  }, {
-                    word: "coplas",
-                    key: "sent-coplas",
-                    defaultPos: {
-                      right: -72,
-                      top: 8
-                    }
-                  }, {
-                    word: "mansidão",
-                    key: "sent-mansidão",
-                    defaultPos: {
-                      left: -80,
-                      bottom: 16
-                    }
-                  }, {
-                    word: "calma",
-                    key: "sent-calma",
-                    defaultPos: {
-                      bottom: -64,
-                      left: '50%'
-                    }
-                  }, {
-                    word: "silêncio",
-                    key: "sent-silêncio",
-                    defaultPos: {
-                      right: -80,
-                      bottom: 16
-                    }
-                  }].map(({
-                    word,
-                    key,
-                    defaultPos
-                  }) => {
-                    const pos = satellitePositions[key] || defaultPos;
-                    const style: React.CSSProperties = {
-                      backgroundColor: "hsl(291, 35%, 25%, 0.7)",
-                      color: "hsl(291, 75%, 75%)",
-                      ...(typeof pos.left === 'number' ? {
-                        left: `${pos.left}px`
-                      } : pos.left ? {
-                        left: pos.left
-                      } : {}),
-                      ...(typeof pos.right === 'number' ? {
-                        right: `${pos.right}px`
-                      } : pos.right ? {
-                        right: pos.right
-                      } : {}),
-                      ...(typeof pos.top === 'number' ? {
-                        top: `${pos.top}px`
-                      } : pos.top ? {
-                        top: pos.top
-                      } : {}),
-                      ...(typeof pos.bottom === 'number' ? {
-                        bottom: `${pos.bottom}px`
-                      } : pos.bottom ? {
-                        bottom: pos.bottom
-                      } : {}),
-                      ...(pos.left === '50%' ? {
-                        transform: 'translateX(-50%)'
-                      } : {})
-                    };
-                    return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, defaultPos)} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
+                    {/* Distribuição orbital */}
+                    {["verso", "saudade", "sonhos", "coplas", "mansidão", "calma", "silêncio"].map((word, idx) => {
+                      const angle = (idx / 7) * 2 * Math.PI - Math.PI / 2;
+                      const radius = 90;
+                      const x = Math.cos(angle) * radius;
+                      const y = Math.sin(angle) * radius;
+                      const key = `sent-${word}`;
+                      const pos = satellitePositions[key] || { left: x, top: y };
+                      const style: React.CSSProperties = {
+                        backgroundColor: "hsl(291, 35%, 25%, 0.7)",
+                        color: "hsl(291, 75%, 75%)",
+                        left: typeof pos.left === 'number' ? `calc(50% + ${pos.left}px)` : pos.left,
+                        top: typeof pos.top === 'number' ? `calc(50% + ${pos.top}px)` : pos.top,
+                        transform: 'translate(-50%, -50%)'
+                      };
+                      return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, { left: x, top: y })} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
                           {word}
                         </Badge>;
-                  })}
+                    })}
                   </div>
                 </div>
 
@@ -1879,89 +1636,32 @@ E uma saudade redomona pelos cantos do galpão`}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140px] h-[140px] rounded-full border border-primary/8 pointer-events-none" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] rounded-full border border-primary/5 pointer-events-none" />
                     
-                    <Badge onMouseDown={e => handleMouseDown(e, "Tradição Gaúcha")} onClick={() => handleDomainClick("Tradição Gaúcha")} className="text-lg font-bold px-4 py-2 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10" style={{
+                    <Badge onMouseDown={e => handleMouseDown(e, "Tradição Gaúcha")} onClick={() => handleDomainClick("Tradição Gaúcha")} className="text-lg font-bold px-4 py-2 hover:scale-110 transition-all cursor-move shadow-xl border-0 relative z-10 text-center" style={{
                     backgroundColor: "hsl(0, 35%, 25%)",
                     color: "hsl(0, 80%, 75%)",
                     boxShadow: "0 0 25px hsla(0, 35%, 25%, 0.3)"
                   }}>
                       Tradição Gaúcha
                     </Badge>
-                    {[{
-                    word: "maragato",
-                    key: "trad-maragato",
-                    defaultPos: {
-                      top: -64,
-                      left: '10%'
-                    }
-                  }, {
-                    word: "pañuelo",
-                    key: "trad-pañuelo",
-                    defaultPos: {
-                      top: -64,
-                      right: '10%'
-                    }
-                  }, {
-                    word: "mate",
-                    key: "trad-mate",
-                    defaultPos: {
-                      left: -72,
-                      top: 8
-                    }
-                  }, {
-                    word: "maçanilha",
-                    key: "trad-maçanilha",
-                    defaultPos: {
-                      right: -88,
-                      top: 8
-                    }
-                  }, {
-                    word: "prenda",
-                    key: "trad-prenda",
-                    defaultPos: {
-                      bottom: -64,
-                      left: '20%'
-                    }
-                  }, {
-                    word: "campereada",
-                    key: "trad-campereada",
-                    defaultPos: {
-                      bottom: -64,
-                      right: '10%'
-                    }
-                  }].map(({
-                    word,
-                    key,
-                    defaultPos
-                  }) => {
-                    const pos = satellitePositions[key] || defaultPos;
-                    const style: React.CSSProperties = {
-                      backgroundColor: "hsl(0, 35%, 25%, 0.7)",
-                      color: "hsl(0, 80%, 75%)",
-                      ...(typeof pos.left === 'number' ? {
-                        left: `${pos.left}px`
-                      } : pos.left ? {
-                        left: pos.left
-                      } : {}),
-                      ...(typeof pos.right === 'number' ? {
-                        right: `${pos.right}px`
-                      } : pos.right ? {
-                        right: pos.right
-                      } : {}),
-                      ...(typeof pos.top === 'number' ? {
-                        top: `${pos.top}px`
-                      } : pos.top ? {
-                        top: pos.top
-                      } : {}),
-                      ...(typeof pos.bottom === 'number' ? {
-                        bottom: `${pos.bottom}px`
-                      } : pos.bottom ? {
-                        bottom: pos.bottom
-                      } : {})
-                    };
-                    return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, defaultPos)} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
+                    {/* Distribuição orbital */}
+                    {["maragato", "pañuelo", "mate", "maçanilha", "prenda", "campereada"].map((word, idx) => {
+                      const angle = (idx / 6) * 2 * Math.PI - Math.PI / 2;
+                      const radius = 85;
+                      const x = Math.cos(angle) * radius;
+                      const y = Math.sin(angle) * radius;
+                      const key = `trad-${word}`;
+                      const pos = satellitePositions[key] || { left: x, top: y };
+                      const style: React.CSSProperties = {
+                        backgroundColor: "hsl(0, 35%, 25%, 0.7)",
+                        color: "hsl(0, 80%, 75%)",
+                        left: typeof pos.left === 'number' ? `calc(50% + ${pos.left}px)` : pos.left,
+                        top: typeof pos.top === 'number' ? `calc(50% + ${pos.top}px)` : pos.top,
+                        transform: 'translate(-50%, -50%)'
+                      };
+                      return <Badge key={key} data-satellite-key={key} onMouseDown={e => handleSatelliteMouseDown(e, key, { left: x, top: y })} onClick={() => handleWordClick(word)} className="absolute px-3 py-1.5 shadow-md hover:scale-110 transition-all cursor-move border-0" style={style}>
                           {word}
                         </Badge>;
-                  })}
+                    })}
                   </div>
                 </div>
               </div>
