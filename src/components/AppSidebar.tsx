@@ -16,6 +16,7 @@ import {
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Meus Projetos", url: "/projetos", icon: FolderOpen },
+  { title: "Dashboard 2.0", url: "/dashboard2", icon: Sparkles },
   { title: "Modo Avançado", url: "/avancado", icon: Sparkles, disabled: true },
 ];
 
