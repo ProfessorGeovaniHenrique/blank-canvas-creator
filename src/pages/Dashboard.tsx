@@ -57,7 +57,7 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {recentProjects.map(project => <Card key={project.id} className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => {
           if (project.id === 1) {
-            navigate("/analise/quando-o-verso");
+            navigate("/dashboard2);
           }
         }}>
               <CardHeader>
