@@ -1,20 +1,27 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { RotateCcw, Orbit, Star, CircleDot } from "lucide-react";
+import { RotateCcw, Orbit, Star, CircleDot, Settings } from "lucide-react";
 
 interface SpaceNavigationConsoleProps {
   level: 'universe' | 'galaxy';
   onNavigate: (level: 'universe' | 'galaxy') => void;
   onFilterChange: (filters: any) => void;
   onReset: () => void;
+  isFilterPanelOpen?: boolean;
+  onToggleFilterPanel?: () => void;
+  activeFilterCount?: number;
 }
 
 export const SpaceNavigationConsole = ({
   level,
   onNavigate,
   onFilterChange,
-  onReset
+  onReset,
+  isFilterPanelOpen = false,
+  onToggleFilterPanel,
+  activeFilterCount = 0
 }: SpaceNavigationConsoleProps) => {
   return (
     <div className="absolute left-1/2 -translate-x-1/2 z-50 flex gap-6 items-center px-6 py-4 rounded-2xl border-2 backdrop-blur-xl"
@@ -24,6 +31,34 @@ export const SpaceNavigationConsole = ({
            borderColor: '#00E5FF',
            boxShadow: '0 0 30px rgba(0, 229, 255, 0.3), inset 0 0 20px rgba(0, 229, 255, 0.1)'
          }}>
+      
+      {/* Botão de Filtros */}
+      {onToggleFilterPanel && (
+        <div className="relative">
+          <Button
+            variant={isFilterPanelOpen ? 'default' : 'outline'}
+            size="sm"
+            onClick={onToggleFilterPanel}
+            className="space-nav-btn"
+            style={{
+              background: isFilterPanelOpen ? 'linear-gradient(45deg, #00E5FF, #1B5E20)' : 'transparent',
+              borderColor: '#00E5FF',
+              color: '#FFFFFF'
+            }}
+          >
+            <Settings className="w-4 h-4 mr-1" />
+            FILTROS
+          </Button>
+          {activeFilterCount > 0 && (
+            <Badge 
+              className="absolute -top-2 -right-2 bg-cyan-500 text-black text-xs px-1.5 py-0.5 min-w-5 h-5"
+              style={{ fontSize: '10px' }}
+            >
+              {activeFilterCount}
+            </Badge>
+          )}
+        </div>
+      )}
       
       {/* Navegação de Níveis */}
       <div className="flex flex-col gap-2">

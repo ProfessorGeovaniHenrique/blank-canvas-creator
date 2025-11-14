@@ -6,6 +6,7 @@ import { SpaceHUDTooltip } from './SpaceHUDTooltip';
 import { VerticalZoomControls } from './VerticalZoomControls';
 import { OrbitalRings } from './OrbitalRings';
 import { OrbitalSlider } from './OrbitalSlider';
+import { FilterPanel } from './FilterPanel';
 
 type NavigationLevel = 'universe' | 'galaxy';
 
@@ -54,6 +55,15 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
   // Estados para drag circular (FASE 2)
   const [isDragging, setIsDragging] = useState(false);
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
+  
+  // Estados para filtros (FASE C)
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({
+    minFrequency: 0,
+    prosody: [] as string[],
+    domains: [] as string[],
+    searchQuery: ''
+  });
 
   // Função auxiliar para mapear domínio de uma palavra
   const getWordDomain = useCallback((palavra: string): { cor: string; corTexto: string } => {
@@ -84,7 +94,34 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
     });
     
     // TODAS as palavras do corpus ordenadas por Frequência Normalizada (%)
-    const allWords = [...palavrasChaveData].sort((a, b) => b.frequenciaNormalizada - a.frequenciaNormalizada);
+    let allWords = [...palavrasChaveData].sort((a, b) => b.frequenciaNormalizada - a.frequenciaNormalizada);
+    
+    // APLICAR FILTROS (FASE C)
+    if (activeFilters.minFrequency > 0) {
+      allWords = allWords.filter(w => w.frequenciaNormalizada >= activeFilters.minFrequency);
+    }
+    if (activeFilters.searchQuery) {
+      const query = activeFilters.searchQuery.toLowerCase();
+      allWords = allWords.filter(w => w.palavra.toLowerCase().includes(query));
+    }
+    if (activeFilters.prosody.length > 0) {
+      allWords = allWords.filter(w => {
+        const wordData = getWordDomain(w.palavra);
+        const prosody = wordData.cor === 'hsl(142, 71%, 45%)' ? 'positiva' : 
+                       wordData.cor === 'hsl(0, 84%, 60%)' ? 'negativa' : 'neutra';
+        return activeFilters.prosody.includes(prosody);
+      });
+    }
+    if (activeFilters.domains.length > 0) {
+      allWords = allWords.filter(w => {
+        for (const dominio of dominiosData) {
+          if (dominio.palavras.includes(w.palavra) && activeFilters.domains.includes(dominio.dominio)) {
+            return true;
+          }
+        }
+        return false;
+      });
+    }
     
     // Calcular min/max Frequência Normalizada para normalização
     const minFreq = Math.min(...allWords.map(w => w.frequenciaNormalizada));
@@ -109,24 +146,27 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
       else orbitGroups[4].push(wordData);
     });
     
-    // Raios das 5 órbitas (normalizados 0-1)
-    const orbitRadii = [0.12, 0.18, 0.24, 0.30, 0.36];
+    // DISTRIBUIÇÃO ESPIRAL "VIA LÁCTEA" (FASE A)
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // 137.5° (Golden Angle)
+    const spiralTightness = 0.15;
     
-    // Processar cada órbita
-    Object.keys(orbitGroups).forEach(orbitKey => {
+    Object.keys(orbitGroups).forEach((orbitKey: string) => {
       const orbitIdx = parseInt(orbitKey);
-      const wordsInOrbit = orbitGroups[orbitIdx];
-      const orbitRadius = orbitRadii[orbitIdx];
+      const baseOrbitRadius = 0.15 + (orbitIdx * 0.08); // Raio base da órbita
+      const words = orbitGroups[orbitIdx];
       
-      if (wordsInOrbit.length === 0) return;
+      if (words.length === 0) return;
       
-      // Distribuir palavras uniformemente na órbita
-      const angleStep = (2 * Math.PI) / wordsInOrbit.length;
-      
-      wordsInOrbit.forEach((wordData, idx) => {
-        const angle = angleStep * idx;
-        const x = 0.5 + Math.cos(angle) * orbitRadius;
-        const y = 0.5 + Math.sin(angle) * orbitRadius;
+      words.forEach((wordData, idx) => {
+        // Distribuição espiral com golden angle
+        const angle = goldenAngle * idx + (orbitIdx * Math.PI / 2.5);
+        
+        // Variação radial para criar "braços" da galáxia
+        const armVariation = Math.sin(angle * 3) * 0.015; // 3 braços principais
+        const finalRadius = baseOrbitRadius + armVariation;
+        
+        const x = 0.5 + Math.cos(angle) * finalRadius;
+        const y = 0.5 + Math.sin(angle) * finalRadius;
         
         // Tamanho baseado em Frequência Normalizada (normalizado entre 8-25)
         const normalizedSize = 8 + ((wordData.frequenciaNormalizada - minFreq) / (maxFreq - minFreq)) * 17;
@@ -149,18 +189,21 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
           frequenciaNormalizada: wordData.frequenciaNormalizada,
           significancia: wordData.significancia,
           hasKWIC: kwicDataMap[wordData.palavra]?.length > 0,
-          orbitRadius,
+          orbitRadius: finalRadius,
           orbitAngle: angle,
           relevancePercent,
           orbitGroup: orbitIdx,
           associationStrength: Math.round((wordData.mi / 10) * 100),
+          // Metadata para animação orbital (FASE E)
+          initialAngle: angle,
+          orbitIndex: orbitIdx
         });
       });
     });
     
     console.log('✅ Graph created with', graph.order, 'nodes');
     return graph;
-  }, [palavrasChaveData, getWordDomain, kwicDataMap]);
+  }, [palavrasChaveData, getWordDomain, kwicDataMap, activeFilters, dominiosData]);
 
   // Constrói visualização de galáxia (domínios orbitando) - DADOS REAIS
   const buildGalaxyView = useCallback(() => {
@@ -369,6 +412,53 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [navigateToLevel, onWordClick, kwicDataMap]);
+
+  // ANIMAÇÃO ORBITAL CONTÍNUA (FASE E)
+  useEffect(() => {
+    if (!sigmaRef.current || !graphRef.current || isPaused || level !== 'universe') return;
+    
+    let animationId: number;
+    let lastTime = Date.now();
+    
+    const animate = () => {
+      const currentTime = Date.now();
+      const deltaTime = currentTime - lastTime;
+      lastTime = currentTime;
+      
+      const graph = graphRef.current;
+      if (!graph) {
+        animationId = requestAnimationFrame(animate);
+        return;
+      }
+      
+      // Atualizar posição de cada nó (exceto o centro)
+      graph.forEachNode((node: string, attrs: any) => {
+        if (node === 'center' || !attrs.initialAngle) return;
+        
+        // Velocidade inversamente proporcional ao índice da órbita (órbitas internas mais rápidas)
+        const speed = 0.00003 * (6 - attrs.orbitIndex);
+        attrs.initialAngle += speed * deltaTime;
+        
+        // Recalcular posição
+        const x = 0.5 + Math.cos(attrs.initialAngle) * attrs.orbitRadius;
+        const y = 0.5 + Math.sin(attrs.initialAngle) * attrs.orbitRadius;
+        
+        graph.setNodeAttribute(node, 'x', x);
+        graph.setNodeAttribute(node, 'y', y);
+      });
+      
+      sigmaRef.current?.refresh();
+      animationId = requestAnimationFrame(animate);
+    };
+    
+    animationId = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [isPaused, level]);
 
   const handleZoomIn = () => {
     if (sigmaRef.current) {
