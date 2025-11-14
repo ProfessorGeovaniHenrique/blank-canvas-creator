@@ -68,7 +68,7 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
 
   // Constrói visualização do universo (palavras orbitando o centro) - DADOS REAIS
   const buildUniverseView = useCallback(() => {
-    const graph = new Graph();
+    const graph: any = new Graph();
     graph.addNode('center', { x: 0.5, y: 0.5, size: 0, label: '', color: '#000', hidden: true });
     
     // Seleciona top 12 palavras por Log-Likelihood
@@ -115,7 +115,7 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
 
   // Constrói visualização de galáxia (domínios orbitando) - DADOS REAIS
   const buildGalaxyView = useCallback(() => {
-    const graph = new Graph();
+    const graph: any = new Graph();
     graph.addNode('center', { x: 0.5, y: 0.5, size: 0, label: '', color: '#000', hidden: true });
     
     const radius = 0.25;
@@ -145,7 +145,7 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
 
   // Constrói visualização de sistema estelar (palavras do domínio selecionado) - DADOS REAIS
   const buildStellarView = useCallback((systemId: string) => {
-    const graph = new Graph();
+    const graph: any = new Graph();
     const system = dominiosData.find(d => d.dominio === systemId);
     if (!system) return graph;
     
