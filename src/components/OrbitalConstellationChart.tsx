@@ -15,8 +15,13 @@ interface OrbitalConstellationChartProps {
   onWordClick?: (word: string) => void;
   dominiosData: Array<{
     dominio: string;
+    riquezaLexical: number;
     ocorrencias: number;
     percentual: number;
+    frequenciaNormalizada: number;
+    percentualTematico: number;
+    comparacaoCorpus: 'super-representado' | 'equilibrado' | 'sub-representado';
+    diferencaCorpus: number;
     palavras: string[];
     cor: string;
     corTexto: string;
@@ -211,26 +216,68 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
   // Constrói visualização de galáxia (domínios orbitando) - DADOS REAIS
   const buildGalaxyView = useCallback(() => {
     const graph: any = new Graph();
-    graph.addNode('center', { x: 0.5, y: 0.5, size: 0, label: '', color: '#000', hidden: true });
     
-    const radius = 0.25;
-    dominiosData.forEach((domain, idx) => {
-      const angle = (idx / dominiosData.length) * 2 * Math.PI;
-      const x = 0.5 + Math.cos(angle) * radius;
-      const y = 0.5 + Math.sin(angle) * radius;
+    // Nó central (Sol Gaúcho)
+    graph.addNode('center', { 
+      x: 0.5, 
+      y: 0.5, 
+      size: 45, 
+      label: '☀️ UNIVERSO\nGAÚCHO', 
+      color: '#FFD700',
+      type: 'center'
+    });
+    
+    // Filtrar domínios temáticos (excluir Palavras Funcionais)
+    const tematicDomains = dominiosData.filter(d => d.dominio !== "Palavras Funcionais");
+    
+    // Ordenar por relevância temática (mais relevante = mais próximo do centro)
+    const sortedByRelevance = [...tematicDomains].sort((a, b) => 
+      b.percentualTematico - a.percentualTematico
+    );
+    
+    sortedByRelevance.forEach((domain, idx) => {
+      // Raio baseado em relevância (mais relevante = mais próximo)
+      // Raio varia de 0.15 (centro) a 0.35 (periferia)
+      const baseRadius = 0.15 + (idx / (tematicDomains.length - 1)) * 0.20;
       
-      // Tamanho proporcional às ocorrências (normalizado entre 25-45)
-      const minOcorrencias = Math.min(...dominiosData.map(d => d.ocorrencias));
-      const maxOcorrencias = Math.max(...dominiosData.map(d => d.ocorrencias));
-      const normalizedSize = 25 + ((domain.ocorrencias - minOcorrencias) / (maxOcorrencias - minOcorrencias)) * 20;
+      // Ângulo distribuído uniformemente
+      const angle = (idx / tematicDomains.length) * 2 * Math.PI;
+      
+      const x = 0.5 + Math.cos(angle) * baseRadius;
+      const y = 0.5 + Math.sin(angle) * baseRadius;
+      
+      // Tamanho = Riqueza Lexical (normalizado 20-50)
+      const minRiqueza = Math.min(...tematicDomains.map(d => d.riquezaLexical));
+      const maxRiqueza = Math.max(...tematicDomains.map(d => d.riquezaLexical));
+      const normalizedSize = 20 + ((domain.riquezaLexical - minRiqueza) / (maxRiqueza - minRiqueza)) * 30;
+      
+      // Número de anéis = Peso Textual (0-3 anéis)
+      const numRings = Math.ceil((domain.frequenciaNormalizada / Math.max(...tematicDomains.map(d => d.frequenciaNormalizada))) * 3);
+      
+      // Ícone de comparação
+      let comparisonIcon = '';
+      if (domain.comparacaoCorpus === 'super-representado') {
+        comparisonIcon = '⬆️';
+      } else if (domain.comparacaoCorpus === 'sub-representado') {
+        comparisonIcon = '⬇️';
+      } else {
+        comparisonIcon = '➖';
+      }
       
       graph.addNode(domain.dominio, {
         x,
         y,
         size: normalizedSize,
-        label: domain.dominio.toUpperCase(),
+        label: `${comparisonIcon} ${domain.dominio}`,
         color: domain.cor,
-        emotion: `${domain.ocorrencias} ocorrências`,
+        
+        // Metadados para tooltip
+        riquezaLexical: domain.riquezaLexical,
+        pesoTextual: domain.frequenciaNormalizada,
+        percentualTematico: domain.percentualTematico,
+        comparacaoCorpus: domain.comparacaoCorpus,
+        diferencaCorpus: domain.diferencaCorpus,
+        numRings: numRings,
         words: domain.palavras
       });
     });
@@ -563,6 +610,43 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
           containerRect={containerRect}
           level={level}
         />
+      )}
+
+      {/* Galaxy Level Legend */}
+      {level === 'galaxy' && (
+        <div className="absolute top-4 right-4 bg-black/90 border-2 border-cyan-500/40 rounded-lg p-4 backdrop-blur-sm z-50">
+          <h3 className="text-cyan-400 font-mono text-sm font-bold mb-3 tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            LEGENDA GALÁXIA
+          </h3>
+          <div className="space-y-2 text-xs text-white/80 font-mono">
+            <div className="border-b border-cyan-500/20 pb-2 mb-2">
+              <div className="text-cyan-300/90 font-semibold mb-1.5">Comparação vs. Corpus NE:</div>
+              <div className="space-y-1 pl-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400">⬆️</span>
+                  <span>Super-representado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">➖</span>
+                  <span>Equilibrado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400">⬇️</span>
+                  <span>Sub-representado</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-cyan-300/90 font-semibold mb-1.5">Métricas Visuais:</div>
+              <div className="pl-2 space-y-0.5">
+                <div>• Tamanho = Riqueza Lexical</div>
+                <div>• Posição = Relevância Temática</div>
+                <div>• Cor = Domínio Semântico</div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Filter Panel (FASE 1) */}
