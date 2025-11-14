@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Graph from 'graphology';
 import Sigma from 'sigma';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ const SEMANTIC_DOMAINS: SemanticDomain[] = [
   {
     id: 'nature',
     name: 'Natureza',
-    color: '#228B22', // verde campo
+    color: '#228B22',
     words: [
       { word: 'tarumã', frequency: 15, strength: 0.95 },
       { word: 'sombra', frequency: 13, strength: 0.92 },
@@ -46,7 +46,7 @@ const SEMANTIC_DOMAINS: SemanticDomain[] = [
   {
     id: 'culture',
     name: 'Cultura Gaúcha',
-    color: '#8B4513', // marrom couro
+    color: '#8B4513',
     words: [
       { word: 'campereada', frequency: 11, strength: 0.88 },
       { word: 'gateada', frequency: 10, strength: 0.86 },
@@ -64,7 +64,7 @@ const SEMANTIC_DOMAINS: SemanticDomain[] = [
   {
     id: 'temporal',
     name: 'Tempo',
-    color: '#4682B4', // azul céu
+    color: '#4682B4',
     words: [
       { word: 'madrugada', frequency: 10, strength: 0.86 },
       { word: 'manhãs', frequency: 9, strength: 0.83 },
@@ -76,7 +76,7 @@ const SEMANTIC_DOMAINS: SemanticDomain[] = [
   {
     id: 'emotion',
     name: 'Emoção',
-    color: '#CD853F', // dourado terra
+    color: '#CD853F',
     words: [
       { word: 'saudades', frequency: 12, strength: 0.91 },
       { word: 'silêncio', frequency: 9, strength: 0.84 },
@@ -93,7 +93,7 @@ const SONG_DATA = {
   totalWords: 280
 };
 
-// KWIC data extraídos da letra de "A Calma do Tarumã"
+// KWIC data extraídos da letra
 const kwicData: Record<string, Array<{
   leftContext: string;
   keyword: string;
@@ -126,18 +126,6 @@ const kwicData: Record<string, Array<{
       keyword: 'verso',
       rightContext: 'é mais caseiro',
       source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
-    },
-    {
-      leftContext: 'E o',
-      keyword: 'verso',
-      rightContext: 'que tinha sonhos prá rondar na madrugada',
-      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
-    },
-    {
-      leftContext: 'E o',
-      keyword: 'verso',
-      rightContext: 'sonhou ser várzea com sombra de tarumã',
-      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
     }
   ],
   'saudades': [
@@ -145,12 +133,6 @@ const kwicData: Record<string, Array<{
       leftContext: 'A mansidão da campanha traz',
       keyword: 'saudades',
       rightContext: 'feito açoite',
-      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
-    },
-    {
-      leftContext: 'E uma',
-      keyword: 'saudade',
-      rightContext: 'redomona pelos cantos do galpão',
       source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
     }
   ],
@@ -196,43 +178,9 @@ export const SigmaSemanticNetwork: React.FC = () => {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [kwicModalOpen, setKwicModalOpen] = useState(false);
 
-  // Initialize graph and sigma
-  const initializeSigma = useCallback(() => {
-    if (!containerRef.current) return;
-
-    // Create new graph
-    const graph = new Graph();
-    graphRef.current = graph;
-
-    // Create sigma instance
-    const sigma = new Sigma(graph, containerRef.current, {
-      renderEdgeLabels: false,
-      defaultNodeColor: '#999',
-      defaultEdgeColor: '#333',
-      labelFont: 'Inter, sans-serif',
-      labelSize: 14,
-      labelWeight: '600',
-      labelColor: { color: '#FFFFFF' },
-      enableEdgeEvents: false,
-    });
-
-    sigmaRef.current = sigma;
-
-    // Event handlers
-    sigma.on('clickNode', ({ node }) => {
-      handleNodeClick(node);
-    });
-
-    return () => {
-      sigma.kill();
-    };
-  }, []);
-
   // Build Universe view
-  const buildUniverseView = useCallback(() => {
-    const graph = graphRef.current;
-    if (!graph) return;
-
+  const buildUniverseView = (graph: any) => {
+    console.log('🌌 Construindo visualização Universo...');
     graph.clear();
 
     // Central song node (dourado)
@@ -252,7 +200,7 @@ export const SigmaSemanticNetwork: React.FC = () => {
     SEMANTIC_DOMAINS.forEach((domain) => {
       domain.words.forEach((wordData) => {
         const angle = (wordIndex / totalWords) * Math.PI * 2;
-        const radius = 180 + (Math.random() * 60 - 30); // Variação para efeito mais natural
+        const radius = 180 + (Math.random() * 60 - 30);
         
         graph.addNode(wordData.word, {
           label: wordData.word,
@@ -265,22 +213,18 @@ export const SigmaSemanticNetwork: React.FC = () => {
           frequency: wordData.frequency,
         });
 
-        // NÃO adicionar edges no universo
         wordIndex++;
       });
     });
 
-    sigmaRef.current?.refresh();
-  }, []);
+    console.log(`✅ Universo construído com ${graph.order} nós`);
+  };
 
   // Build Galaxy view
-  const buildGalaxyView = useCallback(() => {
-    const graph = graphRef.current;
-    if (!graph) return;
-
+  const buildGalaxyView = (graph: any) => {
+    console.log('🌟 Construindo visualização Galáxia...');
     graph.clear();
 
-    // Add domain nodes as "stars"
     SEMANTIC_DOMAINS.forEach((domain, index) => {
       const angle = (index / SEMANTIC_DOMAINS.length) * Math.PI * 2;
       const radius = 200;
@@ -292,12 +236,9 @@ export const SigmaSemanticNetwork: React.FC = () => {
         size: 25 + domain.words.length,
         color: domain.color,
         type: 'domain',
-        borderColor: domain.color,
-        borderSize: 2,
       });
     });
 
-    // Create connections between domains
     for (let i = 0; i < SEMANTIC_DOMAINS.length - 1; i++) {
       graph.addEdge(SEMANTIC_DOMAINS[i].id, SEMANTIC_DOMAINS[i + 1].id, {
         size: 0.5,
@@ -305,20 +246,17 @@ export const SigmaSemanticNetwork: React.FC = () => {
       });
     }
 
-    sigmaRef.current?.refresh();
-  }, []);
+    console.log(`✅ Galáxia construída com ${graph.order} domínios`);
+  };
 
   // Build Constellation view
-  const buildConstellationView = useCallback((domainId: string) => {
-    const graph = graphRef.current;
-    if (!graph) return;
-
+  const buildConstellationView = (graph: any, domainId: string) => {
+    console.log(`⭐ Construindo visualização Constelação: ${domainId}...`);
     graph.clear();
 
     const domain = SEMANTIC_DOMAINS.find(d => d.id === domainId);
     if (!domain) return;
 
-    // Central domain node (star)
     graph.addNode(domain.id, {
       label: domain.name,
       x: 0,
@@ -326,11 +264,8 @@ export const SigmaSemanticNetwork: React.FC = () => {
       size: 35,
       color: domain.color,
       type: 'domain-center',
-      borderColor: domain.color,
-      borderSize: 3,
     });
 
-    // Add words as planets in orbit
     domain.words.forEach((wordData, index) => {
       const angle = (index / domain.words.length) * Math.PI * 2;
       const radius = 80 + wordData.strength * 100;
@@ -344,8 +279,6 @@ export const SigmaSemanticNetwork: React.FC = () => {
         type: 'word',
         frequency: wordData.frequency,
         strength: wordData.strength,
-        borderColor: '#FFFFFF',
-        borderSize: 1,
       });
 
       graph.addEdge(domain.id, wordData.word, {
@@ -354,64 +287,102 @@ export const SigmaSemanticNetwork: React.FC = () => {
       });
     });
 
-    sigmaRef.current?.refresh();
+    console.log(`✅ Constelação construída com ${graph.order} nós`);
+  };
+
+  // Initialize Sigma with populated graph
+  useEffect(() => {
+    if (!containerRef.current) {
+      console.error('❌ Container ref não encontrado!');
+      return;
+    }
+
+    console.log('🚀 Inicializando Sigma.js...');
+    
+    // Create graph
+    const graph: any = new Graph();
+    graphRef.current = graph;
+
+    // Populate initial view (Universe)
+    buildUniverseView(graph);
+
+    // Create Sigma instance
+    try {
+      const sigma = new Sigma(graph, containerRef.current, {
+        renderEdgeLabels: false,
+        defaultNodeColor: '#999',
+        defaultEdgeColor: '#333',
+        labelFont: 'Inter, sans-serif',
+        labelSize: 14,
+        labelWeight: '600',
+        labelColor: { color: '#FFFFFF' },
+        enableEdgeEvents: false,
+      });
+
+      sigmaRef.current = sigma;
+
+      // Event handlers
+      sigma.on('clickNode', ({ node }) => {
+        const nodeType = graph.getNodeAttribute(node, 'type');
+        
+        if (viewLevel === 'universe' && nodeType === 'song') {
+          console.log('🔄 Navegando para Galáxia - Domínios Semânticos');
+          setViewLevel('galaxy');
+          setBreadcrumbs([
+            { level: 'universe', label: 'Universo' },
+            { level: 'galaxy', label: 'Galáxia' }
+          ]);
+        } else if (viewLevel === 'galaxy' && nodeType === 'domain') {
+          console.log(`🔄 Navegando para Constelação: ${node}`);
+          setSelectedDomain(node);
+          setViewLevel('constellation');
+          const domain = SEMANTIC_DOMAINS.find(d => d.id === node);
+          setBreadcrumbs([
+            { level: 'universe', label: 'Universo' },
+            { level: 'galaxy', label: 'Galáxia' },
+            { level: 'constellation', label: domain?.name || 'Constelação', domainId: node }
+          ]);
+        } else if (nodeType === 'word') {
+          console.log(`📝 Palavra selecionada: ${node}`);
+          setSelectedWord(node);
+          setKwicModalOpen(true);
+        }
+      });
+
+      console.log('✅ Sigma inicializado com sucesso!');
+
+      return () => {
+        console.log('🧹 Limpando instância Sigma...');
+        sigma.kill();
+      };
+    } catch (error) {
+      console.error('❌ Erro ao inicializar Sigma:', error);
+    }
   }, []);
 
-  // Update view based on level
+  // Update view when level changes
   useEffect(() => {
-    if (!graphRef.current) return;
+    const graph = graphRef.current;
+    const sigma = sigmaRef.current;
+    
+    if (!graph || !sigma) return;
 
     switch (viewLevel) {
       case 'universe':
-        buildUniverseView();
+        buildUniverseView(graph);
         break;
       case 'galaxy':
-        buildGalaxyView();
+        buildGalaxyView(graph);
         break;
       case 'constellation':
         if (selectedDomain) {
-          buildConstellationView(selectedDomain);
+          buildConstellationView(graph, selectedDomain);
         }
         break;
     }
-  }, [viewLevel, selectedDomain, buildUniverseView, buildGalaxyView, buildConstellationView]);
 
-  // Initialize on mount
-  useEffect(() => {
-    const cleanup = initializeSigma();
-    return cleanup;
-  }, [initializeSigma]);
-
-  // Handle node clicks
-  const handleNodeClick = (nodeId: string) => {
-    const graph = graphRef.current;
-    if (!graph || !graph.hasNode(nodeId)) return;
-
-    const nodeType = graph.getNodeAttribute(nodeId, 'type');
-
-    if (viewLevel === 'universe' && nodeType === 'song') {
-      // Navigate to galaxy view
-      setViewLevel('galaxy');
-      setBreadcrumbs([
-        { level: 'universe', label: 'Universo' },
-        { level: 'galaxy', label: 'Galáxia' }
-      ]);
-    } else if (viewLevel === 'galaxy' && nodeType === 'domain') {
-      // Navigate to constellation view
-      setSelectedDomain(nodeId);
-      setViewLevel('constellation');
-      const domain = SEMANTIC_DOMAINS.find(d => d.id === nodeId);
-      setBreadcrumbs([
-        { level: 'universe', label: 'Universo' },
-        { level: 'galaxy', label: 'Galáxia' },
-        { level: 'constellation', label: domain?.name || 'Constelação', domainId: nodeId }
-      ]);
-    } else if (nodeType === 'word') {
-      // Show KWIC modal
-      setSelectedWord(nodeId);
-      setKwicModalOpen(true);
-    }
-  };
+    sigma.refresh();
+  }, [viewLevel, selectedDomain]);
 
   // Navigation handlers
   const handleBreadcrumbClick = (item: BreadcrumbItem) => {
@@ -501,7 +472,11 @@ export const SigmaSemanticNetwork: React.FC = () => {
       </div>
 
       {/* Sigma Container */}
-      <div ref={containerRef} className="w-full h-full" />
+      <div 
+        ref={containerRef} 
+        className="w-full h-full"
+        style={{ width: '100%', height: '100%' }}
+      />
 
       {/* Zoom Controls */}
       <div className="absolute bottom-5 right-5 z-10 flex flex-col gap-2 bg-background/90 backdrop-blur-md border border-border rounded-xl p-2 shadow-lg">
