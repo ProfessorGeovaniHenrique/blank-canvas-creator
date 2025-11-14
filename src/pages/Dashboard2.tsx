@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { KWICModal } from "@/components/KWICModal";
 import { InteractiveSemanticNetwork } from "@/components/InteractiveSemanticNetwork";
 import { OrbitalConstellationChart } from "@/components/OrbitalConstellationChart";
+import { SigmaSemanticNetwork } from "@/components/SigmaSemanticNetwork";
 import { NavigationToolbar } from "@/components/NavigationToolbar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Download, FileText, Network, Sparkles, BarChart3, FileBarChart, Cloud, HelpCircle, TrendingUp, TrendingDown, Maximize2 } from "lucide-react";
@@ -1698,7 +1699,7 @@ E uma saudade redomona pelos cantos do galpão`}
                       <strong>(2)</strong> clique em um sistema (verso, saudade, sonhos, etc.) para ver em detalhe suas palavras e força de associação semântica.
                     </p>
                   </div>
-                  <OrbitalConstellationChart songName="Quando o verso vem pras casa" artistName="Luiz Marenco" />
+                  <SigmaSemanticNetwork />
                 </div>
               </div>
             </CardContent>
