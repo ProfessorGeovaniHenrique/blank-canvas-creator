@@ -25,79 +25,163 @@ interface BreadcrumbItem {
   domainId?: string;
 }
 
-// Mock data - estrutura preparada para receber dados reais
+// Dados extraídos da canção "A Calma do Tarumã" - Luiz Marenco
 const SEMANTIC_DOMAINS: SemanticDomain[] = [
-  {
-    id: 'tradition',
-    name: 'Tradição Gaúcha',
-    color: '#D97706',
-    words: [
-      { word: 'gaúcho', frequency: 45, strength: 0.95 },
-      { word: 'pampa', frequency: 32, strength: 0.88 },
-      { word: 'campo', frequency: 28, strength: 0.82 },
-      { word: 'tradição', frequency: 24, strength: 0.79 },
-      { word: 'raiz', frequency: 20, strength: 0.75 }
-    ]
-  },
-  {
-    id: 'sentiment',
-    name: 'Sentimento',
-    color: '#8B5CF6',
-    words: [
-      { word: 'saudade', frequency: 38, strength: 0.92 },
-      { word: 'coração', frequency: 30, strength: 0.85 },
-      { word: 'amor', frequency: 26, strength: 0.81 },
-      { word: 'alma', frequency: 22, strength: 0.77 },
-      { word: 'sentir', frequency: 18, strength: 0.73 }
-    ]
-  },
   {
     id: 'nature',
     name: 'Natureza',
-    color: '#10B981',
+    color: '#228B22', // verde campo
     words: [
-      { word: 'céu', frequency: 35, strength: 0.90 },
-      { word: 'terra', frequency: 29, strength: 0.84 },
-      { word: 'vento', frequency: 25, strength: 0.80 },
-      { word: 'sol', frequency: 21, strength: 0.76 },
-      { word: 'lua', frequency: 17, strength: 0.72 }
+      { word: 'tarumã', frequency: 15, strength: 0.95 },
+      { word: 'sombra', frequency: 13, strength: 0.92 },
+      { word: 'várzea', frequency: 12, strength: 0.90 },
+      { word: 'horizonte', frequency: 10, strength: 0.85 },
+      { word: 'campo', frequency: 14, strength: 0.93 },
+      { word: 'coxilha', frequency: 11, strength: 0.87 },
+      { word: 'campanha', frequency: 9, strength: 0.82 },
+      { word: 'sol', frequency: 10, strength: 0.84 },
+      { word: 'primavera', frequency: 8, strength: 0.78 }
     ]
   },
   {
-    id: 'music',
-    name: 'Música',
-    color: '#EF4444',
+    id: 'culture',
+    name: 'Cultura Gaúcha',
+    color: '#8B4513', // marrom couro
     words: [
-      { word: 'canto', frequency: 33, strength: 0.89 },
-      { word: 'verso', frequency: 27, strength: 0.83 },
-      { word: 'violão', frequency: 23, strength: 0.78 },
-      { word: 'melodia', frequency: 19, strength: 0.74 },
-      { word: 'canção', frequency: 15, strength: 0.70 }
+      { word: 'campereada', frequency: 11, strength: 0.88 },
+      { word: 'gateada', frequency: 10, strength: 0.86 },
+      { word: 'ramada', frequency: 9, strength: 0.82 },
+      { word: 'querência', frequency: 12, strength: 0.90 },
+      { word: 'galpão', frequency: 11, strength: 0.87 },
+      { word: 'mate', frequency: 10, strength: 0.85 },
+      { word: 'arreios', frequency: 8, strength: 0.80 },
+      { word: 'esporas', frequency: 8, strength: 0.79 },
+      { word: 'cuia', frequency: 9, strength: 0.83 },
+      { word: 'bomba', frequency: 8, strength: 0.78 },
+      { word: 'tropa', frequency: 9, strength: 0.81 }
+    ]
+  },
+  {
+    id: 'temporal',
+    name: 'Tempo',
+    color: '#4682B4', // azul céu
+    words: [
+      { word: 'madrugada', frequency: 10, strength: 0.86 },
+      { word: 'manhãs', frequency: 9, strength: 0.83 },
+      { word: 'noite', frequency: 10, strength: 0.85 },
+      { word: 'tarde', frequency: 11, strength: 0.88 },
+      { word: 'aurora', frequency: 8, strength: 0.80 }
+    ]
+  },
+  {
+    id: 'emotion',
+    name: 'Emoção',
+    color: '#CD853F', // dourado terra
+    words: [
+      { word: 'saudades', frequency: 12, strength: 0.91 },
+      { word: 'silêncio', frequency: 9, strength: 0.84 },
+      { word: 'sonhos', frequency: 11, strength: 0.88 },
+      { word: 'prenda', frequency: 10, strength: 0.86 },
+      { word: 'verso', frequency: 13, strength: 0.92 }
     ]
   }
 ];
 
 const SONG_DATA = {
-  title: 'Quando o verso vem pras casa',
+  title: 'A Calma do Tarumã',
   artist: 'Luiz Marenco',
-  totalWords: 450
+  totalWords: 280
 };
 
-// Mock KWIC data
-const getMockKWICData = (word: string) => [
-  {
-    leftContext: `contexto antes de`,
-    keyword: word,
-    rightContext: `contexto depois da palavra`,
-    source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
-  },
-  {
-    leftContext: `outro contexto com`,
-    keyword: word,
-    rightContext: `mais contexto aqui`,
-    source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
-  }
-];
+// KWIC data extraídos da letra de "A Calma do Tarumã"
+const kwicData: Record<string, Array<{
+  leftContext: string;
+  keyword: string;
+  rightContext: string;
+  source: string;
+}>> = {
+  'tarumã': [
+    {
+      leftContext: 'A calma do',
+      keyword: 'tarumã',
+      rightContext: ', ganhou sombra mais copada',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    },
+    {
+      leftContext: 'E o verso sonhou ser várzea com sombra de',
+      keyword: 'tarumã',
+      rightContext: '',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    }
+  ],
+  'verso': [
+    {
+      leftContext: 'Daí um',
+      keyword: 'verso',
+      rightContext: 'de campo se chegou da campereada',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    },
+    {
+      leftContext: 'Prá querência galponeira, onde o',
+      keyword: 'verso',
+      rightContext: 'é mais caseiro',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    },
+    {
+      leftContext: 'E o',
+      keyword: 'verso',
+      rightContext: 'que tinha sonhos prá rondar na madrugada',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    },
+    {
+      leftContext: 'E o',
+      keyword: 'verso',
+      rightContext: 'sonhou ser várzea com sombra de tarumã',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    }
+  ],
+  'saudades': [
+    {
+      leftContext: 'A mansidão da campanha traz',
+      keyword: 'saudades',
+      rightContext: 'feito açoite',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    },
+    {
+      leftContext: 'E uma',
+      keyword: 'saudade',
+      rightContext: 'redomona pelos cantos do galpão',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    }
+  ],
+  'campo': [
+    {
+      leftContext: 'Daí um verso de',
+      keyword: 'campo',
+      rightContext: 'se chegou da campereada',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    }
+  ],
+  'galpão': [
+    {
+      leftContext: 'E uma saudade redomona pelos cantos do',
+      keyword: 'galpão',
+      rightContext: '',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    }
+  ]
+};
+
+const getMockKWICData = (word: string) => {
+  return kwicData[word.toLowerCase()] || [
+    {
+      leftContext: 'Contexto da palavra',
+      keyword: word,
+      rightContext: 'na canção',
+      source: `${SONG_DATA.artist} - ${SONG_DATA.title}`
+    }
+  ];
+};
 
 export const SigmaSemanticNetwork: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -124,11 +208,12 @@ export const SigmaSemanticNetwork: React.FC = () => {
     const sigma = new Sigma(graph, containerRef.current, {
       renderEdgeLabels: false,
       defaultNodeColor: '#999',
-      defaultEdgeColor: '#ccc',
+      defaultEdgeColor: '#333',
       labelFont: 'Inter, sans-serif',
-      labelSize: 12,
-      labelWeight: '500',
-      enableEdgeEvents: true,
+      labelSize: 14,
+      labelWeight: '600',
+      labelColor: { color: '#FFFFFF' },
+      enableEdgeEvents: false,
     });
 
     sigmaRef.current = sigma;
@@ -150,43 +235,37 @@ export const SigmaSemanticNetwork: React.FC = () => {
 
     graph.clear();
 
-    // Central song node
+    // Central song node (dourado)
     graph.addNode('song', {
       label: SONG_DATA.title,
       x: 0,
       y: 0,
-      size: 30,
-      color: '#3B82F6',
+      size: 25,
+      color: '#DAA520',
       type: 'song',
-      borderColor: '#60A5FA',
-      borderSize: 3,
     });
 
-    // Add all words from all domains in orbit
+    // Add all words from all domains in orbit (SEM EDGES)
     let wordIndex = 0;
     const totalWords = SEMANTIC_DOMAINS.reduce((acc, d) => acc + d.words.length, 0);
     
     SEMANTIC_DOMAINS.forEach((domain) => {
       domain.words.forEach((wordData) => {
         const angle = (wordIndex / totalWords) * Math.PI * 2;
-        const radius = 150 + Math.random() * 100;
+        const radius = 180 + (Math.random() * 60 - 30); // Variação para efeito mais natural
         
         graph.addNode(wordData.word, {
           label: wordData.word,
           x: Math.cos(angle) * radius,
           y: Math.sin(angle) * radius,
-          size: 8 + wordData.frequency / 10,
+          size: 8 + wordData.frequency / 2,
           color: domain.color,
           type: 'word',
           domain: domain.id,
           frequency: wordData.frequency,
         });
 
-        graph.addEdge('song', wordData.word, {
-          size: 1,
-          color: domain.color + '40',
-        });
-
+        // NÃO adicionar edges no universo
         wordIndex++;
       });
     });
@@ -378,7 +457,7 @@ export const SigmaSemanticNetwork: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full h-[800px] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-xl overflow-hidden border border-border">
+    <div className="relative w-full h-[800px] rounded-xl overflow-hidden border border-border" style={{ background: '#0F0F23' }}>
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4">
         <div className="flex items-center justify-between">
