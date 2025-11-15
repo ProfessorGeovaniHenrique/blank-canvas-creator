@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Sigma from 'sigma';
 import Graph from 'graphology';
 import { SpaceNavigationConsole } from './SpaceNavigationConsole';
-import { SpaceHUDTooltip } from './SpaceHUDTooltip';
+import { RightControlPanel } from './RightControlPanel';
 import { VerticalZoomControls } from './VerticalZoomControls';
 import { OrbitalRings } from './OrbitalRings';
 import { OrbitalSlider } from './OrbitalSlider';
@@ -569,7 +569,14 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
   };
   
   return (
-    <div className="relative w-full h-[800px] bg-gradient-to-b from-black via-slate-900 to-black overflow-hidden">
+    <div 
+      className="relative bg-gradient-to-b from-black via-slate-900 to-black overflow-hidden"
+      style={{ 
+        height: '100vh',
+        width: 'calc(100vw - 400px)',
+        marginRight: '400px'
+      }}
+    >
       {/* Starry background effect */}
       <div className="absolute inset-0 opacity-30">
         {Array.from({ length: 100 }).map((_, i) => (
@@ -600,51 +607,12 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
       )}
 
 
-      {/* HUD Tooltip (complete version) */}
-      {hoveredNode && (
-        <SpaceHUDTooltip
-          word={hoveredNode}
-          visible={true}
-          level={level}
-        />
-      )}
-
-      {/* Galaxy Level Legend */}
-      {level === 'galaxy' && (
-        <div className="absolute bottom-20 right-6 bg-black/95 border-2 border-cyan-500/50 rounded-lg p-4 backdrop-blur-sm z-20 max-w-[240px]">
-          <h3 className="text-cyan-400 font-mono text-xs font-bold mb-2.5 tracking-wider flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            LEGENDA GALÁXIA
-          </h3>
-          <div className="space-y-2 text-[10px] text-white/80 font-mono">
-            <div className="border-b border-cyan-500/20 pb-2 mb-2">
-              <div className="text-cyan-300/90 font-semibold mb-1">Comparação vs. Corpus NE:</div>
-              <div className="space-y-0.5 pl-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-green-400 text-sm">⬆️</span>
-                  <span>Super-representado</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-gray-400 text-sm">➖</span>
-                  <span>Equilibrado</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-red-400 text-sm">⬇️</span>
-                  <span>Sub-representado</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-cyan-300/90 font-semibold mb-1">Métricas Visuais:</div>
-              <div className="pl-1.5 space-y-0.5 leading-tight">
-                <div>• Tamanho = Riqueza Lexical</div>
-                <div>• Posição = Relevância</div>
-                <div>• Cor = Domínio</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Right Control Panel - Painel Lateral Fixo */}
+      <RightControlPanel
+        hoveredNode={hoveredNode}
+        level={level}
+        showGalaxyLegend={level === 'galaxy'}
+      />
 
       {/* Filter Panel (FASE 1) */}
       <FilterPanel
