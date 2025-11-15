@@ -294,7 +294,12 @@ const dominiosData = [{
   percentualTematico: 0,
   comparacaoCorpus: "equilibrado" as const,
   diferencaCorpus: 0,
-  palavras: ["de", "um", "e", "o", "da", "na", "uma", "com", "do", "prá", "se", "bem", "mais", "no", "os", "que", "daí", "das", "em", "é", "ela", "entre", "já", "mas", "mesmo", "onde", "ou", "pela", "pelos", "prás", "seu", "feito", "frente", "novo"],
+  percentualCorpusNE: 0,
+  palavras: [
+    { palavra: "de", ocorrencias: 22 }, { palavra: "um", ocorrencias: 15 }, { palavra: "o", ocorrencias: 14 },
+    { palavra: "e", ocorrencias: 8 }, { palavra: "em", ocorrencias: 8 }, { palavra: "para", ocorrencias: 5 },
+    { palavra: "com", ocorrencias: 4 }, { palavra: "se", ocorrencias: 3 }, { palavra: "bem", ocorrencias: 2 }
+  ],
   cor: "hsl(0, 0%, 50%)",
   corTexto: "hsl(0, 0%, 85%)"
 }, {
@@ -306,7 +311,23 @@ const dominiosData = [{
   percentualTematico: 23.93,
   comparacaoCorpus: "super-representado" as const,
   diferencaCorpus: 8.83,
-  palavras: ["gateada", "gateado", "arreios", "bomba", "brasa", "cambona", "campereada", "cancela", "candeeiro", "caseiro", "coplas", "cuia", "esporas", "galpão", "galponeira", "jujado", "lombo", "lonjuras", "maragato", "mate", "pañuelo", "prenda", "pura-folha", "quarto", "querência", "ramada", "templado", "tropa"],
+  percentualCorpusNE: 15.1,
+  palavras: [
+    { palavra: "gateado", ocorrencias: 2 }, { palavra: "gateada", ocorrencias: 2 },
+    { palavra: "arreios", ocorrencias: 1 }, { palavra: "bomba", ocorrencias: 1 },
+    { palavra: "brasa", ocorrencias: 1 }, { palavra: "cambona", ocorrencias: 1 },
+    { palavra: "campereada", ocorrencias: 1 }, { palavra: "cancela", ocorrencias: 1 },
+    { palavra: "candeeiro", ocorrencias: 1 }, { palavra: "caseiro", ocorrencias: 1 },
+    { palavra: "coplas", ocorrencias: 1 }, { palavra: "cuia", ocorrencias: 1 },
+    { palavra: "esporas", ocorrencias: 1 }, { palavra: "galpão", ocorrencias: 1 },
+    { palavra: "galponeira", ocorrencias: 1 }, { palavra: "jujado", ocorrencias: 1 },
+    { palavra: "lombo", ocorrencias: 1 }, { palavra: "lonjuras", ocorrencias: 1 },
+    { palavra: "maragato", ocorrencias: 1 }, { palavra: "mate", ocorrencias: 1 },
+    { palavra: "pañuelo", ocorrencias: 1 }, { palavra: "prenda", ocorrencias: 1 },
+    { palavra: "pura-folha", ocorrencias: 1 }, { palavra: "quarto", ocorrencias: 1 },
+    { palavra: "querência", ocorrencias: 1 }, { palavra: "ramada", ocorrencias: 1 },
+    { palavra: "templado", ocorrencias: 1 }, { palavra: "tropa", ocorrencias: 1 }
+  ],
   cor: "hsl(25, 75%, 45%)",
   corTexto: "hsl(25, 90%, 80%)"
 }, {
@@ -318,7 +339,19 @@ const dominiosData = [{
   percentualTematico: 22.22,
   comparacaoCorpus: "super-representado" as const,
   diferencaCorpus: 15.02,
-  palavras: ["coxilha", "sol", "sombra", "tarde", "tarumã", "várzea", "asas", "aurora", "campo", "campanha", "chão", "fogo", "horizonte", "madrugada", "manhãs", "maçanilha", "noite", "primavera", "reponte", "ventito"],
+  percentualCorpusNE: 7.2,
+  palavras: [
+    { palavra: "coxilha", ocorrencias: 2 }, { palavra: "sol", ocorrencias: 2 },
+    { palavra: "sombra", ocorrencias: 2 }, { palavra: "tarde", ocorrencias: 2 },
+    { palavra: "tarumã", ocorrencias: 2 }, { palavra: "várzea", ocorrencias: 2 },
+    { palavra: "asa", ocorrencias: 1 }, { palavra: "aurora", ocorrencias: 1 },
+    { palavra: "campo", ocorrencias: 1 }, { palavra: "campanha", ocorrencias: 1 },
+    { palavra: "chão", ocorrencias: 1 }, { palavra: "fogo", ocorrencias: 1 },
+    { palavra: "horizonte", ocorrencias: 1 }, { palavra: "madrugada", ocorrencias: 1 },
+    { palavra: "manhã", ocorrencias: 1 }, { palavra: "maçanilha", ocorrencias: 1 },
+    { palavra: "noite", ocorrencias: 1 }, { palavra: "primavera", ocorrencias: 1 },
+    { palavra: "reponte", ocorrencias: 1 }, { palavra: "ventito", ocorrencias: 1 }
+  ],
   cor: "hsl(142, 60%, 40%)",
   corTexto: "hsl(142, 80%, 75%)"
 }, {
@@ -330,7 +363,19 @@ const dominiosData = [{
   percentualTematico: 20.51,
   comparacaoCorpus: "sub-representado" as const,
   diferencaCorpus: -4.99,
-  palavras: ["traz", "trazendo", "trouxe", "ser", "é", "sonhou", "abriu", "aquerenciou", "caindo", "cevou", "chegou", "deixou", "desencilhou", "desgarrou", "encilha", "estampando", "ficaram", "ganhou", "pontear", "queimando", "rondar", "tinha"],
+  percentualCorpusNE: 25.5,
+  palavras: [
+    { palavra: "trazer", ocorrencias: 3 }, { palavra: "ser", ocorrencias: 3 },
+    { palavra: "sonhar", ocorrencias: 2 }, { palavra: "abrir", ocorrencias: 1 },
+    { palavra: "aquerenciar", ocorrencias: 1 }, { palavra: "cair", ocorrencias: 1 },
+    { palavra: "cevar", ocorrencias: 1 }, { palavra: "chegar", ocorrencias: 1 },
+    { palavra: "deixar", ocorrencias: 1 }, { palavra: "desencilhar", ocorrencias: 1 },
+    { palavra: "desgarrar", ocorrencias: 1 }, { palavra: "encilhar", ocorrencias: 1 },
+    { palavra: "estampar", ocorrencias: 1 }, { palavra: "ficar", ocorrencias: 1 },
+    { palavra: "ganhar", ocorrencias: 1 }, { palavra: "pontear", ocorrencias: 1 },
+    { palavra: "queimar", ocorrencias: 1 }, { palavra: "rondar", ocorrencias: 1 },
+    { palavra: "ter", ocorrencias: 1 }
+  ],
   cor: "hsl(200, 60%, 45%)",
   corTexto: "hsl(200, 85%, 80%)"
 }, {
@@ -342,7 +387,17 @@ const dominiosData = [{
   percentualTematico: 17.09,
   comparacaoCorpus: "equilibrado" as const,
   diferencaCorpus: -1.71,
-  palavras: ["verso", "saudade", "saudades", "sonhos", "açoite", "calma", "cantos", "cerne", "cor", "espera", "figura", "fim", "jeito", "luz", "mansidão", "respeito", "silencio"],
+  percentualCorpusNE: 18.8,
+  palavras: [
+    { palavra: "verso", ocorrencias: 4 }, { palavra: "saudade", ocorrencias: 2 },
+    { palavra: "sonho", ocorrencias: 1 }, { palavra: "açoite", ocorrencias: 1 },
+    { palavra: "calma", ocorrencias: 1 }, { palavra: "canto", ocorrencias: 1 },
+    { palavra: "cerne", ocorrencias: 1 }, { palavra: "cor", ocorrencias: 1 },
+    { palavra: "espera", ocorrencias: 1 }, { palavra: "figura", ocorrencias: 1 },
+    { palavra: "fim", ocorrencias: 1 }, { palavra: "jeito", ocorrencias: 1 },
+    { palavra: "luz", ocorrencias: 1 }, { palavra: "mansidão", ocorrencias: 1 },
+    { palavra: "respeito", ocorrencias: 1 }, { palavra: "silencio", ocorrencias: 1 }
+  ],
   cor: "hsl(291, 60%, 45%)",
   corTexto: "hsl(291, 80%, 80%)"
 }, {
@@ -354,7 +409,17 @@ const dominiosData = [{
   percentualTematico: 13.68,
   comparacaoCorpus: "super-representado" as const,
   diferencaCorpus: 7.68,
-  palavras: ["aberta", "adormecidos", "campeira", "cansado", "copada", "encostada", "espichada", "feito", "gordo", "lindo", "negros", "novo", "recostada", "redomona", "suados", "vestidos"],
+  percentualCorpusNE: 6.0,
+  palavras: [
+    { palavra: "aberto", ocorrencias: 1 }, { palavra: "adormecido", ocorrencias: 1 },
+    { palavra: "campeiro", ocorrencias: 1 }, { palavra: "cansado", ocorrencias: 1 },
+    { palavra: "copado", ocorrencias: 1 }, { palavra: "encostado", ocorrencias: 1 },
+    { palavra: "espichado", ocorrencias: 1 }, { palavra: "feito", ocorrencias: 1 },
+    { palavra: "gordo", ocorrencias: 1 }, { palavra: "lindo", ocorrencias: 1 },
+    { palavra: "negro", ocorrencias: 1 }, { palavra: "novo", ocorrencias: 1 },
+    { palavra: "recostado", ocorrencias: 1 }, { palavra: "redomona", ocorrencias: 1 },
+    { palavra: "suado", ocorrencias: 1 }, { palavra: "vestido", ocorrencias: 1 }
+  ],
   cor: "hsl(45, 75%, 45%)",
   corTexto: "hsl(45, 90%, 80%)"
 }, {
@@ -366,7 +431,11 @@ const dominiosData = [{
   percentualTematico: 2.56,
   comparacaoCorpus: "sub-representado" as const,
   diferencaCorpus: -24.84,
-  palavras: ["olhos", "galo"],
+  percentualCorpusNE: 27.4,
+  palavras: [
+    { palavra: "olho", ocorrencias: 2 },
+    { palavra: "galo", ocorrencias: 1 }
+  ],
   cor: "hsl(340, 60%, 45%)",
   corTexto: "hsl(340, 85%, 80%)"
 }];
@@ -1179,7 +1248,8 @@ E uma saudade redomona pelos cantos do galpão`}
 
                         {/* Palavras com tooltips individuais e mais espaço */}
                         <div className="flex flex-wrap gap-2.5 mt-1">
-                          {item.palavras.map((palavra, idx) => {
+                          {item.palavras.map((palavraObj, idx) => {
+                        const palavra = palavraObj.palavra;
                         const palavraChave = palavrasChaveData.find(p => p.palavra === palavra);
                         const kwicEntries = kwicDataMap[palavra];
                         return <UITooltip key={idx}>
@@ -1616,12 +1686,13 @@ E uma saudade redomona pelos cantos do galpão`}
                               </text>
                             </g>
 
-                            {dominio.palavras.map((palavra, wordIndex) => {
+                            {dominio.palavras.map((palavraObj, wordIndex) => {
                           const orbitLevel = Math.floor(wordIndex / wordsPerOrbit);
                           const orbit = Math.min(orbitLevel, 3);
                           const radius = orbitRadii[orbit];
                           const wordsInThisOrbit = Math.min(wordsPerOrbit, totalWords - orbit * wordsPerOrbit);
                           const indexInOrbit = wordIndex % wordsPerOrbit;
+                          const palavra = palavraObj.palavra;
                           const wordKey = `${dominio.dominio}-${palavra}`;
                           let angle: number;
                           if (orbitProgress[wordKey] !== undefined) {
@@ -1735,7 +1806,9 @@ E uma saudade redomona pelos cantos do galpão`}
               <div>
                 <h4 className="font-semibold mb-3">Palavras-chave do domínio</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedDomain.palavras.map((palavra, idx) => <Badge key={idx} className="cursor-pointer hover:scale-105 transition-all text-base px-4 py-2 border-0" style={{
+                  {selectedDomain.palavras.map((palavraObj, idx) => {
+                    const palavra = palavraObj.palavra;
+                    return <Badge key={idx} className="cursor-pointer hover:scale-105 transition-all text-base px-4 py-2 border-0" style={{
                 backgroundColor: selectedDomain.cor,
                 color: selectedDomain.corTexto
               }} onClick={() => {
@@ -1743,7 +1816,8 @@ E uma saudade redomona pelos cantos do galpão`}
                 handleWordClick(palavra);
               }}>
                       {palavra}
-                    </Badge>)}
+                    </Badge>;
+                  })}
                 </div>
               </div>
 

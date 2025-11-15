@@ -23,7 +23,8 @@ interface OrbitalConstellationChartProps {
     percentualTematico: number;
     comparacaoCorpus: 'super-representado' | 'equilibrado' | 'sub-representado';
     diferencaCorpus: number;
-    palavras: string[];
+    percentualCorpusNE: number;
+    palavras: Array<{ palavra: string; ocorrencias: number }>;
     cor: string;
     corTexto: string;
   }>;
@@ -91,7 +92,7 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
   // Função auxiliar para mapear domínio de uma palavra
   const getWordDomain = useCallback((palavra: string): { cor: string; corTexto: string } => {
     for (const dominio of dominiosData) {
-      if (dominio.palavras.includes(palavra)) {
+      if (dominio.palavras.some(p => p.palavra === palavra)) {
         return { cor: dominio.cor, corTexto: dominio.corTexto };
       }
     }
@@ -138,7 +139,7 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
     if (activeFilters.domains.length > 0) {
       allWords = allWords.filter(w => {
         for (const dominio of dominiosData) {
-          if (dominio.palavras.includes(w.palavra) && activeFilters.domains.includes(dominio.dominio)) {
+          if (dominio.palavras.some(p => p.palavra === w.palavra) && activeFilters.domains.includes(dominio.dominio)) {
             return true;
           }
         }
@@ -286,15 +287,19 @@ export const OrbitalConstellationChart = ({ onWordClick, dominiosData, palavrasC
         size: normalizedSize,
         label: `${comparisonIcon} ${domain.dominio}`,
         color: domain.cor,
+        dominio: domain.dominio,
         
-        // Metadados para tooltip
+        // Metadados para tooltip e Codex
         riquezaLexical: domain.riquezaLexical,
-        pesoTextual: domain.frequenciaNormalizada,
+        ocorrenciasNE: domain.ocorrencias,
+        percentual: domain.percentual,
         percentualTematico: domain.percentualTematico,
         comparacaoCorpus: domain.comparacaoCorpus,
         diferencaCorpus: domain.diferencaCorpus,
-        numRings: numRings,
-        words: domain.palavras
+        percentualCorpusNE: domain.percentualCorpusNE,
+        palavrasFrequentes: domain.palavras,
+        cor: domain.cor,
+        numRings: numRings
       });
     });
     
