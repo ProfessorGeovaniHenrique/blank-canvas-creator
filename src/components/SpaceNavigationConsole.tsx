@@ -134,6 +134,23 @@ export const SpaceNavigationConsole = ({
             <Star className="w-4 h-4 mr-1" />
             GALÁXIA
           </Button>
+          {level === 'stellar-system' && selectedDomain && (
+            <Button
+              variant="default"
+              size="sm"
+              disabled
+              className="space-nav-btn cursor-default"
+              style={{
+                background: 'linear-gradient(45deg, #00E5FF, #1B5E20)',
+                borderColor: '#00E5FF',
+                color: '#FFFFFF',
+                opacity: 1
+              }}
+            >
+              <CircleDot className="w-4 h-4 mr-1" />
+              {selectedDomain.toUpperCase()}
+            </Button>
+          )}
         </div>
       </div>
       </div>
