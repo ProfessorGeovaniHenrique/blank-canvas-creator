@@ -5,7 +5,8 @@ import { getProsodiaSemantica } from './prosodias-map';
 import { planetTextures } from '@/assets/planets';
 import { 
   calculateWordMIScore, 
-  miScoreToOrbitalRadius 
+  miScoreToOrbitalLayer,
+  calculateUniformAngle
 } from '@/lib/linguisticStats';
 
 /**
@@ -55,6 +56,18 @@ const contextualDefinitions: Record<string, string> = {
   
   // Partes do Corpo
   "olho": "Órgão da visão, frequentemente usado em metáforas poéticas.",
+  
+  // Definições adicionais
+  "campeiro": "Homem experiente na lida campeira, conhecedor dos costumes do campo.",
+  "galponeiro": "Aquele que cuida do galpão, responsável por manter a tradição viva.",
+  "maragato": "Denominação histórica dos revolucionários federalistas gaúchos.",
+  "templado": "Bem preparado, em boas condições, pronto para o trabalho.",
+  "pañuelo": "Lenço tradicional usado no traje gaúcho.",
+  "redomona": "Égua ou cavalo ainda não completamente domado.",
+  "tarumã": "Árvore típica do sul do Brasil, de madeira resistente.",
+  "ventito": "Vento suave e fresco característico do pampa.",
+  "maçanilha": "Planta medicinal aromática, usada para chás calmantes.",
+  "copla": "Estrofe de canção popular, geralmente improvisada.",
 };
 
 // ===== MOCK DATA: Justificativas de Prosódia =====
@@ -70,11 +83,9 @@ const prosodyJustifications: Record<string, string> = {
 
 // ===== FUNÇÃO: Gerar Palavras Relacionadas =====
 function generateRelatedWords(palavra: string, dominio: string): string[] {
-  // Encontrar o domínio
   const dom = dominiosSeparated.find(d => d.dominio === dominio);
   if (!dom) return [];
   
-  // Retornar outras palavras do mesmo domínio (máximo 8)
   return dom.palavras
     .filter(p => p !== palavra)
     .slice(0, 8);
@@ -86,18 +97,14 @@ function assignPlanetVisuals(
   wordIndex: number, 
   domainColor: string
 ): { texture: string; hueShift: number } {
-  // Distribuir texturas ciclicamente
   const textureIndex = wordIndex % planetTextures.length;
   const texture = planetTextures[textureIndex];
   
-  // Calcular hue shift baseado na cor do domínio
-  // Extrair hue da cor HSL do domínio (ex: "hsl(142, 71%, 45%)" -> 142)
-  const hueMatch = domainColor.match(/hsl\((\d+)/);
-  const domainHue = hueMatch ? parseInt(hueMatch[1]) : 0;
+  const hslMatch = domainColor.match(/hsl\((\d+),/);
+  const domainHue = hslMatch ? parseInt(hslMatch[1]) : 0;
   
-  // Gerar variação de hue (-30 a +30 graus) baseada no índice da palavra
-  const hueVariation = ((wordIndex % 7) - 3) * 10; // -30, -20, -10, 0, 10, 20, 30
-  const hueShift = domainHue + hueVariation;
+  const hueVariation = ((wordIndex % 10) - 5) * 6;
+  const hueShift = (domainHue + hueVariation) % 360;
   
   return { texture, hueShift };
 }
@@ -106,16 +113,24 @@ function assignPlanetVisuals(
 export function enrichSemanticWords(): SemanticWord[] {
   console.log('🔄 Starting semantic enrichment...');
   
-  const enrichedWords: SemanticWord[] = [];
+  const allWords: SemanticWord[] = [];
   let globalWordIndex = 0;
   
-  // Validar dados de entrada
+  // Mapear palavras por camada orbital e prosódia para distribuição uniforme
+  const layerCounters: Record<number, Record<string, number>> = {
+    1: { Positiva: 0, Neutra: 0, Negativa: 0 },
+    2: { Positiva: 0, Neutra: 0, Negativa: 0 },
+    3: { Positiva: 0, Neutra: 0, Negativa: 0 },
+    4: { Positiva: 0, Neutra: 0, Negativa: 0 },
+    5: { Positiva: 0, Neutra: 0, Negativa: 0 },
+    6: { Positiva: 0, Neutra: 0, Negativa: 0 },
+  };
+  
   if (!dominiosSeparated || dominiosSeparated.length === 0) {
     console.error('❌ dominiosSeparated is empty or undefined');
     return [];
   }
   
-  // Filtrar domínios temáticos (excluir Palavras Funcionais)
   const thematicDomains = dominiosSeparated.filter(
     d => d.dominio !== "Palavras Funcionais"
   );
@@ -131,7 +146,6 @@ export function enrichSemanticWords(): SemanticWord[] {
     const domainWords = domain.palavrasComFrequencia || [];
     const domainColor = domain.cor;
     
-    // Validar que o domínio tem palavras
     if (domainWords.length === 0) {
       console.warn(`⚠️ Domain "${domain.dominio}" has no words, skipping...`);
       continue;
@@ -142,92 +156,71 @@ export function enrichSemanticWords(): SemanticWord[] {
     for (let i = 0; i < domainWords.length; i++) {
       const wordData = domainWords[i];
       
-      // Validar dados da palavra
       if (!wordData || !wordData.palavra) {
         console.warn(`⚠️ Invalid word data at index ${i} in domain "${domain.dominio}", skipping...`);
         continue;
       }
       
       const palavra = wordData.palavra;
-      
-      // Obter prosódia
       const prosody = getProsodiaSemantica(palavra);
-      
-      // Obter concordâncias (KWIC)
       const concordances = kwicDataMap[palavra] || [];
-      
-      // Gerar palavras relacionadas
       const relatedWords = generateRelatedWords(palavra, domain.dominio);
       
-      // Obter definição contextual (ou gerar mock)
       const contextualDefinition = contextualDefinitions[palavra] || 
         `Termo característico do domínio "${domain.dominio}", usado frequentemente no vocabulário gaúcho.`;
       
-      // Obter justificativa de prosódia (ou gerar mock)
       const prosodyJustification = prosodyJustifications[palavra] || 
         `Classificada como "${prosody}" com base no contexto de uso no corpus gaúcho.`;
       
-      // Atribuir textura e hue shift
       const { texture, hueShift } = assignPlanetVisuals(palavra, globalWordIndex, domainColor);
       
-      // ===== CALCULAR PROPRIEDADES ORBITAIS - SOLUÇÃO HÍBRIDA =====
+      // ===== 1. CALCULAR MI SCORE =====
       const frequency = wordData.ocorrencias;
       const domainTotalFreq = domain.ocorrencias;
+      const miScore = calculateWordMIScore(frequency, domainTotalFreq, 10000);
 
-      // ===== 1. CALCULAR MI SCORE =====
-      const miScore = calculateWordMIScore(
-        frequency,
-        domainTotalFreq,
-        10000 // Tamanho estimado do corpus
-      );
-
-      // ===== 2. DISTÂNCIA ORBITAL (baseada em MI Score) =====
-      const orbitalRadius = miScoreToOrbitalRadius(miScore);
+      // ===== 2. MAPEAR PARA CAMADA ORBITAL DISCRETA =====
+      const orbitalLayer = miScoreToOrbitalLayer(miScore);
 
       // ===== 3. SETOR ANGULAR (baseado em Prosódia) =====
-      // Prosódia Positiva: 0° - 120° (setor verde)
-      // Prosódia Neutra: 120° - 240° (setor amarelo)
-      // Prosódia Negativa: 240° - 360° (setor vermelho)
+      let sectorStart: number;
+      const sectorSpread = (Math.PI * 2) / 3;
 
-      let baseAngle: number;
       if (prosody === 'Positiva') {
-        baseAngle = 0;                    // Início: 0°
+        sectorStart = 0;
       } else if (prosody === 'Neutra') {
-        baseAngle = (Math.PI * 2) / 3;    // Início: 120°
+        sectorStart = (Math.PI * 2) / 3;
       } else {
-        baseAngle = (Math.PI * 4) / 3;    // Início: 240°
+        sectorStart = (Math.PI * 4) / 3;
       }
 
-      // ===== 4. JITTER INTELIGENTE MELHORADO =====
-      // Adicionar variação angular dentro do setor com spread ampliado
-      // Usar hash da palavra para jitter determinístico (mesma palavra = mesmo ângulo)
+      // ===== 4. DISTRIBUIÇÃO UNIFORME DENTRO DO SETOR =====
+      const wordIndexInLayerSector = layerCounters[orbitalLayer.layer][prosody];
+      layerCounters[orbitalLayer.layer][prosody]++;
+
+      const baseAngle = calculateUniformAngle(
+        wordIndexInLayerSector,
+        100,
+        sectorStart,
+        sectorSpread
+      );
+
       const wordHash = palavra.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const jitterAngle = (wordHash % 1000) / 1000; // 0 a 1
-      
-      // A. Jitter Angular - AUMENTADO para 150° (era 120°)
-      // Palavras podem "vazar" entre setores para evitar aglomeração
-      const sectorSpread = (Math.PI * 2) / 2.4; // 150° em radianos (era 120°)
+      const microJitter = ((wordHash % 100) / 100 - 0.5) * 0.1;
+      const orbitalAngle = baseAngle + microJitter;
 
-      const orbitalAngle = baseAngle + (jitterAngle * sectorSpread);
-      
-      // B. Jitter Radial - NOVO!
-      // Adicionar variação de ±15% na distância orbital para espalhar palavras
-      const radialJitter = ((wordHash % 500) / 500 - 0.5) * 0.3; // -0.15 a +0.15
-      const finalOrbitalRadius = orbitalRadius * (1 + radialJitter);
+      // ===== 5. JITTER RADIAL DENTRO DA CAMADA =====
+      const radialJitter = (wordHash % 500) / 500;
+      const finalOrbitalRadius = orbitalLayer.minRadius + (radialJitter * (orbitalLayer.maxRadius - orbitalLayer.minRadius));
 
-      // ===== 5. VELOCIDADE ORBITAL =====
-      // Palavras mais próximas orbitam mais rápido (física real)
-      // Usar o raio com jitter para calcular velocidade
-      const normalizedDistance = (finalOrbitalRadius - 1.8) / 2.7; // Ajustado para novo range (1.8 a 4.5)
-      const orbitalSpeed = 0.5 - (normalizedDistance * 0.35); // 0.5 (perto) a 0.15 (longe)
+      // ===== 6. VELOCIDADE E EXCENTRICIDADE =====
+      const normalizedDistance = (finalOrbitalRadius - 1.8) / 3.2;
+      const orbitalSpeed = 0.5 - (normalizedDistance * 0.35);
+      const orbitalEccentricity = normalizedDistance * 0.3;
 
-      // ===== 6. EXCENTRICIDADE ORBITAL =====
-      // Órbitas mais distantes são mais elípticas
-      const orbitalEccentricity = normalizedDistance * 0.4; // 0 a 0.4
-
-      // 🔍 DEBUG: Log temporário para verificar distribuição orbital
-      if (i < 3) { // Log apenas primeiras 3 palavras de cada domínio
-        console.log(`🪐 ${domain.dominio} | ${palavra}: freq=${frequency}, MI=${miScore.toFixed(2)}, radius=${finalOrbitalRadius.toFixed(2)}, angle=${(orbitalAngle * 180 / Math.PI).toFixed(0)}°, prosody=${prosody}`);
+      // 🔍 DEBUG
+      if (i < 3) {
+        console.log(`🪐 ${domain.dominio} | ${palavra}: MI=${miScore.toFixed(2)}, layer=${orbitalLayer.layer}, radius=${finalOrbitalRadius.toFixed(2)}, angle=${(orbitalAngle * 180 / Math.PI).toFixed(0)}°, prosody=${prosody}`);
       }
 
       // ===== 7. CRIAR PALAVRA ENRIQUECIDA =====
@@ -242,39 +235,22 @@ export function enrichSemanticWords(): SemanticWord[] {
         relatedWords,
         planetTexture: texture,
         hueShift,
-        orbitalRadius: finalOrbitalRadius, // USAR RAIO COM JITTER
+        orbitalRadius: finalOrbitalRadius,
         orbitalAngle,
         orbitalSpeed,
         orbitalEccentricity,
-        miScore, // Adicionar MI Score para tooltip/debug
+        miScore,
+        orbitalLayer: orbitalLayer.layer,
       };
       
-      enrichedWords.push(enrichedWord);
+      allWords.push(enrichedWord);
       globalWordIndex++;
     }
   }
   
-  console.log(`✅ Enrichment complete: ${enrichedWords.length} total words`);
-  return enrichedWords;
+  console.log(`✅ Enrichment complete: ${allWords.length} total words`);
+  return allWords;
 }
-
-// ===== MOCK DATA: Definições adicionais para palavras comuns =====
-const additionalDefinitions: Record<string, string> = {
-  // Adicionar mais definições conforme necessário
-  "campeiro": "Homem experiente na lida campeira, conhecedor dos costumes do campo.",
-  "galponeiro": "Aquele que cuida do galpão, responsável por manter a tradição viva.",
-  "maragato": "Denominação histórica dos revolucionários federalistas gaúchos.",
-  "templado": "Bem preparado, em boas condições, pronto para o trabalho.",
-  "pañuelo": "Lenço tradicional usado no traje gaúcho.",
-  "redomona": "Égua ou cavalo ainda não completamente domado.",
-  "tarumã": "Árvore típica do sul do Brasil, de madeira resistente.",
-  "ventito": "Vento suave e fresco característico do pampa.",
-  "maçanilha": "Planta medicinal aromática, usada para chás calmantes.",
-  "copla": "Estrofe de canção popular, geralmente improvisada.",
-};
-
-// Mesclar definições adicionais
-Object.assign(contextualDefinitions, additionalDefinitions);
 
 // ===== EXPORTAR DADOS ENRIQUECIDOS =====
 let enrichedSemanticData: SemanticWord[] = [];
@@ -284,7 +260,6 @@ try {
   console.log('✅ Semantic data enriched successfully:', enrichedSemanticData.length, 'words');
 } catch (error) {
   console.error('❌ ERROR enriching semantic data:', error);
-  // Fallback: retornar array vazio para evitar crash completo
   enrichedSemanticData = [];
 }
 

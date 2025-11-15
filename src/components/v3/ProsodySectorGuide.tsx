@@ -1,47 +1,45 @@
 import { Line } from '@react-three/drei';
 
 /**
- * Guia visual mostrando os setores de prosódia
- * (opcional, para ajudar usuário a entender a distribuição)
+ * Guia visual mostrando as 6 camadas orbitais e setores de prosódia
  */
 export function ProsodySectorGuide({ visible = false }: { visible?: boolean }) {
   if (!visible) return null;
   
-  const radius = 4.5; // Raio máximo das órbitas
+  // 6 camadas orbitais discretas
+  const orbitalLayers = [2.0, 2.6, 3.2, 3.8, 4.4, 5.0];
   
   return (
     <group>
-      {/* Linha 0° - 120° (Prosódia Positiva) - Verde */}
-      <Line
-        points={[[0, 0, 0], [radius, 0, 0]]}
-        color="#4ade80"
-        lineWidth={1}
-        opacity={0.3}
-      />
-      
-      {/* Linha 120° - 240° (Prosódia Neutra) - Amarelo */}
-      <Line
-        points={[[0, 0, 0], [radius * Math.cos(Math.PI * 2 / 3), 0, radius * Math.sin(Math.PI * 2 / 3)]]}
-        color="#fbbf24"
-        lineWidth={1}
-        opacity={0.3}
-      />
-      
-      {/* Linha 240° - 360° (Prosódia Negativa) - Vermelho */}
-      <Line
-        points={[[0, 0, 0], [radius * Math.cos(Math.PI * 4 / 3), 0, radius * Math.sin(Math.PI * 4 / 3)]]}
-        color="#f87171"
-        lineWidth={1}
-        opacity={0.3}
-      />
-      
-      {/* Círculos de camadas (opcional) */}
-      {[1.0, 2.0, 3.0, 4.0].map((r) => (
-        <mesh key={r} rotation-x={Math.PI / 2} position={[0, -0.01, 0]}>
-          <ringGeometry args={[r - 0.02, r + 0.02, 64]} />
-          <meshBasicMaterial color="#ffffff" opacity={0.1} transparent />
+      {/* Círculos das 6 camadas orbitais */}
+      {orbitalLayers.map((radius, idx) => (
+        <mesh key={idx} rotation-x={Math.PI / 2} position={[0, -0.01, 0]}>
+          <ringGeometry args={[radius - 0.02, radius + 0.02, 64]} />
+          <meshBasicMaterial 
+            color="#00ffff" 
+            opacity={0.15} 
+            transparent 
+          />
         </mesh>
       ))}
+      
+      {/* Linhas divisórias de setores de prosódia */}
+      {[0, Math.PI * 2 / 3, Math.PI * 4 / 3].map((angle, idx) => {
+        const colors = ['#4ade80', '#fbbf24', '#f87171'];
+        const maxRadius = 5.2;
+        return (
+          <Line
+            key={idx}
+            points={[
+              [0, 0, 0], 
+              [maxRadius * Math.cos(angle), 0, maxRadius * Math.sin(angle)]
+            ]}
+            color={colors[idx]}
+            lineWidth={1.5}
+            opacity={0.3}
+          />
+        );
+      })}
     </group>
   );
 }
