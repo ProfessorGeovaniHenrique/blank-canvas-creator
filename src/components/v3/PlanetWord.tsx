@@ -35,9 +35,8 @@ export function PlanetWord({
   // States
   const isHovered = hover.hoveredNodeId === word.palavra;
   
-  // Usar textura pré-carregada se disponível, caso contrário carregar sob demanda
-  const loadedTexture = useTexture(preloadedTexture ? '' : word.planetTexture);
-  const texture = preloadedTexture || (loadedTexture as THREE.Texture);
+  // Sempre carregar a textura (useTexture faz cache automaticamente)
+  const texture = useTexture(word.planetTexture) as THREE.Texture;
   
   // Converter cor HSL para THREE.Color
   const domainColorObj = useMemo(() => new THREE.Color(domainColor), [domainColor]);
