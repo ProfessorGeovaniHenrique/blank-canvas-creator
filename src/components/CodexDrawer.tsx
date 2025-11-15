@@ -18,7 +18,13 @@ interface CodexDrawerProps {
     riquezaLexical?: number;
     ocorrenciasNE?: number;
     ocorrenciasCorpus?: number;
+    percentual?: number;
+    percentualTematico?: number;
     comparacaoCorpus?: 'super-representado' | 'equilibrado' | 'sub-representado';
+    diferencaCorpus?: number;
+    percentualCorpusNE?: number;
+    palavrasFrequentes?: Array<{ palavra: string; ocorrencias: number }>;
+    cor?: string;
   } | null;
   level?: 'universe' | 'galaxy' | string;
 }
@@ -185,51 +191,150 @@ export const CodexDrawer = ({ word, level }: CodexDrawerProps) => {
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
               💫 CODEX LINGUÍSTICO
             </h3>
-            <span className="text-cyan-400/60 text-[10px] font-mono">v2.0</span>
+            <span className="text-cyan-400/60 text-[10px] font-mono">v3.0</span>
           </div>
           <div className="text-2xl font-bold text-white uppercase tracking-wide">
             {displayWord}
           </div>
         </div>
 
-        {/* Métricas - Visão Galáxia */}
+        {/* Métricas - Visão Galáxia V3.0 */}
         {level === 'galaxy' && (
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-cyan-300 text-xs font-mono">Riqueza Lexical</span>
-                <span className="text-white font-bold text-sm">{word?.riquezaLexical?.toFixed(2) || '0.00'}</span>
+          <div className="space-y-5">
+            
+            {/* 1. ESTATÍSTICAS PRINCIPAIS */}
+            <div className="space-y-3">
+              
+              {/* Riqueza Lexical */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-cyan-300 text-xs font-mono">
+                    💎 Riqueza Lexical
+                  </span>
+                  <span className="text-white font-bold text-sm">
+                    {word?.riquezaLexical || 0} lemas únicos
+                  </span>
+                </div>
+                <div className="w-full bg-gray-800/50 rounded-full h-2.5 overflow-hidden border border-cyan-500/30">
+                  <div 
+                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 relative overflow-hidden"
+                    style={{ width: `${Math.min((word?.riquezaLexical || 0) / 30 * 100, 100)}%` }}
+                  >
+                    <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                  </div>
+                </div>
               </div>
-              <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden border border-cyan-500/30">
-                <div 
-                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 relative overflow-hidden"
-                  style={{ width: `${(word?.riquezaLexical || 0) * 100}%` }}
-                >
-                  <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+              {/* Grid de Pesos Textuais */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-black/30 rounded-lg p-2 border border-cyan-500/20">
+                  <div className="text-cyan-300 text-[9px] font-mono mb-0.5">Ocorrências</div>
+                  <div className="text-white font-bold text-base">{word?.ocorrenciasNE || 0}</div>
+                </div>
+                <div className="bg-black/30 rounded-lg p-2 border border-purple-500/20">
+                  <div className="text-purple-300 text-[9px] font-mono mb-0.5">Peso Abs.</div>
+                  <div className="text-white font-bold text-base">{word?.percentual?.toFixed(1) || '0.0'}%</div>
+                </div>
+                <div className="bg-black/30 rounded-lg p-2 border border-green-500/20">
+                  <div className="text-green-300 text-[9px] font-mono mb-0.5">Peso Tem.</div>
+                  <div className="text-white font-bold text-base">{word?.percentualTematico?.toFixed(1) || '0.0'}%</div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-black/30 rounded-lg p-3 border border-cyan-500/20">
-                <div className="text-cyan-300 text-[10px] font-mono mb-1">Ocorrências NE</div>
-                <div className="text-white font-bold text-lg">{word?.ocorrenciasNE || 0}</div>
+            {/* 2. COMPARAÇÃO COM CORPUS NORDESTINO */}
+            <div className="bg-black/40 rounded-lg p-3 border border-cyan-500/30">
+              <div className="text-cyan-300 text-[10px] font-mono mb-3 flex items-center gap-2">
+                <span>📊</span>
+                COMPARAÇÃO vs CORPUS NORDESTINO
               </div>
-              <div className="bg-black/30 rounded-lg p-3 border border-cyan-500/20">
-                <div className="text-cyan-300 text-[10px] font-mono mb-1">Corpus</div>
-                <div className="text-white font-bold text-lg">{word?.ocorrenciasCorpus || 0}</div>
+              
+              {/* Barra Dupla Comparativa */}
+              <div className="space-y-2">
+                {/* Poema Gaúcho */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-cyan-400 text-[10px] font-mono">Poema Gaúcho</span>
+                    <span className="text-cyan-400 font-bold text-xs">{word?.percentualTematico?.toFixed(2) || '0.00'}%</span>
+                  </div>
+                  <div className="w-full bg-gray-800/50 rounded-full h-3 overflow-hidden border border-cyan-500/30 relative">
+                    <div 
+                      className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-500"
+                      style={{ width: `${Math.min(word?.percentualTematico || 0, 100)}%` }}
+                    />
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                      <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-200/50 to-transparent absolute top-1/2 animate-scanLineHorizontal" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Corpus Nordestino */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-orange-400 text-[10px] font-mono">Corpus Nordestino</span>
+                    <span className="text-orange-400 font-bold text-xs">{word?.percentualCorpusNE?.toFixed(2) || '0.00'}%</span>
+                  </div>
+                  <div className="w-full bg-gray-800/50 rounded-full h-3 overflow-hidden border border-orange-500/30">
+                    <div 
+                      className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500"
+                      style={{ width: `${Math.min(word?.percentualCorpusNE || 0, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Badge de Status */}
+              <div className={`mt-3 ${colors.bg} ${colors.border} border-2 rounded-lg p-2 text-center`}>
+                <div className="text-white font-mono text-[11px] uppercase tracking-wider">
+                  {word?.comparacaoCorpus === 'super-representado' && '⬆️ SUPER-REPRESENTADO'}
+                  {word?.comparacaoCorpus === 'equilibrado' && '➖ EQUILIBRADO'}
+                  {word?.comparacaoCorpus === 'sub-representado' && '⬇️ SUB-REPRESENTADO'}
+                </div>
+                <div className="text-white/70 text-[9px] font-mono mt-1">
+                  {word?.diferencaCorpus && word.diferencaCorpus > 0 ? '+' : ''}
+                  {word?.diferencaCorpus?.toFixed(2) || '0.00'}% vs Corpus NE
+                </div>
               </div>
             </div>
 
-            {word?.comparacaoCorpus && (
-              <div className={`${colors.bg} ${colors.border} border-2 rounded-lg p-3 text-center`}>
-                <div className="text-white font-mono text-xs uppercase tracking-wider">
-                  {word.comparacaoCorpus === 'super-representado' && '⬆️ Super-representado'}
-                  {word.comparacaoCorpus === 'equilibrado' && '➖ Equilibrado'}
-                  {word.comparacaoCorpus === 'sub-representado' && '⬇️ Sub-representado'}
+            {/* 3. TOP 5 PALAVRAS DO DOMÍNIO */}
+            {word?.palavrasFrequentes && word.palavrasFrequentes.length > 0 && (
+              <div className="bg-black/40 rounded-lg p-3 border border-cyan-500/30">
+                <div className="text-cyan-300 text-[10px] font-mono mb-3 flex items-center gap-2">
+                  <span>🔤</span>
+                  TOP PALAVRAS DESTE DOMÍNIO
+                </div>
+                
+                <div className="space-y-2">
+                  {word.palavrasFrequentes.slice(0, 5).map((item, index) => {
+                    const maxOcorrencias = Math.max(...word.palavrasFrequentes!.map(p => p.ocorrencias));
+                    const widthPercent = (item.ocorrencias / maxOcorrencias) * 100;
+                    
+                    return (
+                      <div key={index} className="group cursor-pointer hover:bg-cyan-500/10 rounded p-1 transition-colors">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-white text-xs font-mono">{item.palavra}</span>
+                          <span className="text-cyan-400 font-bold text-[10px]">{item.ocorrencias}×</span>
+                        </div>
+                        <div className="w-full bg-gray-800/50 rounded-full h-1.5 overflow-hidden relative">
+                          <div 
+                            className="h-full transition-all duration-500"
+                            style={{ 
+                              width: `${widthPercent}%`,
+                              background: word.cor || 'linear-gradient(to right, #06b6d4, #3b82f6)'
+                            }}
+                          />
+                          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                            <div className="w-[2px] h-full bg-gradient-to-b from-transparent via-white/50 to-transparent absolute left-0 animate-scanLineHorizontal" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
+
           </div>
         )}
 
