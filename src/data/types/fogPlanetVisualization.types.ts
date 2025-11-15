@@ -36,6 +36,7 @@ export interface SemanticWord {
   
   // Metadados Estatísticos (para tooltip/debug)
   miScore?: number; // Mutual Information Score (força de associação)
+  orbitalLayer?: number; // Camada orbital (1-6)
 }
 
 // ===== DOMÍNIO SEMÂNTICO (Nuvem FOG) =====

@@ -46,6 +46,7 @@ interface CodexDrawerProps {
     orbitalAngle?: number;
     orbitalSpeed?: number;
     orbitalEccentricity?: number;
+    orbitalLayer?: number;
   } | null;
   level?: 'universe' | 'galaxy' | 'stellar-system' | string;
 }
@@ -529,6 +530,12 @@ export const CodexDrawer = ({ word, level }: CodexDrawerProps) => {
                     <span className="text-gray-400 text-xs">MI Score:</span>
                     <span className="text-white font-bold font-mono text-sm">
                       {word.miScore.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-xs">Camada Orbital:</span>
+                    <span className="text-cyan-400 font-bold font-mono text-sm">
+                      Nível {word.orbitalLayer || 'N/A'} / 6
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

@@ -67,15 +67,21 @@ export const GalaxyLegendPanel = ({ visible, isCodexOpen = false }: GalaxyLegend
                 🌌 DISTRIBUIÇÃO ORBITAL:
               </div>
               
-              {/* Distância = MI Score */}
+              {/* Camadas Orbitais */}
               <div className="pl-2">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-3 h-3 rounded-full bg-cyan-400" />
-                  <span className="text-cyan-300 font-bold text-xs">Distância do Núcleo</span>
+                  <span className="text-cyan-300 font-bold text-xs">Camadas Orbitais (6 Níveis)</span>
                 </div>
-                <p className="text-gray-400 text-[10px] ml-5 leading-relaxed">
-                  Quanto mais próxima a palavra está do núcleo (FOG), maior sua força de associação semântica com o domínio (MI Score alto).
-                </p>
+                <div className="space-y-1 ml-5 text-[10px]">
+                  <div className="text-gray-400">Palavras agrupadas em 6 anéis concêntricos:</div>
+                  <div className="text-cyan-300">• Camada 1-2: Alta associação (MI {">"} 4.0)</div>
+                  <div className="text-cyan-300">• Camada 3-4: Média associação (MI 2.0-4.0)</div>
+                  <div className="text-cyan-300">• Camada 5-6: Baixa associação (MI {"<"} 2.0)</div>
+                  <div className="text-gray-500 italic mt-1">
+                    Distribuição uniforme dentro de cada anel
+                  </div>
+                </div>
               </div>
               
               {/* Setor Angular = Prosódia */}
