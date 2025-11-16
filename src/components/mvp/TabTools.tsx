@@ -9,7 +9,6 @@ import { KWICTool } from "./tools/KWICTool";
 import { DispersionTool } from "./tools/DispersionTool";
 import { NGramsTool } from "./tools/NGramsTool";
 import { AdvancedAnalysisTab } from "./tools/AdvancedAnalysisTab";
-import { DialectalNGramsTool } from "./tools/DialectalNGramsTool";
 
 function TabToolsContent() {
   const { activeTab, setActiveTab } = useTools();
@@ -28,7 +27,7 @@ function TabToolsContent() {
       
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="wordlist">
               Word List
             </TabsTrigger>
@@ -43,9 +42,6 @@ function TabToolsContent() {
             </TabsTrigger>
             <TabsTrigger value="ngrams">
               N-grams
-            </TabsTrigger>
-            <TabsTrigger value="dialectal-ngrams">
-              N-grams Dialetais
             </TabsTrigger>
             <TabsTrigger value="advanced">
               Análise Avançada
@@ -70,10 +66,6 @@ function TabToolsContent() {
           
           <TabsContent value="ngrams" className="mt-6">
             <NGramsTool />
-          </TabsContent>
-          
-          <TabsContent value="dialectal-ngrams" className="mt-6">
-            <DialectalNGramsTool />
           </TabsContent>
           
           <TabsContent value="advanced" className="mt-6">
