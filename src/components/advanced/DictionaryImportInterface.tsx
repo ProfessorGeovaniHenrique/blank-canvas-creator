@@ -36,23 +36,38 @@ export function DictionaryImportInterface() {
     }]);
 
     try {
-      // Carregar arquivo do volume
-      const volumeFile = volumeNum === 'I' 
-        ? 'user-uploads://VOLUME_I_1-2.pdf'
-        : 'user-uploads://VOLUME_II_1-2.pdf';
+      // Carregar arquivo raw do projeto
+      const fileName = volumeNum === 'I' 
+        ? '/src/data/dictionaries/dialectal-volume-I-raw.txt' 
+        : '/src/data/dictionaries/dialectal-volume-II-raw.txt';
       
-      // Nota: Em produção, você precisaria converter o PDF para texto primeiro
-      // Por enquanto, vamos usar um placeholder
-      const fileContent = `Processando Volume ${volumeNum}...`;
+      const response = await fetch(fileName);
+      if (!response.ok) {
+        throw new Error(`Erro ao carregar arquivo: ${fileName}`);
+      }
       
-      toast.info(`Iniciando processamento do Volume ${volumeNum}...`);
+      const rawContent = await response.text();
+      console.log(`[DictionaryImport] Arquivo carregado: ${rawContent.length} caracteres`);
+      
+      // Importar e aplicar pré-processador
+      const { preprocessDialectalText, getPreprocessingStats } = await import('@/lib/preprocessDialectalText');
+      const processedContent = preprocessDialectalText(rawContent, volumeNum);
+      
+      // Mostrar estatísticas de pré-processamento
+      const stats = getPreprocessingStats(processedContent);
+      console.log(`[DictionaryImport] Estatísticas após pré-processamento:`, stats);
+      
+      toast.info(`Volume ${volumeNum}: ${stats.estimatedVerbetes} verbetes detectados. Iniciando importação...`);
       
       setJobs(prev => prev.map(j => 
-        j.id === jobId ? { ...j, status: 'processing' } : j
+        j.id === jobId ? { ...j, status: 'processing', total: stats.estimatedVerbetes } : j
       ));
 
       const { data, error } = await supabase.functions.invoke('process-dialectal-dictionary', {
-        body: { fileContent, volumeNum }
+        body: { 
+          fileContent: processedContent,
+          volumeNum 
+        }
       });
 
       if (error) throw error;
