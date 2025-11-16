@@ -125,6 +125,159 @@ export type Database = {
         }
         Relationships: []
       }
+      dialectal_lexicon: {
+        Row: {
+          atualizado_em: string | null
+          categorias_tematicas: string[] | null
+          classe_gramatical: string | null
+          confianca_extracao: number | null
+          contextos_culturais: Json | null
+          criado_em: string | null
+          definicoes: Json | null
+          frequencia_uso: string | null
+          id: string
+          influencia_platina: boolean | null
+          marcacao_temporal: string | null
+          origem_primaria: string | null
+          origem_regionalista: string[] | null
+          pagina_fonte: number | null
+          referencias_dicionarios: string[] | null
+          remissoes: string[] | null
+          sinonimos: string[] | null
+          termos_espanhol: string[] | null
+          validado_humanamente: boolean | null
+          variantes: string[] | null
+          verbete: string
+          verbete_normalizado: string
+          volume_fonte: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          categorias_tematicas?: string[] | null
+          classe_gramatical?: string | null
+          confianca_extracao?: number | null
+          contextos_culturais?: Json | null
+          criado_em?: string | null
+          definicoes?: Json | null
+          frequencia_uso?: string | null
+          id?: string
+          influencia_platina?: boolean | null
+          marcacao_temporal?: string | null
+          origem_primaria?: string | null
+          origem_regionalista?: string[] | null
+          pagina_fonte?: number | null
+          referencias_dicionarios?: string[] | null
+          remissoes?: string[] | null
+          sinonimos?: string[] | null
+          termos_espanhol?: string[] | null
+          validado_humanamente?: boolean | null
+          variantes?: string[] | null
+          verbete: string
+          verbete_normalizado: string
+          volume_fonte?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          categorias_tematicas?: string[] | null
+          classe_gramatical?: string | null
+          confianca_extracao?: number | null
+          contextos_culturais?: Json | null
+          criado_em?: string | null
+          definicoes?: Json | null
+          frequencia_uso?: string | null
+          id?: string
+          influencia_platina?: boolean | null
+          marcacao_temporal?: string | null
+          origem_primaria?: string | null
+          origem_regionalista?: string[] | null
+          pagina_fonte?: number | null
+          referencias_dicionarios?: string[] | null
+          remissoes?: string[] | null
+          sinonimos?: string[] | null
+          termos_espanhol?: string[] | null
+          validado_humanamente?: boolean | null
+          variantes?: string[] | null
+          verbete?: string
+          verbete_normalizado?: string
+          volume_fonte?: string | null
+        }
+        Relationships: []
+      }
+      gutenberg_lexicon: {
+        Row: {
+          antonimos: string[] | null
+          arcaico: boolean | null
+          areas_conhecimento: string[] | null
+          atualizado_em: string | null
+          classe_gramatical: string | null
+          confianca_extracao: number | null
+          criado_em: string | null
+          definicoes: Json | null
+          derivados: string[] | null
+          etimologia: string | null
+          exemplos: string[] | null
+          expressoes: string[] | null
+          figurado: boolean | null
+          genero: string | null
+          id: string
+          origem_lingua: string | null
+          popular: boolean | null
+          regional: boolean | null
+          sinonimos: string[] | null
+          validado: boolean | null
+          verbete: string
+          verbete_normalizado: string
+        }
+        Insert: {
+          antonimos?: string[] | null
+          arcaico?: boolean | null
+          areas_conhecimento?: string[] | null
+          atualizado_em?: string | null
+          classe_gramatical?: string | null
+          confianca_extracao?: number | null
+          criado_em?: string | null
+          definicoes?: Json | null
+          derivados?: string[] | null
+          etimologia?: string | null
+          exemplos?: string[] | null
+          expressoes?: string[] | null
+          figurado?: boolean | null
+          genero?: string | null
+          id?: string
+          origem_lingua?: string | null
+          popular?: boolean | null
+          regional?: boolean | null
+          sinonimos?: string[] | null
+          validado?: boolean | null
+          verbete: string
+          verbete_normalizado: string
+        }
+        Update: {
+          antonimos?: string[] | null
+          arcaico?: boolean | null
+          areas_conhecimento?: string[] | null
+          atualizado_em?: string | null
+          classe_gramatical?: string | null
+          confianca_extracao?: number | null
+          criado_em?: string | null
+          definicoes?: Json | null
+          derivados?: string[] | null
+          etimologia?: string | null
+          exemplos?: string[] | null
+          expressoes?: string[] | null
+          figurado?: boolean | null
+          genero?: string | null
+          id?: string
+          origem_lingua?: string | null
+          popular?: boolean | null
+          regional?: boolean | null
+          sinonimos?: string[] | null
+          validado?: boolean | null
+          verbete?: string
+          verbete_normalizado?: string
+        }
+        Relationships: []
+      }
       human_validations: {
         Row: {
           aplicado: boolean | null

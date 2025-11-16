@@ -238,6 +238,7 @@ async function annotateWordHybrid(
   
   const palavraLower = palavra.toLowerCase();
 
+  // 1. Tentar lexicon existente primeiro (fast path)
   const { data: lexiconMatch } = await supabase
     .from('semantic_lexicon')
     .select('*')
@@ -257,12 +258,17 @@ async function annotateWordHybrid(
 
   console.log(`[annotateWordHybrid] AI path for "${palavra}"`);
   
+  // 2. Enriquecer com dados dos dicionários
+  const dictionaryContext = await enrichWithDictionaries(palavraLower, supabase);
+  
+  // 3. Chamar AI com contexto enriquecido
   const aiAnnotation = await queryAIForAnnotation(
     palavra,
     contexto,
     pos,
     tagsets,
-    lovableApiKey
+    lovableApiKey,
+    dictionaryContext
   );
 
   if (!aiAnnotation) {
@@ -306,12 +312,104 @@ async function annotateWordHybrid(
   };
 }
 
+async function enrichWithDictionaries(palavra: string, supabase: any): Promise<string> {
+  const normalizedWord = palavra.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  let enrichedContext = '';
+  
+  // Dicionário Dialectal (Cultura Pampeana)
+  const { data: dialectalData } = await supabase
+    .from('dialectal_lexicon')
+    .select('*')
+    .eq('verbete_normalizado', normalizedWord)
+    .maybeSingle();
+  
+  if (dialectalData) {
+    enrichedContext += `\n\n🌾 CONTEXTO REGIONALISTA GAÚCHO/PAMPEANO:
+Palavra: ${dialectalData.verbete}
+Origem: ${dialectalData.origem_primaria} ${dialectalData.influencia_platina ? '(Influência Platina)' : ''}
+Status: ${dialectalData.marcacao_temporal || 'Contemporâneo'} | Frequência: ${dialectalData.frequencia_uso}
+Classe: ${dialectalData.classe_gramatical || 'N/A'}
+
+Definições:
+${dialectalData.definicoes.map((d: any, i: number) => 
+  `${i + 1}. ${d.texto}${d.contexto ? ` (${d.contexto})` : ''}`
+).join('\n')}
+
+${dialectalData.sinonimos?.length > 0 ? `Sinônimos regionais: ${dialectalData.sinonimos.join(', ')}` : ''}
+${dialectalData.contextos_culturais?.fraseologias?.length > 0 ? 
+  `Fraseologias típicas: ${dialectalData.contextos_culturais.fraseologias.join('; ')}` : ''}
+${dialectalData.categorias_tematicas?.length > 0 ? 
+  `Categorias culturais: ${dialectalData.categorias_tematicas.join(', ')}` : ''}
+
+⚠️ IMPORTANTE: Esta palavra tem forte carga regionalista gaúcha/pampeana.
+Considere sua especificidade cultural ao anotar os domínios semânticos.`;
+  }
+  
+  // Dicionário Gutenberg (Português Geral)
+  const { data: gutenbergData } = await supabase
+    .from('gutenberg_lexicon')
+    .select('*')
+    .eq('verbete_normalizado', normalizedWord)
+    .maybeSingle();
+  
+  if (gutenbergData) {
+    enrichedContext += `\n\n📚 CONTEXTO LEXICAL PORTUGUÊS (Cândido de Figueiredo):
+Verbete: ${gutenbergData.verbete}
+Classe: ${gutenbergData.classe_gramatical || 'N/A'} ${gutenbergData.genero ? `(${gutenbergData.genero})` : ''}
+${gutenbergData.etimologia ? `Etimologia: ${gutenbergData.etimologia}` : ''}
+${gutenbergData.origem_lingua ? `Origem: ${gutenbergData.origem_lingua}` : ''}
+
+Definições:
+${gutenbergData.definicoes.map((d: any, i: number) => 
+  `${i + 1}. ${d.texto}`
+).join('\n')}
+
+${gutenbergData.arcaico ? '⚠️ Termo ARCAICO' : ''}
+${gutenbergData.regional ? '⚠️ Termo REGIONAL' : ''}
+${gutenbergData.figurado ? '⚠️ Sentido FIGURADO' : ''}
+${gutenbergData.popular ? '⚠️ Uso POPULAR' : ''}`;
+  }
+  
+  // Dicionário Houaiss (Sinônimos)
+  const { data: houaissData } = await supabase
+    .from('lexical_synonyms')
+    .select('*')
+    .eq('palavra', palavra)
+    .limit(1)
+    .maybeSingle();
+  
+  if (houaissData && houaissData.sinonimos?.length > 0) {
+    enrichedContext += `\n\n🔗 SINÔNIMOS (Houaiss):
+${houaissData.sinonimos.join(', ')}
+${houaissData.acepcao_descricao ? `\nAcepção: ${houaissData.acepcao_descricao}` : ''}`;
+  }
+  
+  // Dicionário UNESP (Definições)
+  const { data: unespData } = await supabase
+    .from('lexical_definitions')
+    .select('*')
+    .eq('palavra', palavra)
+    .limit(1)
+    .maybeSingle();
+  
+  if (unespData) {
+    enrichedContext += `\n\n📖 DEFINIÇÃO ACADÊMICA (UNESP):
+${unespData.definicao}
+${unespData.exemplos?.length > 0 ? `\nExemplos: ${unespData.exemplos.join('; ')}` : ''}
+${unespData.registro_uso ? `\nRegistro de uso: ${unespData.registro_uso}` : ''}`;
+  }
+  
+  return enrichedContext;
+}
+
 async function queryAIForAnnotation(
   palavra: string,
   contexto: string,
   pos: string,
   tagsets: SemanticTagset[],
-  lovableApiKey: string
+  lovableApiKey: string,
+  dictionaryContext?: string
 ): Promise<AIAnnotation | null> {
   
   const tagsetList = tagsets.map(t => 
@@ -333,6 +431,7 @@ ${tagsetList}
 PALAVRA: "${palavra}"
 POS TAG: ${pos}
 CONTEXTO: "${contexto}"
+${dictionaryContext ? `\n${dictionaryContext}` : ''}
 
 INSTRUÇÕES:
 1. Analise o CONTEXTO cuidadosamente (a palavra pode ter sentido diferente do usual)
