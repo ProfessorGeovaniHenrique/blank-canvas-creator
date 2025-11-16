@@ -20,21 +20,21 @@ export default function AdvancedMode() {
 
       <main className="flex-1 container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Modo Avançado</h1>
+          <h1 className="text-4xl font-bold mb-2">Novas Funcionalidades (Beta)</h1>
           <p className="text-lg text-muted-foreground">
             Análise Estilística baseada em Leech & Short (2007)
           </p>
         </div>
 
-        <Tabs defaultValue="lexical" className="w-full">
+        <Tabs defaultValue="pos" className="w-full">
           <TabsList className="grid w-full grid-cols-6 mb-6">
-            <TabsTrigger value="lexical" className="gap-2">
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Perfil Léxico</span>
-            </TabsTrigger>
             <TabsTrigger value="pos" className="gap-2">
               <Layers className="w-4 h-4" />
               <span className="hidden sm:inline">POS Tagging</span>
+            </TabsTrigger>
+            <TabsTrigger value="lexical" className="gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Perfil Léxico</span>
             </TabsTrigger>
             <TabsTrigger value="syntactic" className="gap-2" disabled>
               <Network className="w-4 h-4" />
@@ -54,12 +54,12 @@ export default function AdvancedMode() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="lexical">
-            <TabLexicalProfile />
-          </TabsContent>
-
           <TabsContent value="pos">
             <POSAnalysisTool />
+          </TabsContent>
+
+          <TabsContent value="lexical">
+            <TabLexicalProfile />
           </TabsContent>
 
           <TabsContent value="syntactic">
