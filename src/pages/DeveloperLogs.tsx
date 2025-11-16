@@ -10,6 +10,7 @@ import { constructionLog, projectStats, getCompletedPhases, getInProgressPhases 
 import { scientificChangelog, scientificStats } from "@/data/developer-logs/changelog-scientific";
 import { FileText, GitBranch, TrendingUp, BookOpen, Target, ArrowLeft, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { exportDeveloperLogsToPDF } from "@/utils/exportDeveloperLogs";
 
 export default function DeveloperLogs() {
   const navigate = useNavigate();
@@ -17,8 +18,7 @@ export default function DeveloperLogs() {
   const inProgressPhases = getInProgressPhases();
 
   const handleExportReport = () => {
-    // TODO: Implementar exportação para PDF/Markdown
-    console.log("Exportar relatório");
+    exportDeveloperLogsToPDF();
   };
 
   return (
