@@ -48,6 +48,7 @@ import { CorpusType, CORPUS_CONFIG } from '@/data/types/corpus-tools.types';
 import { generateDialectalAnalysis } from '@/services/dialectalDictionaryService';
 import { EnrichedDialectalMark } from '@/data/types/dialectal-dictionary.types';
 import { toast } from 'sonner';
+import { DialectalWordCloud } from './DialectalWordCloud';
 
 const CATEGORIA_LABELS = {
   lida_campeira: 'Lida Campeira',
@@ -293,10 +294,14 @@ export function DialectalAnalysisTool() {
 
           {/* Tabs: Tabela / Visualizações */}
           <Tabs defaultValue="table" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="table">
                 <Filter className="h-4 w-4 mr-2" />
                 Tabela
+              </TabsTrigger>
+              <TabsTrigger value="wordcloud">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Nuvem
               </TabsTrigger>
               <TabsTrigger value="heatmap">
                 <BarChart3 className="h-4 w-4 mr-2" />
@@ -432,6 +437,25 @@ export function DialectalAnalysisTool() {
                       Mostrando 50 de {filteredMarcas.length} resultados
                     </p>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Nuvem de Palavras */}
+            <TabsContent value="wordcloud">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nuvem de Palavras Dialetais</CardTitle>
+                  <CardDescription>
+                    Visualização interativa das marcas dialetais. Tamanho = Score de dialectalidade. 
+                    Passe o mouse sobre as palavras para ver detalhes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DialectalWordCloud 
+                    marcas={analysis.marcasDialetais} 
+                    maxWords={60}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
