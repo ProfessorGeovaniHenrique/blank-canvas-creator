@@ -13,6 +13,8 @@ export { JobsMonitor } from './JobsMonitor';
 // Hierarchical and Dictionary Components
 export { HierarchyViewSelector } from './HierarchyViewSelector';
 export { SynonymExplorer } from './SynonymExplorer';
+export { DialectalExplorer } from './DialectalExplorer';
+export { DialectalCoverageDashboard } from './DialectalCoverageDashboard';
 export type { ViewMode } from './HierarchyViewSelector';
 
 // Other
