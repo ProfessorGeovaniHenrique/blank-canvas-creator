@@ -100,9 +100,9 @@ export function JobsMonitor() {
                     <TableCell>
                       {job.progresso !== null ? (
                         <div className="flex items-center gap-2">
-                          <Progress value={job.progresso} className="w-24 h-2" />
+                          <Progress value={job.progresso * 100} className="w-24 h-2" />
                           <span className="text-xs text-muted-foreground">
-                            {job.progresso.toFixed(0)}%
+                            {(job.progresso * 100).toFixed(0)}%
                           </span>
                         </div>
                       ) : (
