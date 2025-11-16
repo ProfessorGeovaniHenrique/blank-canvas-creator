@@ -25,15 +25,22 @@ export function useKeywords() {
     setIsProcessed(false);
     
     try {
-      // Carregar corpus de estudo
-      const estudoPath = corpusEstudo === 'gaucho' 
-        ? '/src/data/corpus/corpus-estudo-gaucho.txt'
-        : '/src/data/corpus/corpus-referencia-nordestino.txt';
+      // Função helper para mapear corpus para caminho
+      const getCorpusPath = (corpus: CorpusType): string => {
+        switch(corpus) {
+          case 'gaucho':
+            return '/src/data/corpus/corpus-estudo-gaucho.txt';
+          case 'nordestino':
+            return '/src/data/corpus/corpus-referencia-nordestino.txt';
+          case 'marenco-verso':
+            return '/src/data/corpus/corpus-luiz-marenco-verso.txt';
+          default:
+            return '/src/data/corpus/corpus-estudo-gaucho.txt';
+        }
+      };
       
-      // Carregar corpus de referência
-      const referenciaPath = corpusReferencia === 'gaucho'
-        ? '/src/data/corpus/corpus-estudo-gaucho.txt'
-        : '/src/data/corpus/corpus-referencia-nordestino.txt';
+      const estudoPath = getCorpusPath(corpusEstudo);
+      const referenciaPath = getCorpusPath(corpusReferencia);
       
       const [estudoResponse, referenciaResponse] = await Promise.all([
         fetch(estudoPath),

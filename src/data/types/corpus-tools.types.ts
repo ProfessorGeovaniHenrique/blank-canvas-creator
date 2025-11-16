@@ -1,6 +1,6 @@
 import { LucideIcon } from "lucide-react";
 
-export type CorpusType = 'gaucho' | 'nordestino';
+export type CorpusType = 'gaucho' | 'nordestino' | 'marenco-verso';
 
 export const CORPUS_CONFIG = {
   gaucho: {
@@ -12,6 +12,11 @@ export const CORPUS_CONFIG = {
     label: 'Corpus de Música Nordestina',
     icon: '🪘',
     description: 'Letras de forró e música nordestina'
+  },
+  'marenco-verso': {
+    label: 'Luiz Marenco - Quando o verso vem pras casa',
+    icon: '🎵',
+    description: 'Letra individual para análise estilística'
   }
 } as const;
 

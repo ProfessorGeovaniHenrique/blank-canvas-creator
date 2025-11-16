@@ -198,6 +198,18 @@ export function KeywordsTool() {
           )}
         </div>
         
+        {/* Aviso quando usar corpus pequeno (letra individual) */}
+        {isValidSelection && (corpusEstudo === 'marenco-verso' || corpusReferencia === 'marenco-verso') && (
+          <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+            <FileSearch className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertDescription className="text-blue-800 dark:text-blue-200">
+              <strong>Análise de letra individual:</strong> Os resultados mostrarão 
+              palavras características da música "{CORPUS_CONFIG['marenco-verso'].label.split(' - ')[1]}" 
+              comparada ao corpus de referência selecionado.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Mensagem de erro */}
         {error && (
           <Alert variant="destructive">
