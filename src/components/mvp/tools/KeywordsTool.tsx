@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Search } from "lucide-react";
 import { KeywordEntry } from "@/data/types/corpus-tools.types";
@@ -14,8 +15,10 @@ interface KeywordsToolProps {
   corpus: 'canção' | 'gaúcho';
 }
 
-export function KeywordsTool({ corpus }: KeywordsToolProps) {
-  const { keywords, isLoading, error } = useKeywords(corpus);
+export function KeywordsTool({ corpus: initialCorpus }: KeywordsToolProps) {
+  const [corpusEstudo, setCorpusEstudo] = useState<'canção' | 'gaúcho'>(initialCorpus);
+  const [corpusReferencia, setCorpusReferencia] = useState<'nordestino' | 'gaúcho'>('nordestino');
+  const { keywords, isLoading, error } = useKeywords(corpusEstudo, corpusReferencia);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSignificancia, setFilterSignificancia] = useState({
     Alta: true,
@@ -89,7 +92,7 @@ export function KeywordsTool({ corpus }: KeywordsToolProps) {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `keywords_${corpus}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `keywords_${corpusEstudo}_vs_${corpusReferencia}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
   
@@ -112,6 +115,43 @@ export function KeywordsTool({ corpus }: KeywordsToolProps) {
   
   return (
     <div className="space-y-4">
+      {/* Corpus Selectors */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-card rounded-lg border border-border">
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">📚 Corpus de Estudo</Label>
+          <Select value={corpusEstudo} onValueChange={(v) => setCorpusEstudo(v as 'canção' | 'gaúcho')}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="canção" disabled>
+                🎵 "Quando o verso vem pras casa" (142 palavras)
+              </SelectItem>
+              <SelectItem value="gaúcho">
+                🎸 Corpus de Músicas Gaúchas (5.001 palavras)
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">🔍 Corpus de Referência</Label>
+          <Select value={corpusReferencia} onValueChange={(v) => setCorpusReferencia(v as 'nordestino' | 'gaúcho')}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nordestino">
+                🪕 Corpus de Músicas Nordestinas (5.001 palavras)
+              </SelectItem>
+              <SelectItem value="gaúcho">
+                🎸 Corpus de Músicas Gaúchas (5.001 palavras)
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
       {/* Filters and Search */}
       <div className="flex flex-col gap-4 p-4 bg-card rounded-lg border border-border">
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
