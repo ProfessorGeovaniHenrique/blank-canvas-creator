@@ -11,6 +11,7 @@ export { TagsetManager } from './TagsetManager';
 export { TagsetHierarchyTree } from './TagsetHierarchyTree';
 export { TagsetEditor } from './TagsetEditor';
 export { TagsetCreator } from './TagsetCreator';
+export { HierarchySuggester } from './HierarchySuggester';
 export { JobsMonitor } from './JobsMonitor';
 export { DictionaryImportTester } from './DictionaryImportTester';
 
