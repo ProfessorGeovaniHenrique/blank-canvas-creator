@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, TrendingUp, CheckCircle2, XCircle } from "lucide-react";
+import { Sparkles, TrendingUp, CheckCircle2, XCircle, Edit } from "lucide-react";
 import { Tagset } from "@/hooks/useTagsets";
 import { generateHierarchySuggestions, HierarchySuggestion } from "@/lib/semanticSimilarity";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ interface HierarchySuggesterProps {
   tagsetsAtivos: Tagset[];
   onAcceptSuggestion: (tagsetId: string, tagsetPaiCodigo: string) => void;
   onRejectTagset: (tagsetId: string) => void;
+  onEditManual?: (tagset: Tagset) => void;
 }
 
 export function HierarchySuggester({
@@ -19,6 +20,7 @@ export function HierarchySuggester({
   tagsetsAtivos,
   onAcceptSuggestion,
   onRejectTagset,
+  onEditManual,
 }: HierarchySuggesterProps) {
   const [suggestions, setSuggestions] = useState<Map<string, HierarchySuggestion[]>>(new Map());
   const [processing, setProcessing] = useState(false);
@@ -183,10 +185,26 @@ export function HierarchySuggester({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Nenhuma sugestão encontrada. 
-                    <br />
-                    Considere adicionar mais exemplos ou descrição mais detalhada.
+                  <div className="space-y-3">
+                    <div className="text-sm text-muted-foreground text-center py-2 bg-muted/30 rounded-md">
+                      Nenhuma sugestão automática encontrada
+                    </div>
+                    {onEditManual && (
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onEditManual(pendente)}
+                          className="gap-2"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Curadoria Manual
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Configure manualmente o nível e categoria pai
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

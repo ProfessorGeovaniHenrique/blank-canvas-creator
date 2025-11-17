@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTagsets, Tagset, TagsetStatus } from '@/hooks/useTagsets';
@@ -6,6 +6,7 @@ import { TagsetHierarchyTree } from './TagsetHierarchyTree';
 import { TagsetEditor } from './TagsetEditor';
 import { TagsetCreator } from './TagsetCreator';
 import { HierarchySuggester } from './HierarchySuggester';
+import { TagsetSearchFilters, SortOption, NivelFilter } from './TagsetSearchFilters';
 import { RefreshCw, CheckSquare, Square, ListChecks, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -20,6 +21,11 @@ export function TagsetManager() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [editingTagset, setEditingTagset] = useState<Tagset | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  
+  // Estados de busca e filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('nome');
+  const [nivelFilter, setNivelFilter] = useState<NivelFilter>('todos');
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds(prev =>
@@ -154,10 +160,49 @@ export function TagsetManager() {
     }
   };
 
+  // Funções de filtro e ordenação
+  const filterAndSortTagsets = useMemo(() => {
+    let filtered = [...tagsets];
+
+    // Aplicar busca
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(t => 
+        t.nome.toLowerCase().includes(query) || 
+        t.codigo.toLowerCase().includes(query) ||
+        t.descricao?.toLowerCase().includes(query)
+      );
+    }
+
+    // Aplicar filtro de nível
+    if (nivelFilter !== 'todos') {
+      const nivel = parseInt(nivelFilter);
+      filtered = filtered.filter(t => t.nivel_profundidade === nivel);
+    }
+
+    // Aplicar ordenação
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'nome':
+          return a.nome.localeCompare(b.nome);
+        case 'codigo':
+          return a.codigo.localeCompare(b.codigo);
+        case 'data-criacao':
+          return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
+        case 'validacoes':
+          return (b.validacoes_humanas || 0) - (a.validacoes_humanas || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [tagsets, searchQuery, nivelFilter, sortBy]);
+
   const pendingCount = tagsets.filter(t => t.status !== TagsetStatus.ATIVO && !t.aprovado_por).length;
-  const tagsetsAtivos = tagsets.filter(t => t.status === TagsetStatus.ATIVO);
-  const tagsetsPendentes = tagsets.filter(t => t.status === TagsetStatus.PROPOSTO);
-  const tagsetsRejeitados = tagsets.filter(t => t.status === TagsetStatus.REJEITADO);
+  const tagsetsAtivos = filterAndSortTagsets.filter(t => t.status === TagsetStatus.ATIVO);
+  const tagsetsPendentes = filterAndSortTagsets.filter(t => t.status === TagsetStatus.PROPOSTO);
+  const tagsetsRejeitados = filterAndSortTagsets.filter(t => t.status === TagsetStatus.REJEITADO);
 
   if (isLoading) {
     return (
@@ -204,6 +249,17 @@ export function TagsetManager() {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Busca e Filtros */}
+          <TagsetSearchFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            nivelFilter={nivelFilter}
+            onNivelChange={setNivelFilter}
+            resultCount={filterAndSortTagsets.length}
+          />
+
           <Tabs defaultValue="ativos" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="ativos" className="flex items-center gap-2">
@@ -338,6 +394,7 @@ export function TagsetManager() {
                 tagsetsAtivos={tagsetsAtivos}
                 onAcceptSuggestion={handleAcceptSuggestion}
                 onRejectTagset={handleRejectTagsetFromSuggestion}
+                onEditManual={handleEdit}
               />
             </TabsContent>
 
