@@ -30,6 +30,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminAccessRequests from "./pages/AdminAccessRequests";
 import AdminEdgeFunctions from "./pages/AdminEdgeFunctions";
+import DeveloperHistory from "./pages/DeveloperHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -121,6 +122,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminEdgeFunctions />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/developer-history" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <DeveloperHistory />
                 </ProtectedRoute>
               } 
             />
