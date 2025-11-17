@@ -10,23 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Download,
-  RefreshCw,
-  Filter,
-  X,
-  Layers,
-  Tag,
-  Loader2,
-  Search,
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, RefreshCw, Filter, X, Layers, Tag, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKWICModal } from '@/hooks/useKWICModal';
@@ -34,7 +19,6 @@ import { useWordCloudFilters } from '@/hooks/useWordCloudFilters';
 import { KWICModal } from '@/components/KWICModal';
 import { ComparisonStatsCard } from './ComparisonStatsCard';
 import { dominiosNormalizados } from '@/data/mockup/dominios-normalized';
-
 interface CloudNode {
   label: string;
   frequency: number;
@@ -56,31 +40,37 @@ interface CloudNode {
     avgLL?: number;
   };
 }
-
 interface OptimizedSemanticCloudProps {
   nodes: CloudNode[];
   onWordClick?: (word: string) => void;
   onDomainClick?: (domain: string) => void;
 }
-
 type ViewMode = 'domains' | 'keywords';
-
 export function OptimizedSemanticCloud({
   nodes,
   onWordClick,
-  onDomainClick,
+  onDomainClick
 }: OptimizedSemanticCloudProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('domains');
   const [filteredDomain, setFilteredDomain] = useState<string | null>(null);
   const [regenerateKey, setRegenerateKey] = useState(0);
-  const [dimensions, setDimensions] = useState({ width: 1400, height: 700 });
+  const [dimensions, setDimensions] = useState({
+    width: 1400,
+    height: 700
+  });
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [comparisonDomains, setComparisonDomains] = useState<[string, string] | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [wordPadding, setWordPadding] = useState(4);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const { isOpen, closeModal, selectedWord, kwicData, isLoading, openModal } = useKWICModal();
+  const {
+    isOpen,
+    closeModal,
+    selectedWord,
+    kwicData,
+    isLoading,
+    openModal
+  } = useKWICModal();
 
   // Responsive dimensions
   useEffect(() => {
@@ -89,11 +79,10 @@ export function OptimizedSemanticCloud({
         const width = containerRef.current.offsetWidth;
         setDimensions({
           width: width > 0 ? width : 1400,
-          height: 700,
+          height: 700
         });
       }
     };
-
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
@@ -101,14 +90,10 @@ export function OptimizedSemanticCloud({
 
   // Filter nodes by view mode and domain
   const displayedNodes = useMemo(() => {
-    let filtered = nodes.filter(
-      (node) => node.type === (viewMode.slice(0, -1) as 'domain' | 'keyword')
-    );
-
+    let filtered = nodes.filter(node => node.type === viewMode.slice(0, -1) as 'domain' | 'keyword');
     if (filteredDomain && viewMode === 'keywords') {
-      filtered = filtered.filter((node) => node.domain === filteredDomain);
+      filtered = filtered.filter(node => node.domain === filteredDomain);
     }
-
     return filtered;
   }, [nodes, viewMode, filteredDomain]);
 
@@ -124,7 +109,7 @@ export function OptimizedSemanticCloud({
     setSelectedSignificance,
     filteredNodes,
     clearAllFilters,
-    hasActiveFilters,
+    hasActiveFilters
   } = useWordCloudFilters(displayedNodes);
 
   // Calculate zoom based on filtered results
@@ -139,56 +124,47 @@ export function OptimizedSemanticCloud({
 
   // Transform to react-wordcloud format
   const words = useMemo(() => {
-    return filteredNodes.map((node) => ({
+    return filteredNodes.map(node => ({
       text: node.label,
       value: node.type === 'domain' ? node.frequency * 2 : node.frequency,
       domain: node.domain,
       color: node.color,
-      tooltip: node.tooltip,
+      tooltip: node.tooltip
     }));
   }, [filteredNodes]);
-
-  const options = useMemo(
-    () => ({
-      rotations: 0,
-      rotationAngles: [0, 0] as [number, number],
-      fontSizes: [14, 72] as [number, number],
-      fontFamily: 'var(--font-sans), Inter, sans-serif',
-      fontWeight: 'bold' as const,
-      padding: wordPadding,
-      scale: 'sqrt' as const,
-      spiral: 'archimedean' as const,
-      deterministic: false,
-      enableTooltip: false,
-      colors: words.map((w) => w.color),
-    }),
-    [words, wordPadding]
-  );
-
-  const callbacks = useMemo(
-    () => ({
-      onWordClick: (word: any) => {
-        const node = filteredNodes.find((n) => n.label === word.text);
-        if (!node) return;
-
-        if (viewMode === 'domains') {
-          setFilteredDomain(node.domain);
-          setViewMode('keywords');
-          toast.info(`Filtrando palavras do domínio "${node.domain}"`);
-          onDomainClick?.(node.domain);
-        } else {
-          openModal(word.text);
-          onWordClick?.(word.text);
-        }
-      },
-      onWordMouseOver: (word: any, event: any) => {
-        const element = event.target;
-        const node = filteredNodes.find((n) => n.label === word.text);
-        if (!node) return;
-
-        const prosodyEmoji = (node.tooltip.prosody ?? 0) > 0 ? '😊' : (node.tooltip.prosody ?? 0) < 0 ? '😔' : '😐';
-
-        const content = viewMode === 'domains' ? `
+  const options = useMemo(() => ({
+    rotations: 0,
+    rotationAngles: [0, 0] as [number, number],
+    fontSizes: [14, 72] as [number, number],
+    fontFamily: 'var(--font-sans), Inter, sans-serif',
+    fontWeight: 'bold' as const,
+    padding: wordPadding,
+    scale: 'sqrt' as const,
+    spiral: 'archimedean' as const,
+    deterministic: false,
+    enableTooltip: false,
+    colors: words.map(w => w.color)
+  }), [words, wordPadding]);
+  const callbacks = useMemo(() => ({
+    onWordClick: (word: any) => {
+      const node = filteredNodes.find(n => n.label === word.text);
+      if (!node) return;
+      if (viewMode === 'domains') {
+        setFilteredDomain(node.domain);
+        setViewMode('keywords');
+        toast.info(`Filtrando palavras do domínio "${node.domain}"`);
+        onDomainClick?.(node.domain);
+      } else {
+        openModal(word.text);
+        onWordClick?.(word.text);
+      }
+    },
+    onWordMouseOver: (word: any, event: any) => {
+      const element = event.target;
+      const node = filteredNodes.find(n => n.label === word.text);
+      if (!node) return;
+      const prosodyEmoji = (node.tooltip.prosody ?? 0) > 0 ? '😊' : (node.tooltip.prosody ?? 0) < 0 ? '😔' : '😐';
+      const content = viewMode === 'domains' ? `
           <div style="padding: 12px; max-width: 300px; font-family: Inter;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
               <strong style="font-size: 17px; color: ${node.color};">${node.tooltip.nome || node.label}</strong>
@@ -253,26 +229,23 @@ export function OptimizedSemanticCloud({
             </div>
           </div>
         `;
-
-        tippy(element, {
-          content,
-          allowHTML: true,
-          theme: 'light',
-          animation: 'scale',
-          arrow: true,
-          placement: 'top',
-        });
-      },
-      getWordTooltip: (word: any) => {
-        const node = filteredNodes.find((n) => n.label === word.text);
-        if (!node) return word.text;
-
-        const prosodyEmoji = (node.tooltip.prosody ?? 0) > 0 ? '😊' : (node.tooltip.prosody ?? 0) < 0 ? '😔' : '😐';
-        const prosodyLabel = (node.tooltip.prosody ?? 0) > 0 ? 'Positiva' : (node.tooltip.prosody ?? 0) < 0 ? 'Negativa' : 'Neutra';
-        const prosodyBg = (node.tooltip.prosody ?? 0) > 0 ? '#dcfce7' : (node.tooltip.prosody ?? 0) < 0 ? '#fee2e2' : '#f3f4f6';
-
-        if (viewMode === 'domains') {
-          return `
+      tippy(element, {
+        content,
+        allowHTML: true,
+        theme: 'light',
+        animation: 'scale',
+        arrow: true,
+        placement: 'top'
+      });
+    },
+    getWordTooltip: (word: any) => {
+      const node = filteredNodes.find(n => n.label === word.text);
+      if (!node) return word.text;
+      const prosodyEmoji = (node.tooltip.prosody ?? 0) > 0 ? '😊' : (node.tooltip.prosody ?? 0) < 0 ? '😔' : '😐';
+      const prosodyLabel = (node.tooltip.prosody ?? 0) > 0 ? 'Positiva' : (node.tooltip.prosody ?? 0) < 0 ? 'Negativa' : 'Neutra';
+      const prosodyBg = (node.tooltip.prosody ?? 0) > 0 ? '#dcfce7' : (node.tooltip.prosody ?? 0) < 0 ? '#fee2e2' : '#f3f4f6';
+      if (viewMode === 'domains') {
+        return `
             <div style="padding: 12px; max-width: 300px; font-family: Inter;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                 <strong style="font-size: 17px; color: ${node.color};">${node.tooltip.nome || node.label}</strong>
@@ -302,8 +275,8 @@ export function OptimizedSemanticCloud({
               </div>
             </div>
           `;
-        } else {
-          return `
+      } else {
+        return `
             <div style="padding: 12px; max-width: 300px; font-family: Inter;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                 <strong style="font-size: 17px;">${node.tooltip.palavra || node.label}</strong>
@@ -345,36 +318,29 @@ export function OptimizedSemanticCloud({
               </div>
             </div>
           `;
-        }
-      },
-    }),
-    [filteredNodes, viewMode, openModal, onWordClick, onDomainClick]
-  );
-
+      }
+    }
+  }), [filteredNodes, viewMode, openModal, onWordClick, onDomainClick]);
   const handleClearFilter = () => {
     setFilteredDomain(null);
     setViewMode('domains');
     toast.success('Filtro de domínio removido');
   };
-
   const handleExportPNG = () => {
     const svg = document.querySelector('.react-wordcloud svg');
     if (!svg) {
       toast.error('Nuvem não encontrada para exportação');
       return;
     }
-
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
     const img = new Image();
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-
-      canvas.toBlob((blob) => {
+      canvas.toBlob(blob => {
         if (!blob) return;
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -385,115 +351,91 @@ export function OptimizedSemanticCloud({
         toast.success('Imagem exportada com sucesso');
       });
     };
-
     const svgData = new XMLSerializer().serializeToString(svg);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([svgData], {
+      type: 'image/svg+xml;charset=utf-8'
+    });
     img.src = URL.createObjectURL(svgBlob);
   };
 
   // Calculate comparison stats
   const getComparisonStats = (domain: string) => {
-    const domainWords = words.filter((w) => w.domain === domain);
+    const domainWords = words.filter(w => w.domain === domain);
     const uniqueWords = domainWords.length;
     const totalOccurrences = domainWords.reduce((sum, w) => sum + w.value, 0);
     const avgLL = domainWords.reduce((sum, w) => sum + (w.tooltip.ll || 0), 0) / uniqueWords || 0;
-    const domainData = dominiosNormalizados.find((d) => d.dominio === domain);
+    const domainData = dominiosNormalizados.find(d => d.dominio === domain);
     const lexicalRichness = domainData?.riquezaLexical || 0;
-
-    return { uniqueWords, totalOccurrences, avgLL, lexicalRichness };
+    return {
+      uniqueWords,
+      totalOccurrences,
+      avgLL,
+      lexicalRichness
+    };
   };
-
-  return (
-    <div className="space-y-4">
+  return <div className="space-y-4">
       {/* Comparison Mode Toggle */}
       <div className="flex items-center gap-3" data-tour="cloud-comparison">
-        <Switch
-          checked={isComparisonMode}
-          onCheckedChange={(checked) => {
-            setIsComparisonMode(checked);
-            if (!checked) setComparisonDomains(null);
-          }}
-          id="comparison-mode"
-        />
+        <Switch checked={isComparisonMode} onCheckedChange={checked => {
+        setIsComparisonMode(checked);
+        if (!checked) setComparisonDomains(null);
+      }} id="comparison-mode" />
         <Label htmlFor="comparison-mode" className="cursor-pointer font-medium">
           Modo Comparação (lado a lado)
         </Label>
       </div>
 
       {/* Comparison Domain Selectors */}
-      {isComparisonMode && (
-        <div className="grid grid-cols-2 gap-3">
+      {isComparisonMode && <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-sm text-muted-foreground mb-2 block">Domínio A</Label>
-            <Select
-              value={comparisonDomains?.[0] || ''}
-              onValueChange={(value) => setComparisonDomains([value, comparisonDomains?.[1] || ''])}
-            >
+            <Select value={comparisonDomains?.[0] || ''} onValueChange={value => setComparisonDomains([value, comparisonDomains?.[1] || ''])}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar domínio A" />
               </SelectTrigger>
               <SelectContent>
-                {dominiosNormalizados.map((d) => (
-                  <SelectItem key={d.dominio} value={d.dominio}>
+                {dominiosNormalizados.map(d => <SelectItem key={d.dominio} value={d.dominio}>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.cor }} />
+                      <div className="w-3 h-3 rounded-full" style={{
+                  backgroundColor: d.cor
+                }} />
                       {d.dominio}
                     </div>
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <Label className="text-sm text-muted-foreground mb-2 block">Domínio B</Label>
-            <Select
-              value={comparisonDomains?.[1] || ''}
-              onValueChange={(value) => setComparisonDomains([comparisonDomains?.[0] || '', value])}
-            >
+            <Select value={comparisonDomains?.[1] || ''} onValueChange={value => setComparisonDomains([comparisonDomains?.[0] || '', value])}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar domínio B" />
               </SelectTrigger>
               <SelectContent>
-                {dominiosNormalizados
-                  .filter((d) => d.dominio !== comparisonDomains?.[0])
-                  .map((d) => (
-                    <SelectItem key={d.dominio} value={d.dominio}>
+                {dominiosNormalizados.filter(d => d.dominio !== comparisonDomains?.[0]).map(d => <SelectItem key={d.dominio} value={d.dominio}>
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.cor }} />
+                        <div className="w-3 h-3 rounded-full" style={{
+                  backgroundColor: d.cor
+                }} />
                         {d.dominio}
                       </div>
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-        </div>
-      )}
+        </div>}
 
-      {!isComparisonMode && (
-        <>
+      {!isComparisonMode && <>
           {/* Filter Controls */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3" data-tour="cloud-filters">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar palavra..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-              {searchTerm && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                  onClick={() => setSearchTerm('')}
-                >
+              <Input placeholder="Buscar palavra..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+              {searchTerm && <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setSearchTerm('')}>
                   <X className="w-4 h-4" />
-                </Button>
-              )}
+                </Button>}
             </div>
 
             {/* Domain Filter */}
@@ -503,14 +445,14 @@ export function OptimizedSemanticCloud({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os domínios</SelectItem>
-                {dominiosNormalizados.map((d) => (
-                  <SelectItem key={d.dominio} value={d.dominio}>
+                {dominiosNormalizados.map(d => <SelectItem key={d.dominio} value={d.dominio}>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.cor }} />
+                      <div className="w-3 h-3 rounded-full" style={{
+                  backgroundColor: d.cor
+                }} />
                       {d.dominio}
                     </div>
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -542,103 +484,49 @@ export function OptimizedSemanticCloud({
           </div>
 
           {/* Active Filters Badges */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2 items-center">
+          {hasActiveFilters && <div className="flex flex-wrap gap-2 items-center">
               <span className="text-sm text-muted-foreground">Filtros ativos:</span>
 
-              {searchTerm && (
-                <Badge variant="secondary" className="gap-1">
+              {searchTerm && <Badge variant="secondary" className="gap-1">
                   🔍 "{searchTerm}"
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => setSearchTerm('')}
-                  />
-                </Badge>
-              )}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setSearchTerm('')} />
+                </Badge>}
 
-              {selectedDomain !== 'all' && (
-                <Badge variant="secondary" className="gap-1">
+              {selectedDomain !== 'all' && <Badge variant="secondary" className="gap-1">
                   📁 {selectedDomain}
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => setSelectedDomain('all')}
-                  />
-                </Badge>
-              )}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedDomain('all')} />
+                </Badge>}
 
-              {selectedProsody !== 'all' && (
-                <Badge variant="secondary" className="gap-1">
+              {selectedProsody !== 'all' && <Badge variant="secondary" className="gap-1">
                   {selectedProsody === 'positive' ? '😊' : selectedProsody === 'negative' ? '😔' : '😐'}{' '}
                   Prosódia
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => setSelectedProsody('all')}
-                  />
-                </Badge>
-              )}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedProsody('all')} />
+                </Badge>}
 
-              {selectedSignificance !== 'all' && (
-                <Badge variant="secondary" className="gap-1">
+              {selectedSignificance !== 'all' && <Badge variant="secondary" className="gap-1">
                   ⭐ {selectedSignificance}
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => setSelectedSignificance('all')}
-                  />
-                </Badge>
-              )}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedSignificance('all')} />
+                </Badge>}
 
               <Button variant="ghost" size="sm" onClick={clearAllFilters}>
                 Limpar todos
               </Button>
-            </div>
-          )}
+            </div>}
 
           {/* Spacing Slider Control */}
-          <div className="flex items-center gap-4 p-4 bg-secondary/10 rounded-lg" data-tour="cloud-spacing-slider">
-            <Label className="text-sm font-medium whitespace-nowrap">
-              Espaçamento entre palavras:
-            </Label>
-            <Slider
-              value={[wordPadding]}
-              onValueChange={(value) => setWordPadding(value[0])}
-              min={1}
-              max={15}
-              step={1}
-              className="flex-1"
-            />
-            <Badge variant="secondary" className="min-w-[60px] justify-center">
-              {wordPadding}px
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setWordPadding(4)}
-              className="whitespace-nowrap"
-            >
-              Restaurar
-            </Button>
-          </div>
+          
 
           {/* View Mode Controls */}
           <div className="flex flex-wrap items-center gap-3" data-tour="cloud-toggle">
             <div className="flex gap-2">
-              <Button
-                variant={viewMode === 'domains' ? 'default' : 'outline'}
-                onClick={() => {
-                  setViewMode('domains');
-                  setFilteredDomain(null);
-                }}
-                size="sm"
-              >
+              <Button variant={viewMode === 'domains' ? 'default' : 'outline'} onClick={() => {
+            setViewMode('domains');
+            setFilteredDomain(null);
+          }} size="sm">
                 <Layers className="w-4 h-4 mr-2" />
                 Domínios Semânticos
               </Button>
-              <Button
-                variant={viewMode === 'keywords' ? 'default' : 'outline'}
-                onClick={() => setViewMode('keywords')}
-                disabled={!!filteredDomain}
-                size="sm"
-              >
+              <Button variant={viewMode === 'keywords' ? 'default' : 'outline'} onClick={() => setViewMode('keywords')} disabled={!!filteredDomain} size="sm">
                 <Tag className="w-4 h-4 mr-2" />
                 Palavras-chave
               </Button>
@@ -649,19 +537,14 @@ export function OptimizedSemanticCloud({
               Exportar PNG
             </Button>
 
-            <Button
-              variant="outline"
-              onClick={() => setRegenerateKey((prev) => prev + 1)}
-              size="sm"
-            >
+            <Button variant="outline" onClick={() => setRegenerateKey(prev => prev + 1)} size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Reorganizar
             </Button>
           </div>
 
           {/* Domain Filter Badge */}
-          {filteredDomain && (
-            <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+          {filteredDomain && <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
               <Filter className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">
                 Filtrando: <span className="text-primary">{filteredDomain}</span>
@@ -670,116 +553,81 @@ export function OptimizedSemanticCloud({
                 <X className="w-4 h-4 mr-1" />
                 Limpar Filtro
               </Button>
-            </div>
-          )}
-        </>
-      )}
+            </div>}
+        </>}
 
       {/* Word Cloud Display */}
       <div ref={containerRef} className="w-full">
-        {isComparisonMode && comparisonDomains?.[0] && comparisonDomains?.[1] ? (
-          <>
+        {isComparisonMode && comparisonDomains?.[0] && comparisonDomains?.[1] ? <>
             <div className="grid grid-cols-2 gap-4">
               {/* Domain A */}
               <Card className="p-4">
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{
-                      backgroundColor: dominiosNormalizados.find((d) => d.dominio === comparisonDomains[0])?.cor,
-                    }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{
+                backgroundColor: dominiosNormalizados.find(d => d.dominio === comparisonDomains[0])?.cor
+              }} />
                   {comparisonDomains[0]}
                 </h3>
                 <div className="h-[500px] flex items-center justify-center">
-                  <ReactWordcloud
-                    words={words.filter((w) => w.domain === comparisonDomains[0])}
-                    options={options}
-                    callbacks={callbacks}
-                    size={[Math.floor(dimensions.width / 2) - 50, 500]}
-                  />
+                  <ReactWordcloud words={words.filter(w => w.domain === comparisonDomains[0])} options={options} callbacks={callbacks} size={[Math.floor(dimensions.width / 2) - 50, 500]} />
                 </div>
                 <div className="text-center text-sm text-muted-foreground mt-2">
-                  {words.filter((w) => w.domain === comparisonDomains[0]).length} palavras
+                  {words.filter(w => w.domain === comparisonDomains[0]).length} palavras
                 </div>
               </Card>
 
               {/* Domain B */}
               <Card className="p-4">
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{
-                      backgroundColor: dominiosNormalizados.find((d) => d.dominio === comparisonDomains[1])?.cor,
-                    }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{
+                backgroundColor: dominiosNormalizados.find(d => d.dominio === comparisonDomains[1])?.cor
+              }} />
                   {comparisonDomains[1]}
                 </h3>
                 <div className="h-[500px] flex items-center justify-center">
-                  <ReactWordcloud
-                    words={words.filter((w) => w.domain === comparisonDomains[1])}
-                    options={options}
-                    callbacks={callbacks}
-                    size={[Math.floor(dimensions.width / 2) - 50, 500]}
-                  />
+                  <ReactWordcloud words={words.filter(w => w.domain === comparisonDomains[1])} options={options} callbacks={callbacks} size={[Math.floor(dimensions.width / 2) - 50, 500]} />
                 </div>
                 <div className="text-center text-sm text-muted-foreground mt-2">
-                  {words.filter((w) => w.domain === comparisonDomains[1]).length} palavras
+                  {words.filter(w => w.domain === comparisonDomains[1]).length} palavras
                 </div>
               </Card>
             </div>
 
             {/* Comparison Stats */}
-            <ComparisonStatsCard
-              domainA={comparisonDomains[0]}
-              domainB={comparisonDomains[1]}
-              statsA={getComparisonStats(comparisonDomains[0])}
-              statsB={getComparisonStats(comparisonDomains[1])}
-            />
-          </>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${viewMode}-${filteredDomain}-${searchTerm}-${regenerateKey}`}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: zoomLevel }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{
-                duration: 0.5,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              style={{ transformOrigin: 'center center' }}
-            >
-              {words.length === 0 ? (
-                <div className="h-[700px] flex items-center justify-center text-muted-foreground">
+            <ComparisonStatsCard domainA={comparisonDomains[0]} domainB={comparisonDomains[1]} statsA={getComparisonStats(comparisonDomains[0])} statsB={getComparisonStats(comparisonDomains[1])} />
+          </> : <AnimatePresence mode="wait">
+            <motion.div key={`${viewMode}-${filteredDomain}-${searchTerm}-${regenerateKey}`} initial={{
+          opacity: 0,
+          y: 20,
+          scale: 0.95
+        }} animate={{
+          opacity: 1,
+          y: 0,
+          scale: zoomLevel
+        }} exit={{
+          opacity: 0,
+          y: -20,
+          scale: 0.95
+        }} transition={{
+          duration: 0.5,
+          ease: [0.22, 1, 0.36, 1]
+        }} style={{
+          transformOrigin: 'center center'
+        }}>
+              {words.length === 0 ? <div className="h-[700px] flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <Filter className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="font-medium">Nenhuma palavra encontrada</p>
                     <p className="text-sm">Ajuste os filtros para ver resultados</p>
                   </div>
-                </div>
-              ) : (
-                <div className="h-[700px] flex items-center justify-center" data-tour="cloud-canvas">
-                  <ReactWordcloud
-                    words={words}
-                    options={options}
-                    callbacks={callbacks}
-                    size={[dimensions.width, dimensions.height]}
-                  />
-                </div>
-              )}
+                </div> : <div className="h-[700px] flex items-center justify-center" data-tour="cloud-canvas">
+                  <ReactWordcloud words={words} options={options} callbacks={callbacks} size={[dimensions.width, dimensions.height]} />
+                </div>}
             </motion.div>
-          </AnimatePresence>
-        )}
+          </AnimatePresence>}
       </div>
 
       {/* KWIC Modal */}
-      <KWICModal
-        open={isOpen}
-        onOpenChange={(open) => !open && closeModal()}
-        word={selectedWord}
-        data={kwicData}
-      />
-    </div>
-  );
+      <KWICModal open={isOpen} onOpenChange={open => !open && closeModal()} word={selectedWord} data={kwicData} />
+    </div>;
 }
