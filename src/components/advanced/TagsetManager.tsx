@@ -1,21 +1,98 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useTagsets } from '@/hooks/useTagsets';
-import { Loader2 } from 'lucide-react';
+import { TagsetHierarchyTree } from './TagsetHierarchyTree';
+import { Loader2, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function TagsetManager() {
-  const { tagsets, stats, isLoading } = useTagsets();
+  const { tagsets, stats, isLoading, approveTagsets, rejectTagsets, refetch } = useTagsets();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const formatDate = (date: string | null) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('pt-BR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === tagsets.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(tagsets.map(t => t.id));
+    }
+  };
+
+  const handleSelectPending = () => {
+    const pendingIds = tagsets
+      .filter(t => t.status !== 'ativo' && !t.aprovado_por)
+      .map(t => t.id);
+    setSelectedIds(pendingIds);
+  };
+
+  const handleApproveSelected = async () => {
+    if (selectedIds.length === 0) {
+      toast.error('Nenhum tagset selecionado');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await approveTagsets(selectedIds);
+      setSelectedIds([]);
+      toast.success(`${selectedIds.length} tagset(s) aprovados com sucesso`);
+    } catch (err) {
+      console.error('Erro ao aprovar:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectSelected = async () => {
+    if (selectedIds.length === 0) {
+      toast.error('Nenhum tagset selecionado');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await rejectTagsets(selectedIds);
+      setSelectedIds([]);
+      toast.success(`${selectedIds.length} tagset(s) rejeitados`);
+    } catch (err) {
+      console.error('Erro ao rejeitar:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleApproveOne = async (id: string) => {
+    setIsProcessing(true);
+    try {
+      await approveTagsets([id]);
+      toast.success('Tagset aprovado');
+    } catch (err) {
+      console.error('Erro ao aprovar:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectOne = async (id: string) => {
+    setIsProcessing(true);
+    try {
+      await rejectTagsets([id]);
+      toast.success('Tagset rejeitado');
+    } catch (err) {
+      console.error('Erro ao rejeitar:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const pendingCount = tagsets.filter(t => t.status !== 'ativo' && !t.aprovado_por).length;
 
   if (isLoading) {
     return (
@@ -28,76 +105,95 @@ export function TagsetManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tagset Semântico</CardTitle>
-        <CardDescription>
-          {stats.totalTagsets} categorias | {stats.activeTagsets} ativas | {stats.approvedTagsets} aprovadas
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Taxonomia Semântica</CardTitle>
+            <CardDescription>
+              {stats.totalTagsets} categorias | {stats.activeTagsets} ativas | {stats.approvedTagsets} aprovadas
+              {pendingCount > 0 && ` | ${pendingCount} pendentes`}
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
       </CardHeader>
 
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {tagsets.map((tagset) => (
-            <AccordionItem key={tagset.id} value={tagset.codigo}>
-              <AccordionTrigger>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge>{tagset.codigo}</Badge>
-                  <span className="font-semibold">{tagset.nome}</span>
-                  {tagset.status === 'ativo' && (
-                    <Badge className="bg-green-600 text-xs">Ativo</Badge>
-                  )}
-                  {tagset.aprovado_por && (
-                    <Badge variant="outline" className="text-xs">✓ Aprovado</Badge>
-                  )}
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-3 pl-4">
-                  {tagset.descricao && (
-                    <p className="text-sm text-muted-foreground">{tagset.descricao}</p>
-                  )}
+      <CardContent className="space-y-4">
+        {/* Barra de ações */}
+        <div className="flex items-center gap-2 p-3 bg-accent/30 rounded-lg border">
+          <div className="flex-1 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+            >
+              {selectedIds.length === tagsets.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectPending}
+              disabled={pendingCount === 0}
+            >
+              Marcar Pendentes ({pendingCount})
+            </Button>
+            {selectedIds.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length} selecionado(s)
+              </span>
+            )}
+          </div>
 
-                  {tagset.categoria_pai && (
-                    <div>
-                      <span className="text-xs font-semibold text-muted-foreground">Categoria Pai:</span>
-                      <Badge variant="outline" className="ml-2">{tagset.categoria_pai}</Badge>
-                    </div>
-                  )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleApproveSelected}
+              disabled={selectedIds.length === 0 || isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              Aprovar Selecionados
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleRejectSelected}
+              disabled={selectedIds.length === 0 || isProcessing}
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              Rejeitar Selecionados
+            </Button>
+          </div>
+        </div>
 
-                  {tagset.exemplos && tagset.exemplos.length > 0 && (
-                    <div>
-                      <span className="text-xs font-semibold text-muted-foreground">Exemplos:</span>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {tagset.exemplos.map((ex, i) => (
-                          <Badge key={i} variant="secondary" className="font-mono text-xs">
-                            {ex}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
-                    <span>Validações: {tagset.validacoes_humanas}</span>
-                    <span>•</span>
-                    <span>Criado em: {formatDate(tagset.criado_em)}</span>
-                    {tagset.aprovado_em && (
-                      <>
-                        <span>•</span>
-                        <span>Aprovado em: {formatDate(tagset.aprovado_em)}</span>
-                      </>
-                    )}
-                  </div>
-
-                  {!tagset.aprovado_por && (
-                    <Button size="sm" variant="outline" className="mt-2">
-                      Aprovar Tagset
-                    </Button>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {/* Árvore hierárquica */}
+        {tagsets.length > 0 ? (
+          <TagsetHierarchyTree
+            tagsets={tagsets}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            onApprove={handleApproveOne}
+            onReject={handleRejectOne}
+          />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Nenhum tagset cadastrado ainda.</p>
+            <p className="text-sm mt-2">
+              Execute o script de seed para popular a taxonomia base.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

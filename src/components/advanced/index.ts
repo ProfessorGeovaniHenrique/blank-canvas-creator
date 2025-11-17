@@ -8,6 +8,7 @@ export { TabBackendLexicon } from './TabBackendLexicon';
 export { LexiconViewer } from './LexiconViewer';
 export { ValidationInterface } from './ValidationInterface';
 export { TagsetManager } from './TagsetManager';
+export { TagsetHierarchyTree } from './TagsetHierarchyTree';
 export { JobsMonitor } from './JobsMonitor';
 export { DictionaryImportTester } from './DictionaryImportTester';
 

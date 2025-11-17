@@ -78,6 +78,56 @@ export function useTagsets() {
     }
   };
 
+  const approveTagsets = async (tagsetIds: string[]) => {
+    try {
+      await retrySupabaseOperation(async () => {
+        const { error } = await supabase
+          .from('semantic_tagset')
+          .update({
+            status: 'ativo',
+            aprovado_em: new Date().toISOString(),
+            aprovado_por: '00000000-0000-0000-0000-000000000000' // System user
+          })
+          .in('id', tagsetIds);
+
+        if (error) throw error;
+      });
+
+      notifications.success(
+        'Tagsets aprovados com sucesso',
+        `${tagsetIds.length} tagset(s) foram aprovados.`
+      );
+
+      await queryClient.invalidateQueries({ queryKey: ['semantic-tagsets'] });
+    } catch (err) {
+      notifications.error('Erro ao aprovar tagsets', err as Error);
+      throw err;
+    }
+  };
+
+  const rejectTagsets = async (tagsetIds: string[]) => {
+    try {
+      await retrySupabaseOperation(async () => {
+        const { error } = await supabase
+          .from('semantic_tagset')
+          .update({ status: 'rejeitado' })
+          .in('id', tagsetIds);
+
+        if (error) throw error;
+      });
+
+      notifications.success(
+        'Tagsets rejeitados',
+        `${tagsetIds.length} tagset(s) foram rejeitados.`
+      );
+
+      await queryClient.invalidateQueries({ queryKey: ['semantic-tagsets'] });
+    } catch (err) {
+      notifications.error('Erro ao rejeitar tagsets', err as Error);
+      throw err;
+    }
+  };
+
   const stats = {
     totalTagsets: queryResult.data?.length || 0,
     activeTagsets: queryResult.data?.filter(t => t.status === 'ativo').length || 0,
@@ -90,6 +140,8 @@ export function useTagsets() {
     isLoading: queryResult.isLoading,
     error: queryResult.error?.message || null,
     refetch: queryResult.refetch,
-    proposeTagset
+    proposeTagset,
+    approveTagsets,
+    rejectTagsets
   };
 }
