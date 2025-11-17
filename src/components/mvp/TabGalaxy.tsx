@@ -59,9 +59,41 @@ export function TabGalaxy({ demo = false }: TabGalaxyProps) {
     if (c) { setPadding(c[0]); setSpiral(c[1]); setRotation(c[2]); setFontFamily(c[3]); setFontWeight(c[4]); setAnimationSpeed(c[5]); toast.success(`Preset ${preset}`); }
   }, []);
   
-  const gauchoStats = useMemo(() => !gauchoData ? { totalWords: 0, uniqueWords: 0, avgWordLength: 0, topDomains: [] } : { totalWords: gauchoData.estatisticas.totalPalavras, uniqueWords: gauchoData.estatisticas.palavrasUnicas, avgWordLength: 5, topDomains: gauchoData.dominios.sort((a,b) => b.percentual - a.percentual).slice(0, 3).map(d => ({ domain: d.dominio, percentage: d.percentual })) }, [gauchoData]);
-  const nordestinoStats = useMemo(() => !nordestinoData ? { totalWords: 0, uniqueWords: 0, avgWordLength: 0, topDomains: [] } : { totalWords: nordestinoData.estatisticas.totalPalavras, uniqueWords: nordestinoData.estatisticas.palavrasUnicas, avgWordLength: 5, topDomains: nordestinoData.dominios.sort((a,b) => b.percentual - a.percentual).slice(0, 3).map(d => ({ domain: d.dominio, percentage: d.percentual })) }, [nordestinoData]);
-  const nordestinoCloudNodes = useMemo(() => !nordestinoData ? [] : nordestinoData.keywords.filter((k: any) => k.significancia !== 'Baixa').map((k: any) => ({ label: k.palavra, fontSize: 14 + Math.min(22, k.ll / 3), color: getDomainColor(k.dominio, 'hsl'), type: 'keyword' as const, frequency: k.frequencia, domain: k.dominio, tooltip: { palavra: k.palavra, dominio: k.dominio, frequencia: k.frequencia, ll: k.ll, mi: k.mi, significancia: k.significancia, prosody: k.prosody } })), [nordestinoData]);
+  const gauchoStats = useMemo(() => {
+    if (!gauchoData || !gauchoData.estatisticas || !gauchoData.dominios) {
+      return { totalWords: 0, uniqueWords: 0, avgWordLength: 0, topDomains: [] };
+    }
+    return {
+      totalWords: gauchoData.estatisticas.totalPalavras,
+      uniqueWords: gauchoData.estatisticas.palavrasUnicas,
+      avgWordLength: 5,
+      topDomains: gauchoData.dominios.sort((a,b) => b.percentual - a.percentual).slice(0, 3).map(d => ({ domain: d.dominio, percentage: d.percentual }))
+    };
+  }, [gauchoData]);
+  
+  const nordestinoStats = useMemo(() => {
+    if (!nordestinoData || !nordestinoData.estatisticas || !nordestinoData.dominios) {
+      return { totalWords: 0, uniqueWords: 0, avgWordLength: 0, topDomains: [] };
+    }
+    return {
+      totalWords: nordestinoData.estatisticas.totalPalavras,
+      uniqueWords: nordestinoData.estatisticas.palavrasUnicas,
+      avgWordLength: 5,
+      topDomains: nordestinoData.dominios.sort((a,b) => b.percentual - a.percentual).slice(0, 3).map(d => ({ domain: d.dominio, percentage: d.percentual }))
+    };
+  }, [nordestinoData]);
+  const nordestinoCloudNodes = useMemo(() => {
+    if (!nordestinoData || !nordestinoData.keywords) return [];
+    return nordestinoData.keywords.filter((k: any) => k.significancia !== 'Baixa').map((k: any) => ({
+      label: k.palavra,
+      fontSize: 14 + Math.min(22, k.ll / 3),
+      color: getDomainColor(k.dominio, 'hsl'),
+      type: 'keyword' as const,
+      frequency: k.frequencia,
+      domain: k.dominio,
+      tooltip: { palavra: k.palavra, dominio: k.dominio, frequencia: k.frequencia, ll: k.ll, mi: k.mi, significancia: k.significancia, prosody: k.prosody }
+    }));
+  }, [nordestinoData]);
 
   if (!demo) return <Card><CardHeader><CardTitle>Nuvem Semântica</CardTitle><CardDescription>Modo demo</CardDescription></CardHeader><CardContent><div className="flex items-center justify-center h-96 bg-muted/20 rounded-lg"><p className="text-muted-foreground">Não disponível</p></div></CardContent></Card>;
   if (isLoading) return <Card><CardContent className="p-20"><Skeleton className="h-96 w-full" /></CardContent></Card>;
