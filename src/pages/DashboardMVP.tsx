@@ -13,7 +13,7 @@ type TabType = 'apresentacao' | 'tools' | 'validation';
 
 export default function DashboardMVP() {
   const [activeTab, setActiveTab] = useState<TabType>('apresentacao');
-  const { user, loading } = useAuthContext();
+  const { user, loading, hasToolsAccess, hasTestsAccess } = useAuthContext();
   
   // Proteger: Se usuário não autenticado tentar acessar aba restrita, voltar para apresentação
   useEffect(() => {
@@ -29,6 +29,8 @@ export default function DashboardMVP() {
         onTabChange={setActiveTab}
         isAuthenticated={!!user}
         isLoading={loading}
+        hasToolsAccess={hasToolsAccess()}
+        hasTestsAccess={hasTestsAccess()}
       />
 
       {/* Conteúdo scrollável com espaçamento ajustado para header unificado */}
@@ -44,26 +46,26 @@ export default function DashboardMVP() {
             {activeTab === 'apresentacao' && <TabApresentacao />}
             
             {activeTab === 'tools' && (
-              user ? (
+              hasToolsAccess() ? (
                 <TabTools />
               ) : (
                 <Alert className="max-w-2xl mx-auto">
                   <Lock className="h-4 w-4" />
                   <AlertDescription className="ml-2">
-                    Esta seção requer autenticação. Por favor, faça login para acessar as ferramentas.
+                    Faça login para acessar as ferramentas de análise.
                   </AlertDescription>
                 </Alert>
               )
             )}
             
             {activeTab === 'validation' && (
-              user ? (
+              hasTestsAccess() ? (
                 <TabValidation />
               ) : (
                 <Alert className="max-w-2xl mx-auto">
                   <Lock className="h-4 w-4" />
                   <AlertDescription className="ml-2">
-                    Esta seção requer autenticação. Por favor, faça login para acessar os testes.
+                    Esta seção está disponível apenas para Administradores e Avaliadores.
                   </AlertDescription>
                 </Alert>
               )

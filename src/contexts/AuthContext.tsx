@@ -20,6 +20,9 @@ interface AuthContextType {
   signOut: () => Promise<{ error: any }>;
   isAdmin: () => boolean;
   isEvaluator: () => boolean;
+  isUser: () => boolean;
+  hasToolsAccess: () => boolean;
+  hasTestsAccess: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

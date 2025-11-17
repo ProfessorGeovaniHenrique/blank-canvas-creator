@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Database, BarChart3, FileText, Music, Play } from "lucide-react";
+import { Sparkles, Database, BarChart3, FileText, Music, Play, LogIn, Lock, Wrench, FlaskConical } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TabDomains } from "./TabDomains";
 import { TabStatistics } from "./TabStatistics";
@@ -11,9 +13,11 @@ import { useApresentacaoTour } from "@/hooks/useApresentacaoTour";
 import { useDomainsTour } from "@/hooks/useDomainsTour";
 import { useCloudTour } from "@/hooks/useCloudTour";
 import { useStatisticsTour } from "@/hooks/useStatisticsTour";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 export function TabApresentacao() {
   const [currentTab, setCurrentTab] = useState("intro");
+  const { user } = useAuthContext();
   const { startTour } = useApresentacaoTour({ autoStart: true });
   
   // Tour hooks para cada aba
@@ -45,6 +49,82 @@ export function TabApresentacao() {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Banner Promocional (apenas para não autenticados) */}
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Alert className="border-2 border-primary bg-gradient-to-r from-primary/10 via-primary/5 to-background relative overflow-hidden">
+              {/* Efeito de brilho no fundo */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 rounded-full blur-3xl -z-10" />
+              
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/20 rounded-lg">
+                  <Lock className="w-6 h-6 text-primary" />
+                </div>
+                
+                <div className="flex-1">
+                  <AlertTitle className="text-xl font-bold mb-2 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    Desbloqueie Todo o Potencial da Plataforma
+                  </AlertTitle>
+                  
+                  <AlertDescription className="space-y-3">
+                    <p className="text-base text-foreground/90">
+                      Você está visualizando apenas uma <strong>demonstração</strong> das capacidades do VersoAustral. 
+                      Faça login para acessar:
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 my-4">
+                      <div className="flex items-start gap-2 p-3 bg-background/60 rounded-lg border border-border/50">
+                        <Wrench className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-sm">Ferramentas Avançadas</p>
+                          <p className="text-xs text-muted-foreground">
+                            KWIC, Keywords, N-grams, Dispersão e muito mais
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-2 p-3 bg-background/60 rounded-lg border border-border/50">
+                        <FlaskConical className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-sm">Testes e Validações</p>
+                          <p className="text-xs text-muted-foreground">
+                            Validação humana de análises e auditoria de corpus
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3 pt-2">
+                      <Link to="/auth" className="flex-1">
+                        <Button className="w-full gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                          <LogIn className="w-4 h-4" />
+                          Fazer Login
+                        </Button>
+                      </Link>
+                      
+                      <Link to="/auth?tab=invite" className="flex-1">
+                        <Button variant="outline" className="w-full gap-2 border-2">
+                          <Sparkles className="w-4 h-4" />
+                          Tenho um Convite
+                        </Button>
+                      </Link>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground text-center pt-2">
+                      💡 <strong>Dica:</strong> Pesquisadores e professores podem solicitar acesso especial entrando em contato.
+                    </p>
+                  </AlertDescription>
+                </div>
+              </div>
+            </Alert>
+          </motion.div>
+        )}
+        
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="intro" className="flex items-center gap-2">

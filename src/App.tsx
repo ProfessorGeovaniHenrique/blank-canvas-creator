@@ -21,6 +21,7 @@ import Dashboard5 from "./pages/Dashboard5";
 import Dashboard7 from "./pages/Dashboard7";
 import Dashboard8 from "./pages/Dashboard8";
 import DashboardMVP from "./pages/DashboardMVP";
+import Onboarding from "./pages/Onboarding";
 import AdvancedMode from "./pages/AdvancedMode";
 import DevOpsMetrics from "./pages/DevOpsMetrics";
 import DeveloperLogs from "./pages/DeveloperLogs";
@@ -63,6 +64,7 @@ const App = () => (
 
         {/* Rota independente para DashboardMVP (sem AppLayout para evitar duplo header) */}
         <Route path="/dashboard-mvp" element={<DashboardMVP />} />
+        <Route path="/onboarding" element={<Onboarding />} />
             <Route 
               path="/admin/dashboard" 
               element={
