@@ -53,8 +53,10 @@ import { ACADEMIC_RS_COLORS } from "@/config/themeColors";
 import { KWICModal } from "@/components/KWICModal";
 import { getDemoAnalysisResults, DemoKeyword } from "@/services/demoCorpusService";
 import { toast } from "sonner";
+import { useStatisticsTour } from "@/hooks/useStatisticsTour";
+import { PlayCircle } from "lucide-react";
 
-type SortColumn = 'palavra' | 'lema' | 'frequenciaBruta' | 'frequenciaNormalizada' | 'prosodia' | 'll' | 'mi' | 'significancia' | 'efeito' | null;
+type SortColumn = 'palavra' | 'lema' | 'frequenciaBruta' | 'frequenciaNormalizada' | 'prosodia' | 'dominio' | 'll' | 'mi' | 'significancia' | 'efeito' | null;
 type SortDirection = 'asc' | 'desc' | null;
 type ProsodiaType = 'Positiva' | 'Negativa' | 'Neutra';
 
@@ -68,6 +70,8 @@ interface EnrichedWord {
   significancia: string;
   efeito: string;
   prosodia: ProsodiaType;
+  dominio?: string;
+  cor?: string;
 }
 
 // Paleta de 8 cores distintas para os domínios (prioriza legibilidade)
@@ -88,6 +92,7 @@ interface TabStatisticsProps {
 
 export function TabStatistics({ demo = false }: TabStatisticsProps) {
   const [demoData, setDemoData] = useState<DemoKeyword[] | null>(null);
+  const [demoDomains, setDemoDomains] = useState<any[]>([]);
   const [isLoadingDemo, setIsLoadingDemo] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortColumn, setSortColumn] = useState<SortColumn>('frequenciaNormalizada');
@@ -99,6 +104,10 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
   const [activeGraphTab, setActiveGraphTab] = useState<'distribuicao' | 'prosodia' | 'keyness'>('distribuicao');
   const [prosodiaFilter, setProsodiaFilter] = useState<ProsodiaType | 'Todas'>('Todas');
   const [dominioFilter, setDominioFilter] = useState<string>('Todos');
+  const [tourEnabled, setTourEnabled] = useState(false);
+
+  // Tour guiado
+  useStatisticsTour(tourEnabled);
   
   // Filtros de range
   const [freqRange, setFreqRange] = useState<[number, number]>([0, 6]);
@@ -114,6 +123,7 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
       getDemoAnalysisResults()
         .then(result => {
           setDemoData(result.keywords);
+          setDemoDomains(result.dominios);
           toast.success(`${result.keywords.length} palavras-chave carregadas`);
         })
         .catch(error => {
@@ -137,7 +147,9 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
         mi: d.mi,
         significancia: d.significancia,
         efeito: d.ll > 15.13 ? 'Forte' : d.ll > 6.63 ? 'Moderado' : 'Fraco',
-        prosodia: (d.prosody > 0 ? 'Positiva' : d.prosody < 0 ? 'Negativa' : 'Neutra') as ProsodiaType
+        prosodia: (d.prosody > 0 ? 'Positiva' : d.prosody < 0 ? 'Negativa' : 'Neutra') as ProsodiaType,
+        dominio: d.dominio,
+        cor: d.cor
       }));
     }
 
@@ -188,7 +200,8 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
         case 'lema':
         case 'significancia':
         case 'efeito':
-          comparison = a[sortColumn].localeCompare(b[sortColumn]);
+        case 'dominio':
+          comparison = (a[sortColumn] || '').localeCompare(b[sortColumn] || '');
           break;
         case 'frequenciaBruta':
         case 'frequenciaNormalizada':
@@ -241,15 +254,25 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
     "Neutra": "bg-muted/20 text-muted-foreground border-border"
   };
 
-  const totalPalavras = 212;
-  const totalDominios = dominiosNormalizados.length;
-  const totalPalavrasTematicas = 117;
-  const riquezaLexicalMedia = Math.round(
-    dominiosNormalizados.reduce((acc, d) => acc + d.riquezaLexical, 0) / totalDominios
-  );
+  const totalPalavras = demo && demoData ? demoData.reduce((acc, k) => acc + k.frequencia, 0) : 212;
+  const totalDominios = demo && demoDomains ? demoDomains.length : dominiosNormalizados.length;
+  const totalPalavrasTematicas = demo && demoData ? demoData.filter(k => k.significancia !== 'Baixa').length : 117;
+  const riquezaLexicalMedia = demo && demoDomains 
+    ? Math.round(demoDomains.reduce((acc, d) => acc + d.riquezaLexical, 0) / totalDominios)
+    : Math.round(dominiosNormalizados.reduce((acc, d) => acc + d.riquezaLexical, 0) / totalDominios);
 
-  const dominiosChartData = dominiosNormalizados
-    .map(d => ({
+  const dominiosChartData = (demo && demoDomains ? 
+    demoDomains.map(d => ({
+      dominio: d.dominio.length > 25 ? d.dominio.substring(0, 25) + "..." : d.dominio,
+      dominioFull: d.dominio,
+      percentual: d.percentual,
+      riquezaLexical: d.riquezaLexical,
+      ocorrencias: d.ocorrencias,
+      lemasUnicos: d.palavras.length,
+      status: 'equilibrado'
+    }))
+    :
+    dominiosNormalizados.map(d => ({
       dominio: d.dominio.length > 25 ? d.dominio.substring(0, 25) + "..." : d.dominio,
       dominioFull: d.dominio,
       percentual: d.percentualTematico,
@@ -258,7 +281,7 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
       lemasUnicos: d.palavras.length,
       status: d.comparacaoCorpus
     }))
-    .sort((a, b) => b.percentual - a.percentual);
+  ).sort((a, b) => b.percentual - a.percentual);
 
   const palavrasFrequentesData = palavrasEnriquecidas.slice(0, 15).map(p => ({
     palavra: p.palavra,
@@ -430,7 +453,7 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
 
         <TabsContent value="tabela" className="space-y-4">
           <Card className="card-academic">
-            <CardHeader>
+            <CardHeader data-tour="stats-header">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Tabela de Palavras-Chave</CardTitle>
@@ -438,13 +461,35 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
                     Análise estatística completa com LL, MI Score e Prosódia
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="text-base px-4 py-2">
-                  {sortedWords.length} palavras
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-base px-4 py-2">
+                    {sortedWords.length} palavras
+                  </Badge>
+                  {demo && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTourEnabled(true)}
+                            className="gap-2"
+                          >
+                            <PlayCircle className="h-4 w-4" />
+                            Tour Guiado
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Inicie um tour interativo pelas funcionalidades</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" data-tour="stats-filters">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -532,13 +577,14 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
                 </CollapsibleContent>
               </Collapsible>
 
-              <div className="rounded-lg border overflow-auto max-h-[600px]">
+              <div className="rounded-lg border overflow-auto max-h-[600px]" data-tour="stats-table">
                 <Table>
                   <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                       {([
                         { col: 'palavra', label: 'Palavra' },
                         { col: 'lema', label: 'Lema' },
+                        ...(demo ? [{ col: 'dominio' as const, label: 'Domínio Semântico' }] : []),
                         { col: 'frequenciaBruta', label: 'Freq. Bruta' },
                         { col: 'frequenciaNormalizada', label: 'Freq. Norm.' },
                         { col: 'll', label: 'LL' },
@@ -547,7 +593,7 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
                         { col: 'efeito', label: 'Efeito' },
                         { col: 'prosodia', label: 'Prosódia' }
                       ] as const).map(({ col, label }) => (
-                        <TableHead key={col} className="bg-background">
+                        <TableHead key={col} className="bg-background" data-tour={col === 'palavra' ? "stats-sorting" : undefined}>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -566,13 +612,13 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
                   <TableBody>
                     {paginatedWords.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={demo ? 10 : 9} className="text-center py-8 text-muted-foreground">
                           {searchQuery || showFilters 
                             ? `Nenhuma palavra encontrada com os filtros aplicados` 
                             : 'Nenhuma palavra encontrada'}
                         </TableCell>
                       </TableRow>
-                    ) : paginatedWords.map((p) => (
+                     ) : paginatedWords.map((p) => (
                       <TableRow key={p.palavra} className="hover:bg-muted/50 transition-colors">
                         <TableCell>
                           <button
@@ -583,6 +629,16 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
                           </button>
                         </TableCell>
                         <TableCell className="italic text-muted-foreground">{p.lema}</TableCell>
+                        {demo && p.dominio && (
+                          <TableCell>
+                            <Badge 
+                              variant="outline"
+                              style={{ borderColor: p.cor, color: p.cor, backgroundColor: `${p.cor}10` }}
+                            >
+                              {p.dominio}
+                            </Badge>
+                          </TableCell>
+                        )}
                         <TableCell className="text-right font-mono">{p.frequenciaBruta}</TableCell>
                         <TableCell className="text-right font-mono">{p.frequenciaNormalizada.toFixed(2)}%</TableCell>
                         <TableCell className="text-right font-mono font-semibold text-primary">{p.ll.toFixed(2)}</TableCell>
@@ -655,7 +711,7 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
               <TabsTrigger value="keyness">Keyness Estatística</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="distribuicao" className="space-y-8 mt-6">
+            <TabsContent value="distribuicao" className="space-y-8 mt-6" data-tour="stats-charts">
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Estatísticas-Chave do Corpus</h3>
                 <div className="grid gap-4 md:grid-cols-4">
