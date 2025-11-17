@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.send-critical-alert]
 verify_jwt = false
+
+[functions.refine-tagset-suggestions]
+verify_jwt = false
