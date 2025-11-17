@@ -16,12 +16,16 @@ interface MVPHeaderProps {
   onTabChange?: (tab: TabType) => void;
   isAuthenticated?: boolean;
   isLoading?: boolean;
+  hasToolsAccess?: boolean;
+  hasTestsAccess?: boolean;
 }
 export function MVPHeader({
   activeTab,
   onTabChange,
   isAuthenticated = false,
   isLoading = false,
+  hasToolsAccess = false,
+  hasTestsAccess = false,
 }: MVPHeaderProps) {
   const { mode, toggleTheme } = useTheme();
   const showNavigation = activeTab !== undefined && onTabChange !== undefined;
@@ -74,16 +78,25 @@ export function MVPHeader({
                 <span className="hidden sm:inline">Apresentação</span>
               </button>
               
-              {/* Aba Ferramentas - Apenas autenticados */}
-              {isAuthenticated ? (
-                <button onClick={() => onTabChange('tools')} className={cn("tabs-academic-trigger", activeTab === 'tools' && "active")}>
+              {/* Ferramentas Tab */}
+              {hasToolsAccess ? (
+                <button 
+                  onClick={() => onTabChange('tools')}
+                  className={cn(
+                    "tabs-academic-trigger",
+                    activeTab === 'tools' && "active"
+                  )}
+                >
                   <Wrench className="w-4 h-4" />
                   <span className="hidden sm:inline">Ferramentas</span>
                 </button>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button disabled className="tabs-academic-trigger opacity-50 cursor-not-allowed">
+                    <button
+                      disabled
+                      className="tabs-academic-trigger opacity-50 cursor-not-allowed"
+                    >
                       <Lock className="w-4 h-4 text-muted-foreground" />
                       <span className="hidden sm:inline">Ferramentas</span>
                     </button>
@@ -99,16 +112,25 @@ export function MVPHeader({
                 </Tooltip>
               )}
               
-              {/* Aba Testes - Apenas autenticados */}
-              {isAuthenticated ? (
-                <button onClick={() => onTabChange('validation')} className={cn("tabs-academic-trigger", activeTab === 'validation' && "active")}>
+              {/* Testes Tab */}
+              {hasTestsAccess ? (
+                <button 
+                  onClick={() => onTabChange('validation')}
+                  className={cn(
+                    "tabs-academic-trigger",
+                    activeTab === 'validation' && "active"
+                  )}
+                >
                   <FlaskConical className="w-4 h-4" />
                   <span className="hidden sm:inline">Testes</span>
                 </button>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button disabled className="tabs-academic-trigger opacity-50 cursor-not-allowed">
+                    <button
+                      disabled
+                      className="tabs-academic-trigger opacity-50 cursor-not-allowed"
+                    >
                       <Lock className="w-4 h-4 text-muted-foreground" />
                       <span className="hidden sm:inline">Testes</span>
                     </button>
@@ -117,7 +139,7 @@ export function MVPHeader({
                     <div className="space-y-1">
                       <p className="font-semibold">🔒 Acesso Restrito</p>
                       <p className="text-xs">
-                        Faça login para acessar os testes e validações.
+                        Apenas para Administradores e Avaliadores.
                       </p>
                     </div>
                   </TooltipContent>

@@ -150,6 +150,9 @@ export function useAuth() {
 
   const isAdmin = () => role === "admin";
   const isEvaluator = () => role === "evaluator";
+  const isUser = () => role === "user";
+  const hasToolsAccess = () => role !== null; // Qualquer autenticado
+  const hasTestsAccess = () => role === "admin" || role === "evaluator";
 
   return {
     user,
@@ -162,5 +165,8 @@ export function useAuth() {
     signOut,
     isAdmin,
     isEvaluator,
+    isUser,
+    hasToolsAccess,
+    hasTestsAccess,
   };
 }

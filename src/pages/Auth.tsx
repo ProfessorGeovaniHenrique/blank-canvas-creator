@@ -45,7 +45,13 @@ export default function Auth() {
   // Redirect se já estiver logado
   useEffect(() => {
     if (user) {
-      navigate("/dashboard-mvp");
+      // Verificar se é primeiro login
+      const hasSeenOnboarding = localStorage.getItem('onboarding_completed');
+      if (!hasSeenOnboarding) {
+        navigate("/onboarding");
+      } else {
+        navigate("/dashboard-mvp");
+      }
     }
   }, [user, navigate]);
 
@@ -135,11 +141,10 @@ export default function Auth() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Cadastro</TabsTrigger>
-              <TabsTrigger value="invite">Convite</TabsTrigger>
-            </TabsList>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="invite">Convite</TabsTrigger>
+          </TabsList>
 
             <TabsContent value="login" className="space-y-4">
               <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
@@ -188,60 +193,6 @@ export default function Auth() {
                   Esqueceu sua senha?
                 </Button>
               </div>
-            </TabsContent>
-
-            <TabsContent value="signup" className="space-y-4">
-              <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    {...signupForm.register("email")}
-                  />
-                  {signupForm.formState.errors.email && (
-                    <p className="text-sm text-destructive">
-                      {signupForm.formState.errors.email.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    {...signupForm.register("password")}
-                  />
-                  {signupForm.formState.errors.password && (
-                    <p className="text-sm text-destructive">
-                      {signupForm.formState.errors.password.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirmar Senha</Label>
-                  <Input
-                    id="signup-confirm"
-                    type="password"
-                    placeholder="••••••••"
-                    {...signupForm.register("confirmPassword")}
-                  />
-                  {signupForm.formState.errors.confirmPassword && (
-                    <p className="text-sm text-destructive">
-                      {signupForm.formState.errors.confirmPassword.message}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full btn-versoaustral-secondary"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Criando conta..." : "Criar Conta"}
-                </Button>
-              </form>
             </TabsContent>
 
             <TabsContent value="invite" className="space-y-4">
