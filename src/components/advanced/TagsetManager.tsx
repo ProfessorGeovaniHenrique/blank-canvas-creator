@@ -5,9 +5,13 @@ import { useTagsets, Tagset } from '@/hooks/useTagsets';
 import { TagsetHierarchyTree } from './TagsetHierarchyTree';
 import { TagsetEditor } from './TagsetEditor';
 import { TagsetCreator } from './TagsetCreator';
+import { HierarchySuggester } from './HierarchySuggester';
 import { RefreshCw, CheckSquare, Square, ListChecks, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, XCircle, Clock, BarChart3 } from 'lucide-react';
 
 export function TagsetManager() {
   const { tagsets, stats, isLoading, refetch, approveTagsets, rejectTagsets, updateTagset, proposeTagset } = useTagsets();
@@ -117,7 +121,42 @@ export function TagsetManager() {
     setIsCreating(false);
   };
 
+  const handleAcceptSuggestion = async (tagsetId: string, tagsetPaiCodigo: string) => {
+    setIsProcessing(true);
+    try {
+      await updateTagset(tagsetId, {
+        tagset_pai: tagsetPaiCodigo,
+        status: 'ativo'
+      });
+      await approveTagsets([tagsetId]);
+      await refetch();
+      toast.success("Sugestão aceita e tagset aprovado!");
+    } catch (error) {
+      console.error("Erro ao aceitar sugestão:", error);
+      toast.error("Erro ao aceitar sugestão");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectTagsetFromSuggestion = async (tagsetId: string) => {
+    setIsProcessing(true);
+    try {
+      await rejectTagsets([tagsetId]);
+      await refetch();
+      toast.info("Tagset rejeitado");
+    } catch (error) {
+      console.error("Erro ao rejeitar tagset:", error);
+      toast.error("Erro ao rejeitar tagset");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const pendingCount = tagsets.filter(t => t.status !== 'ativo' && !t.aprovado_por).length;
+  const tagsetsAtivos = tagsets.filter(t => t.status === 'ativo');
+  const tagsetsPendentes = tagsets.filter(t => t.status === 'pendente');
+  const tagsetsRejeitados = tagsets.filter(t => t.status === 'rejeitado');
 
   if (isLoading) {
     return (
@@ -164,83 +203,155 @@ export function TagsetManager() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Barra de ações */}
-          {tagsets.length > 0 && (
-            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-                className="gap-2"
-              >
-                {selectedIds.length === tagsets.length ? (
-                  <>
-                    <Square className="w-4 h-4" />
-                    Desmarcar Todos
-                  </>
-                ) : (
-                  <>
-                    <CheckSquare className="w-4 h-4" />
-                    Selecionar Todos
-                  </>
-                )}
-              </Button>
+          <Tabs defaultValue="ativos" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="ativos" className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Ativos
+                <Badge variant="secondary">{tagsetsAtivos.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pendentes" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Pendentes
+                <Badge variant="secondary">{tagsetsPendentes.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="sugestoes" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Sugestões
+                <Badge variant="secondary">{tagsetsPendentes.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="rejeitados" className="flex items-center gap-2">
+                <XCircle className="h-4 w-4" />
+                Rejeitados
+                <Badge variant="secondary">{tagsetsRejeitados.length}</Badge>
+              </TabsTrigger>
+            </TabsList>
 
-              {pendingCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectPending}
-                  className="gap-2"
-                >
-                  <ListChecks className="w-4 h-4" />
-                  Selecionar Pendentes ({pendingCount})
-                </Button>
-              )}
-
-              <div className="flex-1" />
-
-              {selectedIds.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {selectedIds.length} selecionado{selectedIds.length !== 1 ? 's' : ''}
-                  </span>
+            {/* Tab Ativos */}
+            <TabsContent value="ativos" className="space-y-4">
+              {tagsets.length > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
                   <Button
-                    variant="default"
+                    variant="outline"
                     size="sm"
-                    onClick={handleApproveSelected}
-                    disabled={isProcessing}
+                    onClick={handleSelectAll}
+                    className="gap-2"
                   >
-                    Aprovar Selecionados
+                    {selectedIds.length === tagsets.length ? (
+                      <>
+                        <Square className="w-4 h-4" />
+                        Desmarcar Todos
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare className="w-4 h-4" />
+                        Selecionar Todos
+                      </>
+                    )}
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRejectSelected}
-                    disabled={isProcessing}
-                  >
-                    Rejeitar Selecionados
-                  </Button>
+
+                  {pendingCount > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectPending}
+                      className="gap-2"
+                    >
+                      <ListChecks className="w-4 h-4" />
+                      Selecionar Pendentes ({pendingCount})
+                    </Button>
+                  )}
+
+                  <div className="flex-1" />
+
+                  {selectedIds.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {selectedIds.length} selecionado{selectedIds.length !== 1 ? 's' : ''}
+                      </span>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleApproveSelected}
+                        disabled={isProcessing}
+                      >
+                        Aprovar Selecionados
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRejectSelected}
+                        disabled={isProcessing}
+                      >
+                        Rejeitar Selecionados
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Árvore de tagsets */}
-          {tagsets.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Nenhum tagset encontrado.
-            </div>
-          ) : (
-            <TagsetHierarchyTree
-              tagsets={tagsets}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-              onApprove={handleApproveOne}
-              onReject={handleRejectOne}
-              onEdit={handleEdit}
-            />
-          )}
+              {tagsetsAtivos.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum tagset ativo encontrado.
+                </div>
+              ) : (
+                <TagsetHierarchyTree
+                  tagsets={tagsetsAtivos}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
+                  onApprove={handleApproveOne}
+                  onReject={handleRejectOne}
+                  onEdit={handleEdit}
+                />
+              )}
+            </TabsContent>
+
+            {/* Tab Pendentes */}
+            <TabsContent value="pendentes" className="space-y-4">
+              {tagsetsPendentes.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum tagset pendente.
+                </div>
+              ) : (
+                <TagsetHierarchyTree
+                  tagsets={tagsetsPendentes}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
+                  onApprove={handleApproveOne}
+                  onReject={handleRejectOne}
+                  onEdit={handleEdit}
+                />
+              )}
+            </TabsContent>
+
+            {/* Tab Sugestões */}
+            <TabsContent value="sugestoes" className="space-y-4">
+              <HierarchySuggester
+                tagsetsPendentes={tagsetsPendentes}
+                tagsetsAtivos={tagsetsAtivos}
+                onAcceptSuggestion={handleAcceptSuggestion}
+                onRejectTagset={handleRejectTagsetFromSuggestion}
+              />
+            </TabsContent>
+
+            {/* Tab Rejeitados */}
+            <TabsContent value="rejeitados" className="space-y-4">
+              {tagsetsRejeitados.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum tagset rejeitado.
+                </div>
+              ) : (
+                <TagsetHierarchyTree
+                  tagsets={tagsetsRejeitados}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
+                  onApprove={handleApproveOne}
+                  onReject={handleRejectOne}
+                  onEdit={handleEdit}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
