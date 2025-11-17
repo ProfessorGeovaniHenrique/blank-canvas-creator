@@ -1,0 +1,344 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import logoVersoAustral from "@/assets/logo-versoaustral-completo.png";
+
+const loginSchema = z.object({
+  email: z.string().email("Email inválido").trim(),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+});
+
+const signupSchema = z.object({
+  email: z.string().email("Email inválido").trim(),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
+const inviteSchema = z.object({
+  email: z.string().email("Email inválido").trim(),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  inviteKey: z.string().min(8, "Código do convite inválido").trim().toUpperCase(),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
+type InviteFormData = z.infer<typeof inviteSchema>;
+
+export default function Auth() {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
+
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const signupForm = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+  });
+
+  const inviteForm = useForm<InviteFormData>({
+    resolver: zodResolver(inviteSchema),
+  });
+
+  const handleLogin = async (data: LoginFormData) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) throw error;
+
+      toast.success("Login realizado com sucesso!");
+      navigate("/dashboard-mvp");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao fazer login");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (data: SignupFormData) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard-mvp`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Conta criada! Você já pode fazer login.");
+      setActiveTab("login");
+      signupForm.reset();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar conta");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInviteSignup = async (data: InviteFormData) => {
+    setIsLoading(true);
+    try {
+      // Primeiro, criar a conta
+      const { data: authData, error: signupError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard-mvp`,
+        },
+      });
+
+      if (signupError) throw signupError;
+      if (!authData.user) throw new Error("Erro ao criar usuário");
+
+      // Validar e usar o convite
+      const { data: inviteData, error: inviteError } = await supabase
+        .from("invite_keys")
+        .select("*")
+        .eq("key_code", data.inviteKey)
+        .eq("is_active", true)
+        .is("used_at", null)
+        .single();
+
+      if (inviteError || !inviteData) {
+        throw new Error("Código de convite inválido ou já utilizado");
+      }
+
+      // Verificar expiração
+      if (inviteData.expires_at && new Date(inviteData.expires_at) < new Date()) {
+        throw new Error("Código de convite expirado");
+      }
+
+      // Marcar convite como usado
+      const { error: updateError } = await supabase
+        .from("invite_keys")
+        .update({
+          used_at: new Date().toISOString(),
+          used_by: authData.user.id,
+          is_active: false,
+        })
+        .eq("id", inviteData.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Conta criada com sucesso! Faça login para continuar.");
+      setActiveTab("login");
+      inviteForm.reset();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao processar convite");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <Card className="w-full max-w-md shadow-lg border-2 border-primary/20 animate-in fade-in-50 duration-500">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <img 
+              src={logoVersoAustral} 
+              alt="VersoAustral" 
+              className="h-24 w-auto object-contain"
+            />
+          </div>
+          <div>
+            <CardTitle className="text-2xl font-heading text-primary">
+              Bem-vindo ao VersoAustral
+            </CardTitle>
+            <CardDescription>
+              Plataforma de Análise de Estilística de Corpus
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="signup">Cadastro</TabsTrigger>
+              <TabsTrigger value="invite">Convite</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="space-y-4">
+              <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    {...loginForm.register("email")}
+                  />
+                  {loginForm.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {loginForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...loginForm.register("password")}
+                  />
+                  {loginForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {loginForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full btn-versoaustral-secondary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Entrando..." : "Entrar"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="space-y-4">
+              <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    {...signupForm.register("email")}
+                  />
+                  {signupForm.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {signupForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Senha</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...signupForm.register("password")}
+                  />
+                  {signupForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {signupForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm">Confirmar Senha</Label>
+                  <Input
+                    id="signup-confirm"
+                    type="password"
+                    placeholder="••••••••"
+                    {...signupForm.register("confirmPassword")}
+                  />
+                  {signupForm.formState.errors.confirmPassword && (
+                    <p className="text-sm text-destructive">
+                      {signupForm.formState.errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full btn-versoaustral-secondary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Criando conta..." : "Criar Conta"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="invite" className="space-y-4">
+              <form onSubmit={inviteForm.handleSubmit(handleInviteSignup)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invite-email">Email</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    {...inviteForm.register("email")}
+                  />
+                  {inviteForm.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {inviteForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invite-password">Senha</Label>
+                  <Input
+                    id="invite-password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...inviteForm.register("password")}
+                  />
+                  {inviteForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {inviteForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invite-key">Código do Convite</Label>
+                  <Input
+                    id="invite-key"
+                    type="text"
+                    placeholder="VA-XXXX-XXXX"
+                    {...inviteForm.register("inviteKey")}
+                    className="uppercase"
+                  />
+                  {inviteForm.formState.errors.inviteKey && (
+                    <p className="text-sm text-destructive">
+                      {inviteForm.formState.errors.inviteKey.message}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full btn-versoaustral-secondary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Processando..." : "Criar Conta com Convite"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          <div className="mt-6 text-center">
+            <Button
+              variant="link"
+              onClick={() => navigate("/")}
+              className="text-muted-foreground hover:text-primary"
+            >
+              ← Voltar para home
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

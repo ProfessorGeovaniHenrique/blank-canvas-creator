@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import logoVersoAustral from "@/assets/logo-versoaustral-completo.png";
 import logoUfrgs from "@/assets/logo-ufrgs-oficial.png";
 import logoPpglet from "@/assets/logo-ppglet.png";
@@ -5,7 +7,7 @@ import logoPpglet from "@/assets/logo-ppglet.png";
 const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b-2 border-primary bg-background shadow-sm">
-      <div className="container mx-auto px-4 py-6 flex items-center justify-between">
+      <div className="container mx-auto px-4 py-6 flex items-center justify-between gap-4">
         <div className="h-16 w-auto max-w-[200px]">
           <img 
             src={logoUfrgs} 
@@ -27,6 +29,9 @@ const Header = () => {
             className="h-full w-auto object-contain"
           />
         </div>
+        <Button asChild className="btn-versoaustral-secondary shrink-0">
+          <Link to="/auth">Entrar</Link>
+        </Button>
       </div>
     </header>
   );
