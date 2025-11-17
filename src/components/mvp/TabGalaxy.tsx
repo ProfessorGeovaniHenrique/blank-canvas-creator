@@ -6,6 +6,7 @@ import { getDemoAnalysisResults } from "@/services/demoCorpusService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { OptimizedSemanticCloud } from "./OptimizedSemanticCloud";
+import { getDomainColor } from "@/config/domainColors";
 
 interface TabGalaxyProps {
   demo?: boolean;
@@ -47,7 +48,7 @@ export function TabGalaxy({ demo = false }: TabGalaxyProps) {
         y: 0,
         z: 80,
         fontSize: 48 + Math.min(24, d.percentual * 2), // 48-72px
-        color: d.cor,
+        color: getDomainColor(d.dominio, 'hsl'), // ✅ Cor centralizada
         type: 'domain' as const,
         frequency: d.ocorrencias,
         domain: d.dominio,
@@ -69,7 +70,7 @@ export function TabGalaxy({ demo = false }: TabGalaxyProps) {
         y: 0,
         z: 20 + Math.random() * 30,
         fontSize: 14 + Math.min(22, k.ll / 3), // 14-36px
-        color: k.cor,
+        color: getDomainColor(k.dominio, 'hsl'), // ✅ Cor centralizada
         type: 'keyword' as const,
         frequency: k.frequencia,
         domain: k.dominio,

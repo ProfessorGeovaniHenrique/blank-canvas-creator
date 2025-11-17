@@ -90,10 +90,16 @@ export function OptimizedSemanticCloud({
 
   // Filter nodes by view mode and domain
   const displayedNodes = useMemo(() => {
-    let filtered = nodes.filter(node => node.type === viewMode.slice(0, -1) as 'domain' | 'keyword');
+    let filtered = nodes.filter(node => {
+      if (viewMode === 'domains') return node.type === 'domain';
+      if (viewMode === 'keywords') return node.type === 'keyword';
+      return true;
+    });
+    
     if (filteredDomain && viewMode === 'keywords') {
       filtered = filtered.filter(node => node.domain === filteredDomain);
     }
+    
     return filtered;
   }, [nodes, viewMode, filteredDomain]);
 

@@ -1,4 +1,5 @@
 import { DominioSemantico } from '../types/corpus.types';
+import { getDomainColor } from '@/config/domainColors';
 
 /**
  * Domínios Semânticos Normalizados do Corpus Gaúcho
@@ -55,7 +56,7 @@ export const dominiosNormalizados: DominioSemantico[] = [
       { palavra: "templado", ocorrencias: 1 },
       { palavra: "tropa", ocorrencias: 1 }
     ],
-    cor: "hsl(142, 71%, 45%)",
+    cor: getDomainColor("Cultura e Lida Gaúcha", 'hsl'),
     corTexto: "hsl(0, 0%, 100%)",
     frequenciaNormalizada: 23.93,
     comparacaoCorpus: 'super-representado',
@@ -96,7 +97,7 @@ export const dominiosNormalizados: DominioSemantico[] = [
       { palavra: "reponte", ocorrencias: 1 },
       { palavra: "ventito", ocorrencias: 1 }
     ],
-    cor: "hsl(200, 70%, 50%)",
+    cor: getDomainColor("Natureza e Paisagem", 'hsl'),
     corTexto: "hsl(0, 0%, 100%)",
     frequenciaNormalizada: 22.22,
     comparacaoCorpus: 'super-representado',

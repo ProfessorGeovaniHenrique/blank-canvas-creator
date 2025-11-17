@@ -74,16 +74,11 @@ interface EnrichedWord {
   cor?: string;
 }
 
-// Paleta de 8 cores distintas para os domínios (prioriza legibilidade)
-const DOMAIN_COLORS: Record<string, string> = {
-  "Natureza e Paisagem": "hsl(142, 71%, 45%)",
-  "Cultura e Lida Gaúcha": "hsl(210, 100%, 50%)",
-  "Sentimentos e Abstrações": "hsl(280, 70%, 55%)",
-  "Ações e Processos": "hsl(30, 100%, 50%)",
-  "Qualidades e Estados": "hsl(340, 75%, 55%)",
-  "Partes do Corpo": "hsl(0, 72%, 51%)",
-  "Seres Vivos": "hsl(120, 60%, 40%)",
-  "Palavras Funcionais": "hsl(0, 0%, 60%)"
+// Cores de prosódia (incluindo Neutra = amarelo)
+const PROSODY_COLORS = {
+  "Positiva": ACADEMIC_RS_COLORS.verde.main,
+  "Negativa": ACADEMIC_RS_COLORS.vermelho.main,
+  "Neutra": ACADEMIC_RS_COLORS.amarelo.main
 };
 
 interface TabStatisticsProps {
@@ -444,9 +439,6 @@ export function TabStatistics({ demo = false }: TabStatisticsProps) {
     }
   };
 
-  const getDomainColor = (dominio: string) => {
-    return DOMAIN_COLORS[dominio] || ACADEMIC_RS_COLORS.verde.main;
-  };
 
   return (
     <>

@@ -1,4 +1,5 @@
 import { DominioSemantico } from "../types/corpus.types";
+import { getDomainColor } from "@/config/domainColors";
 
 export const dominiosData: DominioSemantico[] = [
   {
@@ -26,7 +27,7 @@ export const dominiosData: DominioSemantico[] = [
       { palavra: "quarto", ocorrencias: 1 }, { palavra: "querência", ocorrencias: 1 }, { palavra: "ramada", ocorrencias: 1 },
       { palavra: "templado", ocorrencias: 1 }, { palavra: "tropa", ocorrencias: 1 }
     ],
-    cor: "hsl(142, 71%, 45%)",
+    cor: getDomainColor("Cultura e Lida Gaúcha", 'hsl'),
     corTexto: "hsl(0, 0%, 100%)",
     frequenciaNormalizada: 13.21,
     percentualTematico: 34.15,
@@ -54,7 +55,7 @@ export const dominiosData: DominioSemantico[] = [
       { palavra: "maçanilha", ocorrencias: 1 }, { palavra: "noite", ocorrencias: 1 }, { palavra: "primavera", ocorrencias: 1 },
       { palavra: "reponte", ocorrencias: 1 }, { palavra: "ventito", ocorrencias: 1 }
     ],
-    cor: "hsl(221, 83%, 53%)",
+    cor: getDomainColor("Natureza e Paisagem", 'hsl'),
     corTexto: "hsl(0, 0%, 100%)",
     frequenciaNormalizada: 12.26,
     percentualTematico: 31.71,
@@ -113,7 +114,7 @@ export const dominiosData: DominioSemantico[] = [
       { palavra: "pontear", ocorrencias: 1 }, { palavra: "queimar", ocorrencias: 1 }, { palavra: "rondar", ocorrencias: 1 },
       { palavra: "ter", ocorrencias: 1 }
     ],
-    cor: "hsl(0, 72%, 51%)",
+    cor: getDomainColor("Partes do Corpo e Seres Vivos", 'hsl'),
     corTexto: "hsl(0, 0%, 100%)",
     frequenciaNormalizada: 11.32,
     percentualTematico: 29.27,
@@ -161,7 +162,7 @@ export const dominiosData: DominioSemantico[] = [
       { palavra: "olho", ocorrencias: 2 },
       { palavra: "galo", ocorrencias: 1 }
     ],
-    cor: "hsl(30, 100%, 50%)",
+    cor: getDomainColor("Ações e Processos", 'hsl'),
     corTexto: "hsl(0, 0%, 20%)",
     frequenciaNormalizada: 1.42,
     percentualTematico: 3.66,
