@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, Download, Loader2, Hash, Filter } from "lucide-react";
+import { useFeatureTour } from "@/hooks/useFeatureTour";
+import { ngramsTourSteps } from "./NGramsTool.tour";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +17,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
 export function NGramsTool() {
+  useFeatureTour('ngrams', ngramsTourSteps);
+  
   const [corpusType, setCorpusType] = useState<'gaucho' | 'nordestino'>('gaucho');
   const [ngramSize, setNgramSize] = useState<2 | 3 | 4 | 5>(2);
   const [minFrequencia, setMinFrequencia] = useState<string>('2');

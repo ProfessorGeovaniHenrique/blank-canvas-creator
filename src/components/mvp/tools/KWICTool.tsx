@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Download, Loader2, Filter } from "lucide-react";
+import { useFeatureTour } from "@/hooks/useFeatureTour";
+import { kwicTourSteps } from "./KWICTool.tour";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +18,8 @@ import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
 export function KWICTool() {
+  useFeatureTour('kwic', kwicTourSteps);
+  
   const [corpusType, setCorpusType] = useState<'gaucho' | 'nordestino'>('gaucho');
   const [palavra, setPalavra] = useState('');
   const [contextoSize, setContextoSize] = useState([5]);

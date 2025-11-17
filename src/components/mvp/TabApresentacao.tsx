@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { LogIn, Mail, Send } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Database, BarChart3, FileText, Music, Play, LogIn, Lock, Wrench, FlaskConical } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Sparkles, Database, BarChart3, FileText, Music, Play, Lock, Wrench, FlaskConical } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { TabDomains } from "./TabDomains";
 import { TabStatistics } from "./TabStatistics";
 import { TabGalaxy } from "./TabGalaxy";
@@ -21,6 +29,37 @@ export function TabApresentacao() {
   const { trackBannerClick } = useAnalytics();
   const [currentTab, setCurrentTab] = useState("intro");
   const { user } = useAuthContext();
+  const [showAccessForm, setShowAccessForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAccessRequest = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      full_name: formData.get('fullName') as string,
+      email: formData.get('email') as string,
+      institution: formData.get('institution') as string,
+      role_requested: formData.get('role') as string,
+      reason: formData.get('reason') as string,
+    };
+
+    try {
+      const { error } = await supabase.from('access_requests').insert(data);
+      
+      if (error) throw error;
+
+      toast.success('Solicitação enviada com sucesso! Entraremos em contato em breve.');
+      setShowAccessForm(false);
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error('Error submitting access request:', error);
+      toast.error('Erro ao enviar solicitação. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const { startTour } = useApresentacaoTour({ autoStart: true });
   
   // Tour hooks para cada aba
@@ -103,23 +142,106 @@ export function TabApresentacao() {
                     </div>
                     
                     <div className="flex gap-3 pt-2">
-                      <Link to="/auth" className="flex-1">
+                      <Link to="/auth" className="flex-1" onClick={() => trackBannerClick('login')}>
                         <Button className="w-full gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                           <LogIn className="w-4 h-4" />
                           Fazer Login
                         </Button>
                       </Link>
                       
-                      <Link to="/auth?tab=invite" className="flex-1">
+                      <Link to="/auth?tab=invite" className="flex-1" onClick={() => trackBannerClick('invite')}>
                         <Button variant="outline" className="w-full gap-2 border-2">
-                          <Sparkles className="w-4 h-4" />
+                          <Mail className="w-4 h-4" />
                           Tenho um Convite
                         </Button>
                       </Link>
                     </div>
+
+                    <div className="flex justify-center pt-3">
+                      <Dialog open={showAccessForm} onOpenChange={setShowAccessForm}>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="gap-2 text-primary hover:text-primary">
+                            <Send className="w-4 h-4" />
+                            Solicitar Acesso Especial para Pesquisadores
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px]">
+                          <DialogHeader>
+                            <DialogTitle>Solicitar Acesso - Professores e Pesquisadores</DialogTitle>
+                            <DialogDescription>
+                              Preencha o formulário abaixo e entraremos em contato com um convite personalizado.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <form onSubmit={handleAccessRequest} className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="fullName">Nome Completo *</Label>
+                              <Input id="fullName" name="fullName" placeholder="Seu nome completo" required />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="email">Email Institucional *</Label>
+                              <Input 
+                                id="email" 
+                                name="email" 
+                                type="email" 
+                                placeholder="seu.email@universidade.edu.br" 
+                                required 
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="institution">Instituição</Label>
+                              <Input 
+                                id="institution" 
+                                name="institution" 
+                                placeholder="Ex: UFRGS, UFPE, USP" 
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="role">Você é: *</Label>
+                              <Select name="role" required>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="professor">Professor</SelectItem>
+                                  <SelectItem value="pesquisador">Pesquisador</SelectItem>
+                                  <SelectItem value="estudante">Estudante de Pós-Graduação</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="reason">Justificativa (opcional)</Label>
+                              <Textarea 
+                                id="reason" 
+                                name="reason" 
+                                placeholder="Conte-nos brevemente sobre sua pesquisa ou interesse na plataforma..." 
+                                rows={3}
+                              />
+                            </div>
+
+                            <div className="flex gap-3 justify-end">
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setShowAccessForm(false)}
+                                disabled={isSubmitting}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? 'Enviando...' : 'Enviar Solicitação'}
+                              </Button>
+                            </div>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                     
                     <p className="text-xs text-muted-foreground text-center pt-2">
-                      💡 <strong>Dica:</strong> Pesquisadores e professores podem solicitar acesso especial entrando em contato.
+                      💡 <strong>Novo:</strong> Agora pesquisadores podem solicitar acesso especial diretamente!
                     </p>
                   </AlertDescription>
                 </div>

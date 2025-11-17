@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getBannerConversionTrend, getFeatureUsageTrend } from '@/services/analyticsService';
+import { exportAnalyticsToPDF } from '@/utils/exportAnalyticsPDF';
+import { toast } from 'sonner';
 import { AdminBreadcrumb } from '@/components/AdminBreadcrumb';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, TrendingUp, Activity, Clock, Loader2 } from 'lucide-react';
+import { Users, TrendingUp, Activity, Clock, Loader2, FileDown } from 'lucide-react';
 
 export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
@@ -15,7 +19,10 @@ export default function AdminAnalytics() {
     onboardingCompletion: 0,
     avgOnboardingTime: 0,
     topFeatures: [] as Array<{ name: string; usage: number }>,
+    bannerTrend: [] as Array<{ date: string; login: number; invite: number }>,
+    featureTrend: [] as Array<{ date: string; usage: number }>,
   });
+  const [isExporting, setIsExporting] = useState(false);
   
   useEffect(() => {
     fetchMetrics();
@@ -71,6 +78,10 @@ export default function AdminAnalytics() {
         name: f.feature_name,
         usage: f.usage_count,
       })) || [];
+
+      const bannerTrend = await getBannerConversionTrend(30);
+      const mostUsedFeature = topFeatures[0]?.name || 'kwic';
+      const featureTrend = await getFeatureUsageTrend(mostUsedFeature, 30);
       
       setMetrics({
         totalUsers: users?.length || 0,
@@ -79,6 +90,8 @@ export default function AdminAnalytics() {
         onboardingCompletion,
         avgOnboardingTime: 0,
         topFeatures,
+        bannerTrend,
+        featureTrend,
       });
     } catch (error) {
       console.error('Erro ao buscar métricas:', error);
@@ -87,6 +100,32 @@ export default function AdminAnalytics() {
     }
   };
   
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      await exportAnalyticsToPDF({
+        totalUsers: metrics.totalUsers,
+        usersByRole: metrics.usersByRole,
+        bannerConversion: metrics.bannerConversion,
+        onboardingCompletion: metrics.onboardingCompletion,
+        topFeatures: metrics.topFeatures,
+        dateRange: {
+          start: thirtyDaysAgo.toLocaleDateString('pt-BR'),
+          end: now.toLocaleDateString('pt-BR'),
+        },
+      });
+      toast.success('Relatório PDF exportado com sucesso!');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Erro ao exportar relatório PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const COLORS = ['#667eea', '#764ba2', '#f093fb'];
   
   if (loading) {
@@ -101,7 +140,13 @@ export default function AdminAnalytics() {
     <div className="container mx-auto py-8">
       <AdminBreadcrumb currentPage="Analytics" />
       
-      <h1 className="text-3xl font-bold mb-6">Analytics & Métricas</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Analytics & Métricas</h1>
+        <Button onClick={handleExportPDF} disabled={isExporting}>
+          <FileDown className="w-4 h-4 mr-2" />
+          {isExporting ? 'Exportando...' : 'Exportar PDF'}
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card>
@@ -189,44 +234,96 @@ export default function AdminAnalytics() {
         </TabsContent>
         
         <TabsContent value="banner">
-          <Card>
-            <CardHeader>
-              <CardTitle>Conversão do Banner Promocional</CardTitle>
-              <CardDescription>Últimos 30 dias</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={[metrics.bannerConversion]}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="login" fill="#667eea" name="Cliques em Login" />
-                  <Bar dataKey="invite" fill="#764ba2" name="Cliques em Convite" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Conversão do Banner Promocional - Total</CardTitle>
+                <CardDescription>Últimos 30 dias</CardDescription>
+              </CardHeader>
+              <CardContent data-chart-export>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={[metrics.bannerConversion]}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="login" fill="#667eea" name="Cliques em Login" />
+                    <Bar dataKey="invite" fill="#764ba2" name="Cliques em Convite" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Evolução Diária de Cliques no Banner</CardTitle>
+                <CardDescription>Últimos 30 dias</CardDescription>
+              </CardHeader>
+              <CardContent data-chart-export>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={metrics.bannerTrend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="login" stroke="#667eea" name="Login" strokeWidth={2} />
+                    <Line type="monotone" dataKey="invite" stroke="#764ba2" name="Convite" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
         
         <TabsContent value="features">
-          <Card>
-            <CardHeader>
-              <CardTitle>Features Mais Utilizadas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={metrics.topFeatures} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} />
-                  <Tooltip />
-                  <Bar dataKey="usage" fill="#667eea" name="Usos" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Features Mais Utilizadas</CardTitle>
+              </CardHeader>
+              <CardContent data-chart-export>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={metrics.topFeatures} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={100} />
+                    <Tooltip />
+                    <Bar dataKey="usage" fill="#667eea" name="Usos" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Evolução Diária - Feature Mais Usada</CardTitle>
+                <CardDescription>
+                  {metrics.topFeatures[0]?.name || 'N/A'} - Últimos 30 dias
+                </CardDescription>
+              </CardHeader>
+              <CardContent data-chart-export>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={metrics.featureTrend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="usage" 
+                      stroke="#667eea" 
+                      name="Usos" 
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

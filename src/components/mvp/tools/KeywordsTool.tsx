@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useKeywords } from "@/hooks/useKeywords";
+import { useFeatureTour } from "@/hooks/useFeatureTour";
+import { keywordsTourSteps } from "./KeywordsTool.tour";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +17,8 @@ import { useTools } from "@/contexts/ToolsContext";
 import { toast } from "sonner";
 
 export function KeywordsTool() {
+  useFeatureTour('keywords', keywordsTourSteps);
+  
   const [corpusEstudo, setCorpusEstudo] = useState<CorpusType>('gaucho');
   const [corpusReferencia, setCorpusReferencia] = useState<CorpusType>('nordestino');
   const { keywords, isLoading, error, isProcessed, processKeywords } = useKeywords();
