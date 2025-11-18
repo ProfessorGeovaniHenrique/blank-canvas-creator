@@ -289,6 +289,11 @@ export function KeywordsTool() {
   
   const handleWordClick = (palavra: string) => {
     navigateToKWIC(palavra);
+    
+    toast.info(`Navegando para KWIC: "${palavra}"`, {
+      description: 'A palavra foi transferida para a ferramenta KWIC',
+      duration: 3000
+    });
   };
   
   // Exportação para Excel

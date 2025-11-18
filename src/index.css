@@ -135,6 +135,13 @@ All colors MUST be HSL.
     /* Tipografia */
     --font-heading: 'Orbitron', sans-serif;
     --font-body: 'Inter', sans-serif;
+    
+    /* Cores para Charts/Gráficos */
+    --chart-1: 180 100% 50%;     /* Cyan neon - Super-representado */
+    --chart-2: 340 75% 55%;      /* Magenta neon - Sub-representado */
+    --chart-3: 142 71% 45%;      /* Verde neon - Positivo */
+    --chart-4: 280 100% 70%;     /* Purple neon - Neutro */
+    --chart-5: 45 95% 55%;       /* Amarelo neon - Destaque */
   }
 
   /* Tema Academic (Acadêmico Gaúcho - Bandeira do RS) */
@@ -197,6 +204,13 @@ All colors MUST be HSL.
     --font-heading: 'Inter', 'Roboto', sans-serif;
     --font-body: 'Inter', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Cores para Charts/Gráficos - Baseado na Bandeira do RS */
+    --chart-1: 145 60% 40%;      /* Verde gaúcho - Série principal */
+    --chart-2: 0 70% 50%;        /* Vermelho gaúcho - Série secundária */
+    --chart-3: 45 90% 50%;       /* Amarelo gaúcho - Série terciária */
+    --chart-4: 210 50% 45%;      /* Azul neutro - Série 4 */
+    --chart-5: 30 60% 50%;       /* Laranja terra - Série 5 */
   }
 }
 
