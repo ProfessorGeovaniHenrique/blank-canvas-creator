@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { CorpusSubcorpusSelector } from "@/components/corpus/CorpusSubcorpusSelector";
 import { loadFullTextCorpus } from "@/lib/fullTextParser";
 import { useCallback } from "react";
+import { useFullTextCorpus } from "@/hooks/useFullTextCorpus";
+import { generateKWIC } from "@/services/kwicService";
 
 export function KeywordsTool() {
   useFeatureTour('keywords', keywordsTourSteps);
@@ -50,6 +52,12 @@ export function KeywordsTool() {
   const { keywords, isLoading, error, isProcessed, processKeywords } = useKeywords();
   const { navigateToKWIC } = useTools();
   const { currentMetadata, selection } = useSubcorpus();
+  
+  // Carregar corpus full-text para preview KWIC
+  const { corpus: fullTextCorpus, isLoading: isLoadingFullCorpus } = useFullTextCorpus(
+    estudoCorpusBase,
+    estudoMode === 'artist' && estudoArtist ? { artistas: [estudoArtist] } : undefined
+  );
   
   // Dados para o gráfico comparativo
   const chartData = useMemo(() => {
@@ -294,6 +302,26 @@ export function KeywordsTool() {
       description: 'A palavra foi transferida para a ferramenta KWIC',
       duration: 3000
     });
+  };
+  
+  // Função para gerar preview de KWIC
+  const getKWICPreview = (palavra: string, limit: number = 3): { previews: string[], total: number } => {
+    if (!fullTextCorpus || isLoadingFullCorpus) {
+      return { previews: [], total: 0 };
+    }
+    
+    try {
+      const contexts = generateKWIC(fullTextCorpus, palavra, 3, 3);
+      return {
+        previews: contexts.slice(0, limit).map(ctx => 
+          `${ctx.contextoEsquerdo} [${ctx.palavra}] ${ctx.contextoDireito}`
+        ),
+        total: contexts.length
+      };
+    } catch (error) {
+      console.error('Erro ao gerar preview KWIC:', error);
+      return { previews: [], total: 0 };
+    }
   };
   
   // Exportação para Excel
@@ -1110,13 +1138,45 @@ export function KeywordsTool() {
                   {filteredKeywords.slice(0, 100).map((kw, idx) => (
                     <TableRow key={idx} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
-                        <button
-                          onClick={() => handleWordClick(kw.palavra)}
-                          className="text-primary hover:underline flex items-center gap-1"
-                        >
-                          {kw.palavra}
-                          <MousePointerClick className="h-3 w-3 opacity-50" />
-                        </button>
+                        <TooltipProvider>
+                          <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handleWordClick(kw.palavra)}
+                                className="text-primary hover:underline flex items-center gap-1"
+                              >
+                                {kw.palavra}
+                                <MousePointerClick className="h-3 w-3 opacity-50" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-md p-4" sideOffset={10}>
+                              {isLoadingFullCorpus ? (
+                                <p className="text-sm text-muted-foreground">Carregando corpus...</p>
+                              ) : (() => {
+                                const { previews, total } = getKWICPreview(kw.palavra);
+                                return previews.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <p className="font-semibold text-sm mb-2">
+                                      Preview de Concordâncias ({total} total):
+                                    </p>
+                                    {previews.map((line, idx) => (
+                                      <p key={idx} className="text-xs font-mono leading-relaxed border-l-2 border-primary/30 pl-2">
+                                        {line}
+                                      </p>
+                                    ))}
+                                    <p className="text-xs text-muted-foreground mt-3 italic border-t pt-2">
+                                      💡 Clique para ver todas as {total} ocorrências no KWIC →
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground">
+                                    Nenhuma ocorrência encontrada
+                                  </p>
+                                );
+                              })()}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell className="text-right">{kw.freqEstudo}</TableCell>
                       <TableCell className="text-right">{kw.freqReferencia}</TableCell>

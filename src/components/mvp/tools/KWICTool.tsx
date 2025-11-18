@@ -23,7 +23,8 @@ export function KWICTool() {
   const { selectedWord } = useTools();
   const { getFilteredCorpus, currentMetadata } = useSubcorpus();
   const [palavra, setPalavra] = useState('');
-  const [contextoSize, setContextoSize] = useState(5);
+  const [contextoEsquerdaSize, setContextoEsquerdaSize] = useState(5);
+  const [contextoDireitaSize, setContextoDireitaSize] = useState(5);
   const [results, setResults] = useState<KWICContext[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [corpus, setCorpus] = useState<CorpusCompleto | null>(null);
@@ -46,8 +47,38 @@ export function KWICTool() {
   }, [getFilteredCorpus]);
   
   useEffect(() => {
-    if (selectedWord) setPalavra(selectedWord);
-  }, [selectedWord]);
+    if (selectedWord) {
+      setPalavra(selectedWord);
+      
+      // Busca automática com debounce de 300ms
+      const timer = setTimeout(() => {
+        if (corpus && selectedWord.trim()) {
+          setIsProcessing(true);
+          
+          try {
+            const contexts = generateKWIC(corpus, selectedWord, contextoEsquerdaSize, contextoDireitaSize);
+            setResults(contexts);
+            toast.success(`${contexts.length} ocorrências encontradas para "${selectedWord}"`, {
+              description: 'Busca disparada automaticamente. Ajuste o contexto se necessário.',
+              duration: 4000
+            });
+          } catch (error) {
+            console.error('Erro na busca automática:', error);
+            toast.error('Erro ao buscar concordâncias');
+          } finally {
+            setIsProcessing(false);
+          }
+        } else if (!corpus) {
+          toast.info(`Palavra "${selectedWord}" carregada`, {
+            description: 'Aguarde o carregamento do corpus para buscar',
+            duration: 3000
+          });
+        }
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedWord, corpus, contextoEsquerdaSize, contextoDireitaSize]);
   
   const handleSearch = () => {
     if (!palavra.trim()) {
@@ -60,7 +91,7 @@ export function KWICTool() {
     }
     setIsProcessing(true);
     setTimeout(() => {
-      const contexts = generateKWIC(corpus, palavra, contextoSize);
+      const contexts = generateKWIC(corpus, palavra, contextoEsquerdaSize, contextoDireitaSize);
       setResults(contexts);
       setIsProcessing(false);
       toast.success(`${contexts.length} ocorrências encontradas`);
@@ -109,8 +140,30 @@ export function KWICTool() {
             <Input value={palavra} onChange={(e) => setPalavra(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
           </div>
           <div className="space-y-2">
-            <Label>Tamanho do contexto: {contextoSize} palavras</Label>
-            <Slider value={[contextoSize]} onValueChange={([v]) => setContextoSize(v)} min={3} max={15} step={1} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Contexto à Esquerda</Label>
+                  <Badge variant="outline" className="font-mono text-xs">{contextoEsquerdaSize} palavras</Badge>
+                </div>
+                <Slider value={[contextoEsquerdaSize]} onValueChange={([v]) => setContextoEsquerdaSize(v)} min={1} max={15} step={1} />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Contexto à Direita</Label>
+                  <Badge variant="outline" className="font-mono text-xs">{contextoDireitaSize} palavras</Badge>
+                </div>
+                <Slider value={[contextoDireitaSize]} onValueChange={([v]) => setContextoDireitaSize(v)} min={1} max={15} step={1} />
+              </div>
+            </div>
+            <div className="flex justify-end mt-2">
+              <Button variant="ghost" size="sm" onClick={() => {
+                const avg = Math.round((contextoEsquerdaSize + contextoDireitaSize) / 2);
+                setContextoEsquerdaSize(avg);
+                setContextoDireitaSize(avg);
+                toast.info(`Contexto simétrico: ${avg} palavras`);
+              }}>⚖️ Igualar Contextos</Button>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSearch} disabled={isProcessing || !corpus}>
