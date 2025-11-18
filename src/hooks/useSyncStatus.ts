@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SyncMetadata {
   lastSyncAt: Date | null;
@@ -14,6 +15,9 @@ export function useSyncStatus() {
     syncDurationMs: 0,
   });
 
+  // Rastrear se última sincronização foi manual (para não exibir toast duplicado)
+  const lastManualSyncRef = useRef<Date | null>(null);
+
   const fetchSyncMetadata = async () => {
     const { data } = await supabase
       .from('sync_metadata')
@@ -22,16 +26,38 @@ export function useSyncStatus() {
       .single();
 
     if (data) {
-      setSyncMetadata({
+      const newSyncMetadata = {
         lastSyncAt: data.last_sync_at ? new Date(data.last_sync_at) : null,
         itemsSynced: data.items_synced || 0,
         syncDurationMs: data.sync_duration_ms || 0,
-      });
+      };
+
+      // Detectar se é uma nova sincronização (não manual)
+      const isNewSync = syncMetadata.lastSyncAt && 
+                        newSyncMetadata.lastSyncAt &&
+                        newSyncMetadata.lastSyncAt.getTime() !== syncMetadata.lastSyncAt.getTime();
+
+      const wasManualSync = lastManualSyncRef.current &&
+                            newSyncMetadata.lastSyncAt &&
+                            Math.abs(newSyncMetadata.lastSyncAt.getTime() - lastManualSyncRef.current.getTime()) < 5000;
+
+      if (isNewSync && !wasManualSync) {
+        // Sincronização automática detectada! Exibir toast
+        toast.success('Dados atualizados automaticamente!', {
+          description: `${newSyncMetadata.itemsSynced} itens sincronizados em ${newSyncMetadata.syncDurationMs}ms`,
+          duration: 4000,
+        });
+      }
+
+      setSyncMetadata(newSyncMetadata);
     }
   };
 
   const triggerSync = async () => {
     try {
+      // Registrar timestamp da sincronização manual
+      lastManualSyncRef.current = new Date();
+
       const { data, error } = await supabase.functions.invoke('sync-construction-log', {
         body: { trigger: 'manual' }
       });
@@ -54,8 +80,8 @@ export function useSyncStatus() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'sync_metadata' },
-        () => {
-          console.log('🔄 Metadata de sincronização atualizado!');
+        (payload) => {
+          console.log('🔄 Metadata de sincronização atualizado!', payload);
           fetchSyncMetadata();
         }
       )
@@ -64,7 +90,7 @@ export function useSyncStatus() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [syncMetadata.lastSyncAt]); // Re-run quando lastSyncAt mudar
 
   return {
     syncMetadata,
