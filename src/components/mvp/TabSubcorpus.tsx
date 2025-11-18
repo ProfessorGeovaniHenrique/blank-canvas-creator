@@ -1,36 +1,53 @@
-import { useState } from 'react';
-import { useSubcorpora } from '@/hooks/useSubcorpora';
+import React, { useState, useEffect } from 'react';
+import { useSubcorpus } from '@/contexts/SubcorpusContext';
 import { SubcorpusDashboard } from '@/components/subcorpus/SubcorpusDashboard';
-import { SubcorpusSelector } from '@/components/subcorpus/SubcorpusSelector';
 import { KeywordsComparisonChart } from '@/components/subcorpus/KeywordsComparisonChart';
 import { DomainRadarComparison } from '@/components/subcorpus/DomainRadarComparison';
 import { Card, CardContent } from '@/components/ui/card';
-import { SubcorpusComparisonMode, ComparativoSubcorpora } from '@/data/types/subcorpus.types';
+import { ComparativoSubcorpora } from '@/data/types/subcorpus.types';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { compareSubcorpora } from '@/utils/subcorpusAnalysis';
+import { useCorpusCache } from '@/contexts/CorpusContext';
 
 export function TabSubcorpus() {
-  const { subcorpora, isLoading, compareArtists } = useSubcorpora('gaucho');
-  const [mode, setMode] = useState<SubcorpusComparisonMode>('compare');
-  const [selectedA, setSelectedA] = useState<string | null>(null);
-  const [selectedB, setSelectedB] = useState<string | null>(null);
+  const { 
+    selection, 
+    subcorpora, 
+    isLoading: isSubcorpusLoading 
+  } = useSubcorpus();
+  
+  const { getFullTextCache } = useCorpusCache();
   const [comparison, setComparison] = useState<ComparativoSubcorpora | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
   
-  const handleCompare = () => {
-    if (!selectedA) return;
+  // Trigger comparison when selection changes to 'compare' mode
+  useEffect(() => {
+    const performComparison = async () => {
+      if (selection.mode === 'compare' && selection.artistaA && selection.artistaB) {
+        setIsComparing(true);
+        try {
+          const cache = await getFullTextCache(selection.corpusBase);
+          const result = compareSubcorpora(cache.corpus, selection.artistaA, selection.artistaB);
+          setComparison(result);
+        } catch (error) {
+          console.error('Erro ao comparar artistas:', error);
+          setComparison(null);
+        } finally {
+          setIsComparing(false);
+        }
+      } else {
+        setComparison(null);
+      }
+    };
     
-    const artistaB = mode === 'compare' ? selectedB : undefined;
-    const result = compareArtists(selectedA, artistaB);
-    
-    if (result) {
-      setComparison(result);
-    }
-  };
+    performComparison();
+  }, [selection.mode, selection.artistaA, selection.artistaB, selection.corpusBase, getFullTextCache]);
   
-  if (isLoading) {
+  if (isSubcorpusLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -45,24 +62,20 @@ export function TabSubcorpus() {
       <div>
         <h1 className="text-3xl font-bold">Análise de Subcorpora</h1>
         <p className="text-muted-foreground mt-2">
-          Explore e compare os subcorpora (artistas) do corpus gaúcho
+          Explore e compare os subcorpora (artistas) do corpus gaúcho. Use o seletor no topo da página para escolher os artistas.
         </p>
       </div>
       
-      {/* Seletor de Comparação */}
-      <SubcorpusSelector
-        subcorpora={subcorpora}
-        mode={mode}
-        selectedA={selectedA}
-        selectedB={selectedB}
-        onModeChange={setMode}
-        onSelectA={setSelectedA}
-        onSelectB={setSelectedB}
-        onCompare={handleCompare}
-      />
+      {/* Loading state durante comparação */}
+      {isComparing && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Comparando artistas...</span>
+        </div>
+      )}
       
       {/* Resultado da Comparação */}
-      {comparison && (
+      {comparison && !isComparing && (
         <div className="space-y-6">
           {/* Overview Comparativo */}
           <Card>
@@ -93,7 +106,6 @@ export function TabSubcorpus() {
                 </div>
               </div>
               
-              {/* Estatísticas de Vocabulário */}
               <div className="mt-6 pt-6 border-t space-y-2">
                 <h4 className="font-semibold">Análise de Vocabulário</h4>
                 <div className="grid grid-cols-3 gap-4 text-sm">
@@ -211,7 +223,7 @@ export function TabSubcorpus() {
             </CardContent>
           </Card>
           
-          {/* Visualizações Gráficas */}
+          {/* Gráficos de Comparação */}
           <KeywordsComparisonChart
             keywordsA={comparison.keywordsComparativas.keywordsA}
             keywordsB={comparison.keywordsComparativas.keywordsB}
@@ -230,22 +242,17 @@ export function TabSubcorpus() {
         </div>
       )}
       
-      {/* Dashboard de Todos os Subcorpora */}
-      {!comparison && (
-        <>
-          <Alert>
-            <AlertDescription>
-              Selecione os subcorpora acima e clique em "Comparar" para visualizar a análise comparativa.
-            </AlertDescription>
-          </Alert>
-          
-          <SubcorpusDashboard
-            subcorpora={subcorpora}
-            onSelectSubcorpus={setSelectedA}
-            selectedArtista={selectedA}
-          />
-        </>
+      {/* Dashboard de Subcorpora (quando não está em modo comparação) */}
+      {!comparison && !isComparing && (
+        <Alert>
+          <AlertDescription>
+            Use o seletor de corpus no topo da página para escolher dois artistas e compará-los. Alterne para "Modo Comparação" e selecione dois artistas.
+          </AlertDescription>
+        </Alert>
       )}
+      
+      {/* Sempre mostrar o dashboard de subcorpora */}
+      <SubcorpusDashboard subcorpora={subcorpora} />
     </div>
   );
 }

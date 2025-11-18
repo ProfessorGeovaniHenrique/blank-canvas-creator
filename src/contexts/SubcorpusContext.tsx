@@ -35,15 +35,50 @@ interface SubcorpusContextType {
 
 const SubcorpusContext = createContext<SubcorpusContextType | undefined>(undefined);
 
-// Carregar seleção salva do localStorage
-const loadSavedSelection = (): SubcorpusSelection | null => {
+// Carregar seleção salva do localStorage com validação robusta
+const loadSavedSelection = (availableArtists: string[]): SubcorpusSelection | null => {
   try {
     const saved = localStorage.getItem('subcorpus-selection');
-    if (saved) {
-      return JSON.parse(saved);
+    if (!saved) return null;
+    
+    const parsed = JSON.parse(saved);
+    
+    // Validação de estrutura básica
+    if (!parsed.corpusBase || !parsed.mode) {
+      console.warn('Seleção salva inválida: faltando campos obrigatórios');
+      localStorage.removeItem('subcorpus-selection');
+      return null;
     }
+    
+    // Validar corpus base
+    if (!['gaucho', 'nordestino'].includes(parsed.corpusBase)) {
+      console.warn('Seleção salva inválida: corpus base desconhecido');
+      localStorage.removeItem('subcorpus-selection');
+      return null;
+    }
+    
+    // Validar modo
+    if (!['complete', 'single', 'compare'].includes(parsed.mode)) {
+      console.warn('Seleção salva inválida: modo desconhecido');
+      parsed.mode = 'complete';
+    }
+    
+    // Se artista selecionado não existe mais, limpar seleção
+    if (parsed.artistaA && !availableArtists.includes(parsed.artistaA)) {
+      console.warn(`Artista ${parsed.artistaA} não existe mais, limpando seleção`);
+      parsed.artistaA = null;
+      parsed.mode = 'complete';
+    }
+    
+    if (parsed.artistaB && !availableArtists.includes(parsed.artistaB)) {
+      console.warn(`Artista ${parsed.artistaB} não existe mais, limpando`);
+      parsed.artistaB = null;
+    }
+    
+    return parsed;
   } catch (error) {
     console.error('Erro ao carregar seleção salva:', error);
+    localStorage.removeItem('subcorpus-selection');
   }
   return null;
 };
@@ -51,15 +86,12 @@ const loadSavedSelection = (): SubcorpusSelection | null => {
 export function SubcorpusProvider({ children }: { children: ReactNode }) {
   const { getFullTextCache, isLoading: isCacheLoading } = useCorpusCache();
   
-  // Estado de seleção (com valor inicial do localStorage)
-  const [selection, setSelectionState] = useState<SubcorpusSelection>(() => {
-    const saved = loadSavedSelection();
-    return saved || {
-      mode: 'complete',
-      corpusBase: 'gaucho',
-      artistaA: null,
-      artistaB: null
-    };
+  // Estado de seleção inicial (será atualizado após carregar artistas)
+  const [selection, setSelectionState] = useState<SubcorpusSelection>({
+    mode: 'complete',
+    corpusBase: 'gaucho',
+    artistaA: null,
+    artistaB: null
   });
   
   // Cache de corpus e subcorpora
@@ -76,7 +108,7 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
     }
   }, []);
   
-  // Carregar corpus base quando mudar
+  // Carregar corpus base e restaurar seleção salva
   useEffect(() => {
     const loadCorpus = async () => {
       try {
@@ -87,6 +119,14 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
           // Extrair subcorpora
           const extracted = extractSubcorpora(cache.corpus);
           setSubcorpora(extracted);
+          
+          // Após carregar artistas, tentar restaurar seleção salva
+          const artistasDisponiveis = extracted.map(s => s.artista);
+          const savedSelection = loadSavedSelection(artistasDisponiveis);
+          if (savedSelection && savedSelection.corpusBase === selection.corpusBase) {
+            setSelectionState(savedSelection);
+            console.log('✅ Seleção anterior restaurada:', savedSelection);
+          }
           
           console.log(`✅ Corpus ${selection.corpusBase} carregado: ${extracted.length} artistas`);
         }

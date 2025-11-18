@@ -30,5 +30,3 @@ export interface ComparativoSubcorpora {
     dominiosB: DominioSemantico[];
   };
 }
-
-export type SubcorpusComparisonMode = 'single' | 'compare' | 'vs-rest';
