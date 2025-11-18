@@ -33,6 +33,15 @@ export interface FutureProspect {
   epics: string[];
 }
 
+export interface Milestone {
+  id: string;
+  date: string;
+  title: string;
+  epicIds: string[];
+  status: 'completed' | 'current' | 'upcoming';
+  description?: string;
+}
+
 // ============================================
 // 🎯 VISÃO DO PRODUTO (PRD)
 // ============================================
@@ -358,10 +367,60 @@ export const mvpMetrics = {
   overallCompletion: 75, // %
   implementedStories: 9,
   totalMvpStories: 8,
+  totalStories: 12,
   inProgressStories: 1,
+  completedEpics: 1,
+  totalEpics: 2,
   nextMilestone: "Épico 2 - Gerenciamento de Domínios Semânticos",
   estimatedMvpCompletion: "Q2 2025"
 };
+
+// ============================================
+// 📅 MILESTONES DO ROADMAP
+// ============================================
+
+export const milestones: Milestone[] = [
+  {
+    id: 'mvp-auth',
+    date: 'Q4 2024',
+    title: 'Autenticação e Sessões',
+    epicIds: ['epic-0'],
+    status: 'completed',
+    description: 'Sistema de autenticação completo implementado'
+  },
+  {
+    id: 'mvp-semantic',
+    date: 'Q1 2025',
+    title: 'Análise Semântica MVP',
+    epicIds: ['epic-1'],
+    status: 'current',
+    description: 'Visualizações e ferramentas básicas de análise'
+  },
+  {
+    id: 'domain-mgmt',
+    date: 'Q2 2025',
+    title: 'Gestão de Domínios',
+    epicIds: ['epic-2'],
+    status: 'upcoming',
+    description: 'Permitir refinamento e customização de domínios'
+  },
+  {
+    id: 'advanced-tools',
+    date: 'Q2 2025',
+    title: 'Ferramentas Avançadas',
+    epicIds: ['epic-4'],
+    status: 'upcoming',
+    description: 'Keywords, N-grams, Dispersão e Concordância'
+  },
+  {
+    id: 'v2-launch',
+    date: 'Q3 2025',
+    title: 'V2.0 - Módulo Didático',
+    epicIds: ['epic-6', 'epic-7', 'epic-8'],
+    status: 'upcoming',
+    description: 'Lançamento do módulo de aprendizagem guiada'
+  }
+];
 
 // ============================================
 // 🎯 PRIORIDADES IMEDIATAS
