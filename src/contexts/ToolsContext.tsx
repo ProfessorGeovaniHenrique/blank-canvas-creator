@@ -318,7 +318,8 @@ export function ToolsProvider({ children }: { children: ReactNode }) {
       clearDispersionState,
       ngramsState,
       setNgramsState,
-      clearNgramsState
+      clearNgramsState,
+      saveStatus
     }}>
       {children}
     </ToolsContext.Provider>
