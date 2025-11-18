@@ -349,70 +349,95 @@ serve(async (req) => {
       authStatus = 'demo';
       console.log('[annotate-semantic] 🎭 MODO DEMO ATIVADO - Bypass de autenticação');
     } else {
-      // Modo normal: REQUER autenticação válida
-      const authHeader = req.headers.get('authorization');
+    // Modo normal: REQUER autenticação válida
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    
+    console.log('[annotate-semantic] 🔍 Verificando autenticação:', {
+      has_auth_header: !!authHeader,
+      header_preview: authHeader ? authHeader.substring(0, 20) + '...' : 'NONE'
+    });
+    
+    if (!authHeader) {
+      authStatus = 'unauthorized';
+      responseStatus = 401;
+      errorDetails = { 
+        error: 'Autenticação necessária', 
+        hint: 'Use demo_mode: true para testar sem login',
+        details: 'Auth session missing!'
+      };
       
-      if (!authHeader) {
-        authStatus = 'unauthorized';
-        responseStatus = 401;
-        errorDetails = { error: 'Autenticação necessária', hint: 'Use demo_mode: true para testar sem login' };
-        
-        // Registrar log de debug
-        await supabase.from('annotation_debug_logs').insert({
-          request_id: requestId,
-          demo_mode,
-          auth_status: authStatus,
-          user_id: null,
-          corpus_type,
-          request_payload: rawBody,
-          response_status: responseStatus,
-          error_details: errorDetails,
-          processing_time_ms: Date.now() - requestStartTime
-        });
-        
-        return new Response(
-          JSON.stringify(errorDetails),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      console.error('[annotate-semantic] ❌ No auth header found');
+      
+      // Registrar log de debug
+      await supabase.from('annotation_debug_logs').insert({
+        request_id: requestId,
+        demo_mode,
+        auth_status: authStatus,
+        user_id: null,
+        corpus_type,
+        request_payload: rawBody,
+        response_status: responseStatus,
+        error_details: errorDetails,
+        processing_time_ms: Date.now() - requestStartTime
+      });
+      
+      return new Response(
+        JSON.stringify(errorDetails),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userToken = authHeader.replace('Bearer ', '').replace('bearer ', '');
+    console.log('[annotate-semantic] 🎫 Token extraído:', userToken.substring(0, 30) + '...');
+    
+    // Criar cliente com o token do usuário para validação
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${userToken}`
+        }
       }
+    });
+    
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
 
-      const userToken = authHeader.replace('Bearer ', '');
-      const supabaseUser = createClient(supabaseUrl, userToken);
-      const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      authStatus = 'invalid_token';
+      responseStatus = 401;
+      errorDetails = { 
+        error: 'Token inválido ou expirado',
+        details: authError?.message || 'Auth session missing!',
+        hint: 'Faça login novamente ou use demo_mode: true'
+      };
+      
+      console.error('[annotate-semantic] ❌ Auth error:', {
+        error: authError?.message,
+        has_user: !!user
+      });
+      
+      // Registrar log de debug
+      await supabase.from('annotation_debug_logs').insert({
+        request_id: requestId,
+        demo_mode,
+        auth_status: authStatus,
+        user_id: null,
+        corpus_type,
+        request_payload: rawBody,
+        response_status: responseStatus,
+        error_details: errorDetails,
+        processing_time_ms: Date.now() - requestStartTime
+      });
+      
+      return new Response(
+        JSON.stringify(errorDetails),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-      if (authError || !user) {
-        authStatus = 'invalid_token';
-        responseStatus = 401;
-        errorDetails = { 
-          error: 'Token inválido ou expirado',
-          details: authError?.message,
-          hint: 'Faça login novamente ou use demo_mode: true'
-        };
-        
-        console.error('[annotate-semantic] Auth error:', authError?.message || 'No user found');
-        
-        // Registrar log de debug
-        await supabase.from('annotation_debug_logs').insert({
-          request_id: requestId,
-          demo_mode,
-          auth_status: authStatus,
-          user_id: null,
-          corpus_type,
-          request_payload: rawBody,
-          response_status: responseStatus,
-          error_details: errorDetails,
-          processing_time_ms: Date.now() - requestStartTime
-        });
-        
-        return new Response(
-          JSON.stringify(errorDetails),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      userId = user.id;
-      authStatus = 'authenticated';
-      console.log(`[annotate-semantic] ✅ Usuário autenticado: ${userId}`);
+    userId = user.id;
+    authStatus = 'authenticated';
+    console.log(`[annotate-semantic] ✅ Usuário autenticado: ${userId}`);
     }
 
     console.log(`[annotate-semantic] 🚀 Iniciando anotação: ${corpus_type}`, {
