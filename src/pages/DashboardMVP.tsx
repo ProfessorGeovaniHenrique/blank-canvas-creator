@@ -5,11 +5,12 @@ import { MVPFooter } from "@/components/mvp/MVPFooter";
 import { TabApresentacao } from "@/components/mvp/TabApresentacao";
 import { TabTools } from "@/components/mvp/TabTools";
 import { TabValidation } from "@/components/mvp/TabValidation";
+import { TabSubcorpus } from "@/components/mvp/TabSubcorpus";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock } from "lucide-react";
 
-type TabType = 'apresentacao' | 'tools' | 'validation';
+type TabType = 'apresentacao' | 'tools' | 'subcorpus' | 'validation';
 
 export default function DashboardMVP() {
   const [activeTab, setActiveTab] = useState<TabType>('apresentacao');
@@ -17,7 +18,7 @@ export default function DashboardMVP() {
   
   // Proteger: Se usuário não autenticado tentar acessar aba restrita, voltar para apresentação
   useEffect(() => {
-    if (!loading && !user && (activeTab === 'tools' || activeTab === 'validation')) {
+    if (!loading && !user && (activeTab === 'tools' || activeTab === 'subcorpus' || activeTab === 'validation')) {
       setActiveTab('apresentacao');
     }
   }, [user, loading, activeTab]);
@@ -53,6 +54,19 @@ export default function DashboardMVP() {
                   <Lock className="h-4 w-4" />
                   <AlertDescription className="ml-2">
                     Faça login para acessar as ferramentas de análise.
+                  </AlertDescription>
+                </Alert>
+              )
+            )}
+            
+            {activeTab === 'subcorpus' && (
+              hasToolsAccess() ? (
+                <TabSubcorpus />
+              ) : (
+                <Alert className="max-w-2xl mx-auto">
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription className="ml-2">
+                    Faça login para acessar a análise de subcorpora.
                   </AlertDescription>
                 </Alert>
               )
