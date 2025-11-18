@@ -27,12 +27,33 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔍 DEBUG: Iniciando processamento da requisição');
+    console.log('🔍 DEBUG: Content-Type:', req.headers.get('Content-Type'));
+    console.log('🔍 DEBUG: Method:', req.method);
+    
+    // Log do body raw antes do parse
+    const rawBody = await req.text();
+    console.log('🔍 DEBUG: Raw Body recebido:');
+    console.log(rawBody);
+    console.log('🔍 DEBUG: Tamanho do body:', rawBody.length, 'bytes');
+    console.log('🔍 DEBUG: Primeiros 100 caracteres:', rawBody.substring(0, 100));
+    
+    // Tentar fazer parse do JSON
+    let metrics: ProjectMetrics;
+    try {
+      metrics = JSON.parse(rawBody);
+      console.log('✅ DEBUG: JSON parseado com sucesso');
+    } catch (parseError) {
+      console.error('❌ DEBUG: Erro ao parsear JSON:', parseError);
+      console.error('❌ DEBUG: Raw body que causou erro:', rawBody);
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      throw new Error(`Erro ao parsear JSON: ${errorMessage}`);
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    const metrics: ProjectMetrics = await req.json();
 
     console.log('📊 Recebendo métricas:', metrics);
 
