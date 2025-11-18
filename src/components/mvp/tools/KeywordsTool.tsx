@@ -13,7 +13,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, Search, Play, Loader2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, MousePointerClick, Music, AlertCircle, BarChart3, Lightbulb, FileJson, FileDown, Share2 } from "lucide-react";
+import { Download, Search, Play, Loader2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, MousePointerClick, Music, AlertCircle, BarChart3, Lightbulb, FileJson, FileDown, Share2, Settings2, Trash2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, ScatterChart, Scatter, ReferenceLine } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useSearchParams } from 'react-router-dom';
@@ -28,7 +40,6 @@ import { useCallback } from "react";
 import { useFullTextCorpus } from "@/hooks/useFullTextCorpus";
 import { generateKWIC } from "@/services/kwicService";
 import { SaveIndicator } from '@/components/ui/save-indicator';
-import { KeywordsConfigPanel } from '@/components/mvp/tools/KeywordsConfigPanel';
 import { AnimatedChartWrapper } from '@/components/ui/animated-chart-wrapper';
 
 export function KeywordsTool() {
@@ -36,7 +47,10 @@ export function KeywordsTool() {
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Estado persistido no context
-  const { keywordsState, setKeywordsState, saveStatus } = useTools();
+  const { keywordsState, setKeywordsState, saveStatus, clearAllCache } = useTools();
+  
+  // Estado do menu colapsável
+  const [isConfigOpen, setIsConfigOpen] = useState(true);
   
   // Garantir que analysisConfig existe (fallback para valores padrão)
   const analysisConfig = keywordsState.analysisConfig || {
@@ -110,6 +124,16 @@ export function KeywordsTool() {
     
     return baseMatches && modeMatches;
   }, [estudoCorpusBase, estudoMode, estudoArtist, selection]);
+  
+  // Collapse automático após processamento
+  useEffect(() => {
+    if (keywordsState.isProcessed && keywordsState.keywords.length > 0) {
+      setIsConfigOpen(false);
+      toast.success('Análise concluída!', {
+        description: 'Menu recolhido para otimizar espaço'
+      });
+    }
+  }, [keywordsState.isProcessed, keywordsState.keywords.length]);
   
   const handleKeywordsProcessed = useCallback((newKeywords: KeywordEntry[]) => {
     setKeywordsState({ keywords: newKeywords, isProcessed: true });
@@ -637,16 +661,77 @@ export function KeywordsTool() {
         />
       </div>
 
-      {/* Menu de Configuração Fixo */}
-      <KeywordsConfigPanel />
-
-      <Card data-tour="keywords-config">
-        <CardHeader>
-          <CardTitle>Configurar Análise</CardTitle>
-          <CardDescription>
-            Selecione os corpus a serem comparados e processe para gerar a lista de palavras-chave
-          </CardDescription>
+      {/* Menu de Configuração Unificado e Colapsável */}
+      <Card data-tour="keywords-config" className="border-l-4 border-l-primary">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setIsConfigOpen(!isConfigOpen)}
+                  className="p-1"
+                >
+                  {isConfigOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <Settings2 className="h-4 w-4" />
+              <CardTitle className="text-base">Configurar Análise</CardTitle>
+              {!isConfigOpen && (
+                <Badge variant="secondary" className="ml-2">
+                  {Object.values(analysisConfig).filter(Boolean).length} análises ativas
+                </Badge>
+              )}
+            </div>
+            
+            {/* Botão de Limpar Cache */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Limpar Cache
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar Cache e Recarregar?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>Esta ação irá:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>Remover todos os dados salvos do localStorage</li>
+                      <li>Resetar todas as configurações para valores padrão</li>
+                      <li>Recarregar a página automaticamente</li>
+                    </ul>
+                    <p className="font-semibold text-destructive mt-3">
+                      ⚠️ Esta ação não pode ser desfeita!
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={clearAllCache}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Sim, Limpar Tudo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          {!isConfigOpen && (
+            <div className="text-xs text-muted-foreground mt-2">
+              Estudo: {estudoMode === 'artist' && estudoArtist ? estudoArtist : `${estudoCorpusBase} (completo)`} vs Referência: {refMode === 'artist' && refArtist ? refArtist : `${refCorpusBase} (completo)`}
+            </div>
+          )}
         </CardHeader>
+        <Collapsible open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+          <CollapsibleContent>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="keywords-corpus">
             <div className="space-y-2">
@@ -698,123 +783,74 @@ export function KeywordsTool() {
             </Alert>
           )}
           
-          {(estudoMetadata || refMetadata) && !isLoadingMetadata && !errorEstudo && !errorRef && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              {/* Card de Estatísticas - Corpus de Estudo */}
-              {estudoMetadata && (
-                <Card className="border-primary/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Music className="h-4 w-4" />
-                      Estatísticas: Corpus de Estudo
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Artista/Corpus:</span>
-                      <span className="font-semibold text-xs">{estudoMetadata.artista}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total de músicas:</span>
-                      <Badge variant="outline">{estudoMetadata.totalMusicas}</Badge>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total de palavras:</span>
-                      <Badge variant="outline">
-                        {estudoMetadata.totalPalavras.toLocaleString()}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Palavras únicas:</span>
-                      <Badge variant="outline">
-                        {estudoMetadata.totalPalavrasUnicas.toLocaleString()}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Riqueza Lexical:</span>
-                      <Badge variant="secondary">
-                        {(estudoMetadata.riquezaLexical * 100).toFixed(2)}%
-                      </Badge>
-                    </div>
-                    {estudoMetadata.anoInicio && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Período:</span>
-                        <span className="text-xs">
-                          {estudoMetadata.anoInicio} - {estudoMetadata.anoFim}
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-              
-              {/* Card de Estatísticas - Corpus de Referência */}
-              {refMetadata && (
-                <Card className="border-secondary/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Music className="h-4 w-4" />
-                      Estatísticas: Corpus de Referência
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Artista/Corpus:</span>
-                      <span className="font-semibold text-xs">{refMetadata.artista}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total de músicas:</span>
-                      <Badge variant="outline">{refMetadata.totalMusicas}</Badge>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total de palavras:</span>
-                      <Badge variant="outline">
-                        {refMetadata.totalPalavras.toLocaleString()}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Palavras únicas:</span>
-                      <Badge variant="outline">
-                        {refMetadata.totalPalavrasUnicas.toLocaleString()}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Riqueza Lexical:</span>
-                      <Badge variant="secondary">
-                        {(refMetadata.riquezaLexical * 100).toFixed(2)}%
-                      </Badge>
-                    </div>
-                    {refMetadata.anoInicio && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Período:</span>
-                        <span className="text-xs">
-                          {refMetadata.anoInicio} - {refMetadata.anoFim}
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+          {/* Opções de Análise */}
+          <div className="space-y-3 mt-6 p-4 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Settings2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Opções de Análise</span>
             </div>
-          )}
-          
-          {/* Loading skeleton durante carregamento de metadados */}
-          {isLoadingMetadata && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              <Card>
-                <CardContent className="pt-6">
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="keywords-list"
+                checked={analysisConfig.generateKeywordsList}
+                disabled
+              />
+              <Label htmlFor="keywords-list" className="cursor-not-allowed opacity-70">
+                Lista de Keywords (obrigatório)
+              </Label>
             </div>
-          )}
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="scatter-plot"
+                checked={analysisConfig.generateScatterPlot}
+                onCheckedChange={() => setKeywordsState({
+                  analysisConfig: {
+                    ...analysisConfig,
+                    generateScatterPlot: !analysisConfig.generateScatterPlot
+                  }
+                })}
+              />
+              <Label htmlFor="scatter-plot" className="cursor-pointer">
+                Gráfico de Dispersão (LL vs Frequência)
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="comparison-chart"
+                checked={analysisConfig.generateComparisonChart}
+                onCheckedChange={() => setKeywordsState({
+                  analysisConfig: {
+                    ...analysisConfig,
+                    generateComparisonChart: !analysisConfig.generateComparisonChart
+                  }
+                })}
+              />
+              <Label htmlFor="comparison-chart" className="cursor-pointer">
+                Gráfico Comparativo de Métricas
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="dispersion"
+                checked={analysisConfig.generateDispersion}
+                onCheckedChange={() => setKeywordsState({
+                  analysisConfig: {
+                    ...analysisConfig,
+                    generateDispersion: !analysisConfig.generateDispersion
+                  }
+                })}
+              />
+              <Label htmlFor="dispersion" className="cursor-pointer">
+                Análise de Dispersão de Palavras
+              </Label>
+            </div>
+          </div>
           
-          <Button 
+          <Button
             onClick={handleProcessKeywords}
             disabled={isLoading}
             className="w-full"
@@ -832,8 +868,120 @@ export function KeywordsTool() {
               </>
             )}
           </Button>
-        </CardContent>
+          </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
+      
+      {/* Estatísticas Comparativas - Só aparece após processamento */}
+      {keywordsState.isProcessed && keywordsState.keywords.length > 0 && estudoMetadata && refMetadata && (
+        <Card className="border-l-4 border-l-primary">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Estatísticas Comparativas dos Corpus</CardTitle>
+            </div>
+            <CardDescription>
+              Visão geral das métricas lexicais de cada corpus analisado
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Card de Estatísticas - Corpus de Estudo */}
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Music className="h-4 w-4" />
+                    Corpus de Estudo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Artista/Corpus:</span>
+                    <span className="font-semibold text-xs">{estudoMetadata.artista}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total de músicas:</span>
+                    <Badge variant="outline">{estudoMetadata.totalMusicas}</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total de palavras:</span>
+                    <Badge variant="outline">
+                      {estudoMetadata.totalPalavras.toLocaleString()}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Palavras únicas:</span>
+                    <Badge variant="outline">
+                      {estudoMetadata.totalPalavrasUnicas.toLocaleString()}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Riqueza Lexical:</span>
+                    <Badge variant="secondary">
+                      {(estudoMetadata.riquezaLexical * 100).toFixed(2)}%
+                    </Badge>
+                  </div>
+                  {estudoMetadata.anoInicio && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Período:</span>
+                      <span className="text-xs">
+                        {estudoMetadata.anoInicio} - {estudoMetadata.anoFim}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Card de Estatísticas - Corpus de Referência */}
+              <Card className="border-secondary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Music className="h-4 w-4" />
+                    Corpus de Referência
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Artista/Corpus:</span>
+                    <span className="font-semibold text-xs">{refMetadata.artista}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total de músicas:</span>
+                    <Badge variant="outline">{refMetadata.totalMusicas}</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total de palavras:</span>
+                    <Badge variant="outline">
+                      {refMetadata.totalPalavras.toLocaleString()}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Palavras únicas:</span>
+                    <Badge variant="outline">
+                      {refMetadata.totalPalavrasUnicas.toLocaleString()}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Riqueza Lexical:</span>
+                    <Badge variant="secondary">
+                      {(refMetadata.riquezaLexical * 100).toFixed(2)}%
+                    </Badge>
+                  </div>
+                  {refMetadata.anoInicio && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Período:</span>
+                      <span className="text-xs">
+                        {refMetadata.anoInicio} - {refMetadata.anoFim}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Gráfico Comparativo - COM ANIMAÇÃO */}
       <AnimatedChartWrapper 
