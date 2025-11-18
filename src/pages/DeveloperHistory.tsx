@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,15 +10,11 @@ import { CorrectionsTable } from "@/components/dev-history/CorrectionsTable";
 import { ProjectStats } from "@/components/dev-history/ProjectStats";
 import { UpdateStatusButton } from "@/components/dev-history/UpdateStatusButton";
 import { ProductRoadmap } from "@/components/dev-history/ProductRoadmap";
-import { toast } from "sonner";
+import { ExportMenu } from "@/components/dev-history/ExportMenu";
 
 export default function DeveloperHistory() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("timeline");
-
-  const handleExportPDF = () => {
-    toast.info("Funcionalidade de exportação será implementada em breve");
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,10 +31,7 @@ export default function DeveloperHistory() {
           
           <div className="flex items-center gap-2">
             <UpdateStatusButton />
-            <Button variant="outline" onClick={handleExportPDF}>
-              <Download className="mr-2 h-4 w-4" />
-              Exportar PDF
-            </Button>
+            <ExportMenu />
             <Button variant="ghost" onClick={() => navigate("/admin/dashboard")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar

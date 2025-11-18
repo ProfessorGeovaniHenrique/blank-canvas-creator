@@ -1,11 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { 
-  CheckCircle2, 
-  Clock, 
-  Circle, 
+  CheckCircle2,
+  Clock,
   Target, 
   Users, 
   TrendingUp,
@@ -25,18 +23,9 @@ import {
   type Epic,
   type Story
 } from "@/data/developer-logs/product-roadmap";
-
-// Status Icon Component
-const StatusIcon = ({ status }: { status: Epic['status'] }) => {
-  switch (status) {
-    case 'completed':
-      return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-    case 'in-progress':
-      return <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />;
-    case 'planned':
-      return <Circle className="h-5 w-5 text-muted-foreground" />;
-  }
-};
+import { StatusBadge } from "./StatusBadge";
+import { CircularProgress } from "./CircularProgress";
+import { RoadmapTimeline } from "./RoadmapTimeline";
 
 // Priority Badge Component
 const PriorityBadge = ({ priority }: { priority: Epic['priority'] }) => {
@@ -57,11 +46,7 @@ const PriorityBadge = ({ priority }: { priority: Epic['priority'] }) => {
 // Story Item Component
 const StoryItem = ({ story }: { story: Story }) => (
   <div className="flex items-start gap-2 py-2 px-3 rounded-md hover:bg-muted/50 transition-colors">
-    {story.implemented ? (
-      <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-    ) : (
-      <Circle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-    )}
+    <StatusBadge status={story.implemented ? 'completed' : 'planned'} variant="compact" />
     <div className="flex-1 min-w-0">
       <p className={`text-sm ${story.implemented ? 'text-foreground' : 'text-muted-foreground'}`}>
         {story.title}
@@ -78,8 +63,8 @@ const EpicCard = ({ epic }: { epic: Epic }) => (
   <Card className="hover:shadow-lg transition-shadow">
     <CardHeader>
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <StatusIcon status={epic.status} />
+        <div className="flex items-center gap-3">
+          <StatusBadge status={epic.status} variant="detailed" />
           <div>
             <CardTitle className="text-lg">
               Épico {epic.number}: {epic.name}
@@ -94,12 +79,21 @@ const EpicCard = ({ epic }: { epic: Epic }) => (
     </CardHeader>
     <CardContent>
       <div className="space-y-4">
-        <div>
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Progresso</span>
-            <span className="font-medium">{epic.completionPercentage}%</span>
+        {/* Progress Circular */}
+        <div className="flex items-center gap-6">
+          <CircularProgress 
+            value={epic.completionPercentage} 
+            size="md"
+            showLabel
+          />
+          <div className="flex-1">
+            <p className="text-sm font-medium">
+              {epic.stories.filter(s => s.implemented).length} / {epic.stories.length} histórias
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {epic.completionPercentage}% concluído
+            </p>
           </div>
-          <Progress value={epic.completionPercentage} className="h-2" />
         </div>
         
         <Separator />
@@ -121,40 +115,74 @@ export function ProductRoadmap() {
   const totalStories = allEpics.flatMap(e => e.stories).length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
+      {/* Timeline */}
+      <RoadmapTimeline />
+
       {/* Overall Progress */}
-      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+      <Card className="border-2 border-primary/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <Target className="h-6 w-6" />
-            Status Geral do Projeto
-          </CardTitle>
-          <CardDescription>
-            Progresso do MVP e Roadmap Completo
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-background/50 rounded-lg">
-              <p className="text-3xl font-bold text-primary">{mvpMetrics.overallCompletion}%</p>
-              <p className="text-sm text-muted-foreground mt-1">Conclusão do MVP</p>
-            </div>
-            <div className="text-center p-4 bg-background/50 rounded-lg">
-              <p className="text-3xl font-bold text-primary">{implementedStories}/{totalStories}</p>
-              <p className="text-sm text-muted-foreground mt-1">Histórias Implementadas</p>
-            </div>
-            <div className="text-center p-4 bg-background/50 rounded-lg">
-              <p className="text-3xl font-bold text-primary">{allEpics.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">Épicos Totais</p>
-            </div>
+          <div className="flex items-center gap-2">
+            <Target className="h-6 w-6 text-primary" />
+            <CardTitle>Progresso Geral do Projeto</CardTitle>
           </div>
-          
-          <Separator />
-          
-          <div className="flex items-center gap-2 text-sm">
-            <Rocket className="h-4 w-4 text-primary" />
-            <span className="font-medium">Próximo Marco:</span>
-            <span className="text-muted-foreground">{mvpMetrics.nextMilestone}</span>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <CircularProgress 
+              value={mvpMetrics.overallCompletion} 
+              size="lg"
+              showLabel
+              label="MVP"
+            />
+            
+            <div className="flex gap-6 flex-wrap justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <CircularProgress 
+                  value={(mvpEpics.reduce((acc, e) => acc + e.completionPercentage, 0) / mvpEpics.length) || 0}
+                  size="sm"
+                  showLabel={false}
+                />
+                <span className="text-xs text-muted-foreground">MVP</span>
+              </div>
+              
+              <div className="flex flex-col items-center gap-2">
+                <CircularProgress 
+                  value={(postMvpEpics.reduce((acc, e) => acc + e.completionPercentage, 0) / postMvpEpics.length) || 0}
+                  size="sm"
+                  showLabel={false}
+                />
+                <span className="text-xs text-muted-foreground">Pós-MVP</span>
+              </div>
+              
+              <div className="flex flex-col items-center gap-2">
+                <CircularProgress 
+                  value={(v2Epics.reduce((acc, e) => acc + e.completionPercentage, 0) / v2Epics.length) || 0}
+                  size="sm"
+                  showLabel={false}
+                />
+                <span className="text-xs text-muted-foreground">V2.0</span>
+              </div>
+            </div>
+
+            <div className="flex-1 grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-primary">{implementedStories}</p>
+                <p className="text-xs text-muted-foreground">Stories Concluídas</p>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-primary">{totalStories}</p>
+                <p className="text-xs text-muted-foreground">Total Stories</p>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-primary">{mvpMetrics.completedEpics}</p>
+                <p className="text-xs text-muted-foreground">Épicos Completos</p>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold text-primary">{mvpMetrics.totalEpics}</p>
+                <p className="text-xs text-muted-foreground">Total Épicos</p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
