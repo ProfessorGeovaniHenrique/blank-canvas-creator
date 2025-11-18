@@ -11,18 +11,20 @@ import { CorpusCompleto, KWICContext } from "@/data/types/full-text-corpus.types
 export function generateKWIC(
   corpus: CorpusCompleto,
   palavraChave: string,
-  contextoSize: number = 5
+  contextoEsquerdaSize: number = 5,
+  contextoDireitaSize?: number
 ): KWICContext[] {
+  const contextoDireita = contextoDireitaSize ?? contextoEsquerdaSize;
   const resultados: KWICContext[] = [];
   const palavraNormalizada = palavraChave.toLowerCase().trim();
   
-  console.log(`🔍 Buscando KWIC para "${palavraChave}" com contexto de ${contextoSize} palavras`);
+  console.log(`🔍 Buscando KWIC para "${palavraChave}" com contexto ${contextoEsquerdaSize}←/→${contextoDireita}`);
   
   corpus.musicas.forEach((musica, musicaIdx) => {
     musica.palavras.forEach((palavra, idx) => {
       if (palavra === palavraNormalizada) {
-        const inicio = Math.max(0, idx - contextoSize);
-        const fim = Math.min(musica.palavras.length, idx + contextoSize + 1);
+        const inicio = Math.max(0, idx - contextoEsquerdaSize);
+        const fim = Math.min(musica.palavras.length, idx + contextoDireita + 1);
         
         const contextoEsquerdo = musica.palavras.slice(inicio, idx).join(' ');
         const contextoDireito = musica.palavras.slice(idx + 1, fim).join(' ');
