@@ -1,0 +1,92 @@
+name: 📊 Audit Project Metrics
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+      
+      - name: 📦 Instalar cloc (Count Lines of Code)
+        run: sudo apt-get install -y cloc
+      
+      - name: 📊 Contar arquivos e LOC
+        id: metrics
+        run: |
+          echo "📊 Contando arquivos e linhas de código..."
+          
+          # Contar total de arquivos (excluindo node_modules e build)
+          TOTAL_FILES=$(find src -type f \( -name "*.tsx" -o -name "*.ts" -o -name "*.css" \) | wc -l)
+          
+          # Usar cloc para contar LOC (apenas código, sem comentários)
+          cloc src --json --out=cloc_output.json
+          TOTAL_LOC=$(jq '.SUM.code' cloc_output.json)
+          
+          # Breakdown por diretório
+          COMPONENTS_LOC=$(cloc src/components --json 2>/dev/null | jq '.SUM.code // 0')
+          PAGES_LOC=$(cloc src/pages --json 2>/dev/null | jq '.SUM.code // 0')
+          HOOKS_LOC=$(cloc src/hooks --json 2>/dev/null | jq '.SUM.code // 0')
+          CONTEXTS_LOC=$(cloc src/contexts --json 2>/dev/null | jq '.SUM.code // 0')
+          EDGE_FUNCTIONS_LOC=$(cloc supabase/functions --json 2>/dev/null | jq '.SUM.code // 0')
+          
+          echo "total_files=$TOTAL_FILES" >> $GITHUB_OUTPUT
+          echo "total_loc=$TOTAL_LOC" >> $GITHUB_OUTPUT
+          echo "components_loc=$COMPONENTS_LOC" >> $GITHUB_OUTPUT
+          echo "pages_loc=$PAGES_LOC" >> $GITHUB_OUTPUT
+          echo "hooks_loc=$HOOKS_LOC" >> $GITHUB_OUTPUT
+          echo "contexts_loc=$CONTEXTS_LOC" >> $GITHUB_OUTPUT
+          echo "edge_functions_loc=$EDGE_FUNCTIONS_LOC" >> $GITHUB_OUTPUT
+          
+          echo "✅ Métricas calculadas:"
+          echo "  - Total de arquivos: $TOTAL_FILES"
+          echo "  - Total de LOC: $TOTAL_LOC"
+      
+      - name: 📤 Enviar métricas para Backend
+        env:
+          SUPABASE_URL: https://kywmhuubbsvclkorxrse.supabase.co
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl -X POST \
+            "${SUPABASE_URL}/functions/v1/audit-project-metrics" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "totalFiles": ${{ steps.metrics.outputs.total_files }},
+              "totalLOC": ${{ steps.metrics.outputs.total_loc }},
+              "breakdown": {
+                "components": ${{ steps.metrics.outputs.components_loc }},
+                "pages": ${{ steps.metrics.outputs.pages_loc }},
+                "hooks": ${{ steps.metrics.outputs.hooks_loc }},
+                "contexts": ${{ steps.metrics.outputs.contexts_loc }},
+                "edgeFunctions": ${{ steps.metrics.outputs.edge_functions_loc }}
+              },
+              "commit": "${{ github.sha }}",
+              "branch": "${{ github.ref_name }}",
+              "trigger": "github-actions"
+            }'
+      
+      - name: 💬 Comentar PR com métricas (se for PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📊 Métricas do Projeto\n\n` +
+                    `- **Total de arquivos:** ${{ steps.metrics.outputs.total_files }}\n` +
+                    `- **Linhas de código:** ${{ steps.metrics.outputs.total_loc }}\n\n` +
+                    `### Breakdown por diretório:\n` +
+                    `- Components: ${{ steps.metrics.outputs.components_loc }} LOC\n` +
+                    `- Pages: ${{ steps.metrics.outputs.pages_loc }} LOC\n` +
+                    `- Hooks: ${{ steps.metrics.outputs.hooks_loc }} LOC\n` +
+                    `- Contexts: ${{ steps.metrics.outputs.contexts_loc }} LOC\n` +
+                    `- Edge Functions: ${{ steps.metrics.outputs.edge_functions_loc }} LOC`
+            })
