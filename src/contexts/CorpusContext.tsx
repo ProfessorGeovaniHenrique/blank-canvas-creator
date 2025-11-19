@@ -1,8 +1,18 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { CorpusType } from '@/data/types/corpus-tools.types';
 import { parseTSVCorpus, calculateTotalTokens } from '@/lib/corpusParser';
 import { loadFullTextCorpus } from '@/lib/fullTextParser';
 import { CorpusCompleto } from '@/data/types/full-text-corpus.types';
+import { 
+  loadCorpusFromCache, 
+  saveCorpusToCache, 
+  invalidateCache,
+  cleanExpiredCache,
+  generateSafeFilterKey,
+  CorpusFilters as CacheFilters
+} from '@/lib/corpusIndexedDBCache';
+import { listenToCacheUpdates } from '@/lib/cacheSync';
+import { cacheMetrics } from '@/lib/cacheMetrics';
 
 /**
  * Carrega corpus específico para busca contextual isolada (sem alterar estado global)
@@ -42,14 +52,10 @@ interface WordlistCache {
 interface FullTextCache {
   corpus: CorpusCompleto;
   loadedAt: number;
+  source: 'memory' | 'indexeddb' | 'network';
 }
 
-interface CorpusFilters {
-  artistas?: string[];
-  albuns?: string[];
-  anoInicio?: number;
-  anoFim?: number;
-}
+export type CorpusFilters = CacheFilters;
 
 interface CorpusContextType {
   // Wordlist cache
@@ -71,7 +77,54 @@ const CACHE_TTL = 30 * 60 * 1000;
 export function CorpusProvider({ children }: { children: ReactNode }) {
   const [wordlistCache, setWordlistCache] = useState<Map<string, WordlistCache>>(new Map());
   const [fullTextCache, setFullTextCache] = useState<Map<string, FullTextCache>>(new Map());
+  const [decompressedMemoryCache, setDecompressedMemoryCache] = useState<Map<string, CorpusCompleto>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Promises de carregamento para prevenir race conditions
+  const loadingPromises = useCallback(() => {
+    const map = new Map<string, Promise<FullTextCache>>();
+    return map;
+  }, []);
+  const [activeLoads] = useState(loadingPromises);
+  
+  // Cleanup de caches expirados ao montar
+  useEffect(() => {
+    cleanExpiredCache().then(removed => {
+      if (removed > 0) {
+        console.log(`🗑️ ${removed} caches expirados removidos ao iniciar`);
+      }
+    });
+  }, []);
+  
+  // Escutar mudanças de cache de outras tabs
+  useEffect(() => {
+    const cleanup = listenToCacheUpdates((cacheKey, action) => {
+      if (action === 'deleted' || action === 'cleared') {
+        // Invalidar cache em memória
+        setFullTextCache(prev => {
+          const newCache = new Map(prev);
+          if (action === 'cleared') {
+            newCache.clear();
+          } else {
+            newCache.delete(cacheKey);
+          }
+          return newCache;
+        });
+        
+        setDecompressedMemoryCache(prev => {
+          const newCache = new Map(prev);
+          if (action === 'cleared') {
+            newCache.clear();
+          } else {
+            newCache.delete(cacheKey);
+          }
+          return newCache;
+        });
+      }
+    });
+    
+    return cleanup;
+  }, []);
 
   const getWordlistCache = useCallback(async (tipo: CorpusType, path: string): Promise<WordlistCache> => {
     const cacheKey = `${tipo}-${path}`;
@@ -108,45 +161,98 @@ export function CorpusProvider({ children }: { children: ReactNode }) {
   }, [wordlistCache]);
 
   const getFullTextCache = useCallback(async (tipo: CorpusType, filters?: CorpusFilters): Promise<FullTextCache> => {
+    const startTime = performance.now();
+    
     // Apenas gaucho e nordestino suportam full text
     if (tipo !== 'gaucho' && tipo !== 'nordestino') {
       throw new Error(`Full text corpus não disponível para tipo: ${tipo}`);
     }
     
-    const filterKey = filters ? JSON.stringify(filters) : 'none';
+    const filterKey = generateSafeFilterKey(filters);
     const cacheKey = `${tipo}-fulltext-${filterKey}`;
-    const cached = fullTextCache.get(cacheKey);
     
-    // Verificar se cache é válido
-    if (cached && (Date.now() - cached.loadedAt) < CACHE_TTL) {
-      console.log(`✅ Cache hit: corpus completo ${tipo}`);
-      return cached;
+    // 🔒 Verificar se já está carregando (prevenir race conditions)
+    const existingPromise = activeLoads.get(cacheKey);
+    if (existingPromise) {
+      console.log(`⏳ Aguardando carregamento em progresso: ${cacheKey}`);
+      return existingPromise;
     }
-
-    console.log(`📂 Cache miss: carregando corpus completo ${tipo}...`);
-    setIsLoading(true);
     
-    try {
-      const corpus = await loadFullTextCorpus(tipo as 'gaucho' | 'nordestino', filters);
-
-      const cache: FullTextCache = {
-        corpus,
-        loadedAt: Date.now()
+    // 1️⃣ Tentar memória descomprimida (mais rápido)
+    const memCorpus = decompressedMemoryCache.get(cacheKey);
+    if (memCorpus) {
+      console.log(`✅ Cache hit (memória): ${tipo} (${(performance.now() - startTime).toFixed(0)}ms)`);
+      cacheMetrics.recordHit();
+      return {
+        corpus: memCorpus,
+        loadedAt: Date.now(),
+        source: 'memory'
       };
-
-      setFullTextCache(prev => new Map(prev).set(cacheKey, cache));
-      console.log(`✅ Corpus completo ${tipo} carregado e cacheado: ${corpus.musicas.length} músicas`);
-      
-      return cache;
-    } finally {
-      setIsLoading(false);
     }
-  }, [fullTextCache]);
+    
+    // 2️⃣ Criar promise de carregamento
+    const loadPromise = (async (): Promise<FullTextCache> => {
+      try {
+        // 3️⃣ Tentar IndexedDB (persistente)
+        const idbCached = await loadCorpusFromCache(tipo, filters);
+        if (idbCached) {
+          console.log(`✅ Cache hit (IndexedDB): ${tipo} (${(performance.now() - startTime).toFixed(0)}ms)`);
+          
+          // Salvar versão descomprimida em memória
+          setDecompressedMemoryCache(prev => new Map(prev).set(cacheKey, idbCached));
+          
+          return {
+            corpus: idbCached,
+            loadedAt: Date.now(),
+            source: 'indexeddb'
+          };
+        }
+        
+        // 4️⃣ Fetch do arquivo (último recurso)
+        console.log(`📂 Cache miss completo: carregando ${tipo}...`);
+        setIsLoading(true);
+        
+        const corpus = await loadFullTextCorpus(tipo, filters);
+        
+        // 5️⃣ Salvar em AMBOS os caches
+        const cache: FullTextCache = {
+          corpus,
+          loadedAt: Date.now(),
+          source: 'network'
+        };
+        
+        // Memória descomprimida
+        setDecompressedMemoryCache(prev => new Map(prev).set(cacheKey, corpus));
+        
+        // IndexedDB comprimido (não bloquear resposta)
+        saveCorpusToCache(tipo, corpus, filters).catch(err => 
+          console.warn('⚠️ Falha ao salvar cache persistente:', err)
+        );
+        
+        console.log(`✅ ${tipo} carregado: ${corpus.totalMusicas} músicas (${(performance.now() - startTime).toFixed(0)}ms)`);
+        
+        return cache;
+        
+      } finally {
+        activeLoads.delete(cacheKey);
+        setIsLoading(false);
+      }
+    })();
+    
+    activeLoads.set(cacheKey, loadPromise);
+    return loadPromise;
+    
+  }, [decompressedMemoryCache, activeLoads]);
 
-  const clearCache = useCallback(() => {
+  const clearCache = useCallback(async () => {
     setWordlistCache(new Map());
     setFullTextCache(new Map());
-    console.log('🗑️ Cache limpo');
+    setDecompressedMemoryCache(new Map());
+    
+    // Limpar IndexedDB
+    await invalidateCache();
+    
+    console.log('🗑️ Cache completo limpo (memória + IndexedDB)');
   }, []);
 
   return (

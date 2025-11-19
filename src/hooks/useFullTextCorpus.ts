@@ -1,25 +1,20 @@
 import { useState, useEffect } from "react";
 import { CorpusCompleto } from "@/data/types/full-text-corpus.types";
-import { loadFullTextCorpus } from "@/lib/fullTextParser";
 import { CorpusType } from "@/data/types/corpus-tools.types";
+import { useCorpusCache, CorpusFilters } from "@/contexts/CorpusContext";
 
 /**
- * Hook to load and manage full-text corpus
- * Implements lazy loading and caching
+ * Hook to load and manage full-text corpus with persistent cache
  */
 export function useFullTextCorpus(
   tipo: CorpusType,
-  filters?: {
-    artistas?: string[];
-    albuns?: string[];
-    anoInicio?: number;
-    anoFim?: number;
-  }
+  filters?: CorpusFilters
 ) {
+  const { getFullTextCache } = useCorpusCache();
   const [corpus, setCorpus] = useState<CorpusCompleto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [cacheSource, setCacheSource] = useState<'memory' | 'indexeddb' | 'network' | null>(null);
   
   useEffect(() => {
     let isMounted = true;
@@ -27,21 +22,13 @@ export function useFullTextCorpus(
     const loadCorpus = async () => {
       setIsLoading(true);
       setError(null);
-      setProgress(0);
       
       try {
-        // Simulate progress for better UX
-        const progressInterval = setInterval(() => {
-          setProgress(prev => Math.min(prev + 10, 90));
-        }, 200);
-        
-        const parsed = await loadFullTextCorpus(tipo, filters);
-        
-        clearInterval(progressInterval);
+        const { corpus: loadedCorpus, source } = await getFullTextCache(tipo, filters);
         
         if (isMounted) {
-          setCorpus(parsed);
-          setProgress(100);
+          setCorpus(loadedCorpus);
+          setCacheSource(source);
         }
       } catch (err) {
         console.error('Erro ao carregar corpus:', err);
@@ -60,13 +47,13 @@ export function useFullTextCorpus(
     return () => {
       isMounted = false;
     };
-  }, [tipo, JSON.stringify(filters)]);
+  }, [tipo, JSON.stringify(filters), getFullTextCache]);
   
   return { 
     corpus, 
     isLoading, 
     error,
-    progress,
+    cacheSource,
     isReady: corpus !== null && !isLoading
   };
 }
