@@ -3,6 +3,7 @@ import { MetadataEnrichmentInterface } from "@/components/advanced";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Database, FileText, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CacheManagementPanel } from "@/components/admin/CacheManagementPanel";
 
 export default function AdminMetadataEnrichment() {
   return (
@@ -62,6 +63,9 @@ export default function AdminMetadataEnrichment() {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Cache Management Panel */}
+          <CacheManagementPanel />
 
           {/* Main Interface */}
           <MetadataEnrichmentInterface />
