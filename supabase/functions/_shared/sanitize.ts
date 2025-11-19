@@ -1,8 +1,16 @@
 /**
  * Utilitário de sanitização para prevenir erros de encoding no Postgres
  * Remove caracteres nulos (0x00) e caracteres de controle inválidos
+ * 
+ * Versão 2: Adiciona sanitizeObject para sanitização recursiva de objetos complexos
  */
 
+/**
+ * Sanitiza string removendo caracteres problemáticos
+ * @param input String de entrada (pode ser null/undefined)
+ * @param maxLength Tamanho máximo permitido (padrão: 2MB)
+ * @returns String sanitizada ou vazia se input for nulo
+ */
 export function sanitizeText(input?: string | null, maxLength = 2_000_000): string {
   if (!input) return '';
   
@@ -34,27 +42,40 @@ export function sanitizeArray(arr: string[]): string[] {
 }
 
 /**
- * Sanitiza objeto com campos de texto
- * Aplica sanitização recursivamente em strings
+ * Sanitiza objeto recursivamente
+ * Aplica sanitização em todas as strings, arrays e objetos aninhados
+ * 
+ * @param obj Objeto a ser sanitizado
+ * @param maxLength Tamanho máximo para strings (padrão: 2MB)
+ * @returns Objeto com todos os campos string sanitizados
+ * 
+ * @example
+ * const dirty = {
+ *   name: "Test\u0000Name",
+ *   nested: {
+ *     description: "Has\u0000nulls",
+ *     tags: ["tag\u00001", "tag2"]
+ *   }
+ * };
+ * const clean = sanitizeObject(dirty);
+ * // Retorna objeto sem \u0000 em nenhum campo
  */
-export function sanitizeObject<T extends Record<string, any>>(obj: T): T {
-  if (!obj || typeof obj !== 'object') return obj;
+export function sanitizeObject<T extends Record<string, any>>(obj: T, maxLength = 2_000_000): T {
+  if (obj == null) return obj;
   
-  const sanitized = { ...obj };
+  const out: any = Array.isArray(obj) ? [] : {};
   
-  for (const key in sanitized) {
-    const value = sanitized[key];
+  for (const key of Object.keys(obj)) {
+    const v = (obj as any)[key];
     
-    if (typeof value === 'string') {
-      sanitized[key] = sanitizeText(value) as any;
-    } else if (Array.isArray(value)) {
-      sanitized[key] = value.map((item: any) => 
-        typeof item === 'string' ? sanitizeText(item) : item
-      ) as any;
-    } else if (value && typeof value === 'object') {
-      sanitized[key] = sanitizeObject(value);
+    if (typeof v === 'string') {
+      out[key] = sanitizeText(v, maxLength);
+    } else if (v && typeof v === 'object') {
+      out[key] = sanitizeObject(v, maxLength);
+    } else {
+      out[key] = v;
     }
   }
   
-  return sanitized;
+  return out;
 }
