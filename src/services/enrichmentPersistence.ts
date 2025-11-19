@@ -10,6 +10,11 @@ import { logger } from '@/lib/logger';
  * Com retry logic e resolução de conflitos
  */
 
+// ✅ FASE 2: Constantes de validação de tamanho
+const MAX_CLOUD_PAYLOAD_MB = 8; // Margem de segurança (PostgREST aceita ~10MB)
+const MAX_CLOUD_PAYLOAD_BYTES = MAX_CLOUD_PAYLOAD_MB * 1024 * 1024;
+const WARN_SIZE_MB = 5; // Aviso quando sessão está ficando grande
+
 export interface CloudSession {
   id: string;
   user_id: string;
@@ -69,6 +74,30 @@ export async function saveSessionToCloud(
     const json = JSON.stringify(session);
     const compressed = LZString.compress(json);
 
+    // ✅ FASE 2: Validar tamanho do payload
+    const compressedSizeBytes = new Blob([compressed]).size;
+    const compressedSizeMB = compressedSizeBytes / 1024 / 1024;
+
+    logger.info(`☁️ Cloud save size: ${compressedSizeMB.toFixed(2)}MB (${session.songs.length} songs)`);
+
+    // ⚠️ Aviso preventivo
+    if (compressedSizeBytes > WARN_SIZE_MB * 1024 * 1024) {
+      notifications.warning(
+        'Sessão ficando grande',
+        `${compressedSizeMB.toFixed(1)}MB. Considere exportar dados validados.`
+      );
+    }
+
+    // 🚫 Rejeitar se exceder limite
+    if (compressedSizeBytes > MAX_CLOUD_PAYLOAD_BYTES) {
+      logger.error(`❌ Sessão muito grande para nuvem: ${compressedSizeMB.toFixed(2)}MB`);
+      notifications.error(
+        'Sessão muito grande para nuvem',
+        `${compressedSizeMB.toFixed(1)}MB excede limite de ${MAX_CLOUD_PAYLOAD_MB}MB. Salvando apenas localmente.`
+      );
+      return null; // ✅ Fallback gracioso para localStorage
+    }
+
     // Preparar dados para Supabase
     const cloudData = {
       user_id: user.id,
@@ -120,9 +149,30 @@ export async function saveSessionToCloud(
 
     logger.info(`☁️ Session saved to cloud (${json.length} bytes, compressed to ${compressed.length} bytes)`);
     return result.id;
-  } catch (error) {
-    logger.error('❌ Failed to save session to cloud:', error);
-    notifications.error('Erro ao salvar na nuvem', 'Continuando com salvamento local');
+  } catch (error: any) {
+    // ✅ FASE 2: Detectar erro específico de JSON inválido
+    if (error.code === 'PGRST102' || error.message?.includes('json')) {
+      const compressedSizeBytes = new Blob([compressed]).size;
+      logger.error('❌ PostgREST JSON Error (provavelmente tamanho):', {
+        errorCode: error.code,
+        errorMessage: error.message,
+        payloadSizeMB: (compressedSizeBytes / 1024 / 1024).toFixed(2),
+        sessionType: session.corpusType,
+        songsCount: session.songs.length,
+        metricsSnapshot: {
+          validated: session.metrics.validatedSongs,
+          enriched: session.metrics.enrichedSongs
+        }
+      });
+      
+      notifications.error(
+        'Erro ao salvar na nuvem',
+        'Sessão muito grande ou formato inválido. Dados salvos localmente.'
+      );
+    } else {
+      logger.error('❌ Failed to save session to cloud:', error);
+      notifications.error('Erro ao salvar na nuvem', 'Continuando com salvamento local');
+    }
     return null;
   }
 }
