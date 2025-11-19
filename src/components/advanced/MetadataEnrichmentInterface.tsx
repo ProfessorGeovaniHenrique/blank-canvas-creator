@@ -79,6 +79,9 @@ export function MetadataEnrichmentInterface() {
   const [cloudSessionId, setCloudSessionId] = useState<string | null>(null);
   const [sessionStartTime, setSessionStartTime] = useState<string>(new Date().toISOString());
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [hasAttemptedRestore, setHasAttemptedRestore] = useState(false); // FASE 1: Guard para evitar loop
+  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null); // FASE 4: Role do usuário
+  const [isCheckingRole, setIsCheckingRole] = useState(false); // FASE 4: Loading state
   const [localSessionToRestore, setLocalSessionToRestore] = useState<EnrichmentSession | null>(null);
   const [cloudSessionToRestore, setCloudSessionToRestore] = useState<EnrichmentSession | null>(null);
   
@@ -259,21 +262,63 @@ export function MetadataEnrichmentInterface() {
     }
   }, [songs, corpusType, currentIndex, isEnriching, isPaused, metrics, sessionStartTime, user, isOnline, cloudSessionId, persistence, startSaving, completeSaving, setSaveError, broadcastSessionUpdate]);
 
-  // Carregar sessão ao montar
+  // Carregar sessão ao montar (FASE 1: Com guard para evitar loop)
   useEffect(() => {
-    const loadSavedSession = async () => {
-      const localSession = persistence.loadSession();
-      const cloudSession = user ? await loadSessionFromCloud() : null;
+    // ✅ Guard: executar apenas uma vez
+    if (hasAttemptedRestore) return;
 
-      if (localSession || cloudSession) {
-        setLocalSessionToRestore(localSession);
-        setCloudSessionToRestore(cloudSession);
-        setShowRestoreDialog(true);
+    const loadSavedSession = async () => {
+      try {
+        const localSession = persistence.loadSession();
+        const cloudSession = user ? await loadSessionFromCloud() : null;
+
+        if (localSession || cloudSession) {
+          setLocalSessionToRestore(localSession);
+          setCloudSessionToRestore(cloudSession);
+          setShowRestoreDialog(true);
+        }
+      } finally {
+        setHasAttemptedRestore(true); // ✅ Marcar como executado
       }
     };
 
     loadSavedSession();
-  }, [user, persistence]);
+  }, [user]); // ✅ Remover 'persistence' das dependências
+
+  // FASE 4: Verificar role do usuário
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (!user) {
+        setUserRole(null);
+        return;
+      }
+      
+      setIsCheckingRole(true);
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle(); // ✅ maybeSingle() para evitar erro se não existir
+        
+        if (error) {
+          logger.warn('⚠️ Erro ao buscar role', { error: error.message, code: error.code });
+          setUserRole('user'); // ✅ Fallback seguro
+          return;
+        }
+        
+        setUserRole(data?.role === 'admin' ? 'admin' : 'user');
+        logger.info(`👤 User role: ${data?.role || 'user'}`);
+      } catch (err) {
+        logger.error('❌ Erro ao verificar role:', err);
+        setUserRole('user');
+      } finally {
+        setIsCheckingRole(false);
+      }
+    };
+    
+    checkUserRole();
+  }, [user]);
 
 
   const handleRestoreSession = (source: 'local' | 'cloud') => {
@@ -298,6 +343,7 @@ export function MetadataEnrichmentInterface() {
     persistence.clearSession();
     setLocalSessionToRestore(null);
     setCloudSessionToRestore(null);
+    setShowRestoreDialog(false); // FASE 3: Fechar dialog
     broadcastSessionClear();
     toast.success('Sessão descartada');
   };
@@ -929,25 +975,39 @@ export function MetadataEnrichmentInterface() {
                 Exportar Relatório Completo
               </Button>
               
-              {/* FASE 3: Botão Aplicar ao Corpus */}
-              <Button 
-                onClick={applyToCorpus} 
-                variant="default"
-                disabled={stats.validated === 0 || isApplying}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              >
-                {isApplying ? (
-                  <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" />
-                    Aplicando...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Aplicar ao Corpus ({stats.validated})
-                  </>
+              {/* FASE 4: Botão Aplicar ao Corpus (com validação de role) */}
+              <div className="flex flex-col gap-2">
+                <Button 
+                  onClick={applyToCorpus} 
+                  variant="default"
+                  disabled={stats.validated === 0 || isApplying || userRole !== 'admin'}
+                  className={userRole === 'admin' 
+                    ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    : "opacity-50 cursor-not-allowed"
+                  }
+                >
+                  {isApplying ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Aplicando...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Aplicar ao Corpus ({stats.validated})
+                    </>
+                  )}
+                </Button>
+                
+                {/* ✅ Feedback visual para não-admins */}
+                {userRole !== 'admin' && stats.validated > 0 && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                    <span>⚠️</span>
+                    Apenas administradores podem aplicar metadados ao corpus. 
+                    Use a exportação CSV para compartilhar seus dados validados.
+                  </p>
                 )}
-              </Button>
+              </div>
             </div>
           )}
 
