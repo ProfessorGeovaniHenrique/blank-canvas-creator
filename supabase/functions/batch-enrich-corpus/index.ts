@@ -380,24 +380,32 @@ function parseCorpus(text: string): any[] {
     const lines = block.trim().split('\n').filter(l => l.trim());
     if (lines.length < 2) continue;
     
-    // Linha 1: "Artista - Álbum Ano" ou "Artista - Álbum"
-    const line1Match = lines[0].match(/^(.+?)\s+-\s+(.+?)(\d{4})?$/);
-    if (!line1Match) continue;
+    // Linha 1: "Artista - Álbum" (captura álbum completo incluindo ano se houver)
+    const line1Match = lines[0].match(/^(.+?)\s+-\s+(.+)$/);
+    if (!line1Match) {
+      console.warn(`[parseCorpus] Linha 1 não deu match: ${lines[0]}`);
+      continue;
+    }
     
     const artista = line1Match[1].trim();
-    const albumInfo = line1Match[2].trim();
-    const anoAlbum = line1Match[3] || '';
+    const albumInfo = line1Match[2].trim(); // Álbum completo com ano
     
     // Linha 2: "Titulo_Ano" ou apenas "Titulo"
     const line2Parts = lines[1].split('_');
     const musica = line2Parts[0].trim();
-    const anoMusica = line2Parts[1] ? line2Parts[1].trim() : anoAlbum;
+    const ano = line2Parts[1] ? line2Parts[1].trim() : '';
+    
+    // Validação adicional
+    if (!artista || !musica) {
+      console.warn(`[parseCorpus] Artista ou música vazio - pulando`);
+      continue;
+    }
     
     songs.push({
       artista,
       musica,
       compositor: '', // Sempre vazio no corpus atual - precisa enriquecimento
-      ano: anoMusica,
+      ano: ano,
       album: albumInfo
     });
   }
