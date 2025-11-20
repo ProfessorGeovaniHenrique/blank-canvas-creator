@@ -38,7 +38,14 @@ export function CancelJobDialog({ jobId, jobType, onCancelled }: CancelJobDialog
       setReason('');
       onCancelled?.();
     } catch (error: any) {
-      toast.error(`Erro ao cancelar job: ${error.message}`);
+      if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+        toast.error(
+          'Job está em execução pesada', 
+          { description: 'O job não pôde ser cancelado no momento. Tente novamente em alguns segundos.' }
+        );
+      } else {
+        toast.error(`Erro ao cancelar job: ${error.message}`);
+      }
     } finally {
       setIsCancelling(false);
     }
