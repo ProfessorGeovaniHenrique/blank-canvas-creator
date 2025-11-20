@@ -90,8 +90,12 @@ function parseGutenbergBlock(block: string): VerbeteGutenberg | null {
     // 1. Verbete: Primeira linha (deve ser maiúscula e ter pelo menos 2 caracteres)
     const verbeteRaw = lines[0];
     
-    // Validação: deve ser predominantemente maiúsculo e ter caracteres alfabéticos
-    if (verbeteRaw.length < 2 || !/[A-ZÁÀÃÉÊÍÓÔÚÇ]/.test(verbeteRaw)) {
+    // ✅ VALIDAÇÃO ROBUSTA: Deve ser toda em maiúsculas (ou quase toda)
+    const upperCount = (verbeteRaw.match(/[A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑ]/g) || []).length;
+    const alphaCount = (verbeteRaw.match(/[A-Za-zÁÀÃÂÉÊÍÓÔÕÚÇÑáàãâéêíóôõúçñ]/g) || []).length;
+    
+    // Se menos de 80% das letras são maiúsculas, não é um verbete válido
+    if (verbeteRaw.length < 2 || alphaCount === 0 || (upperCount / alphaCount) < 0.8) {
       return null;
     }
     
@@ -142,7 +146,7 @@ function parseGutenbergBlock(block: string): VerbeteGutenberg | null {
       contexto: null
     }];
 
-    console.log(`✅ Bloco parseado: ${verbete} (${classeGramatical || 'sem classe'})`);
+    // Removido log individual para evitar poluição - logs consolidados no final
     
     const entry_type = verbete.trim().includes(' ') ? 'mwe' : 'word';
 
@@ -228,6 +232,9 @@ async function processInBackground(jobId: string, blocks: string[]) {
   let erros = 0;
   let batchCount = 0;
   let blocosInvalidos = 0;
+  
+  // Para estatísticas de parsing detalhadas
+  const parsingErrors: { type: string, sample: string }[] = [];
 
   try {
     for (let i = 0; i < totalBlocks; i += BATCH_SIZE) {
@@ -274,9 +281,12 @@ async function processInBackground(jobId: string, blocks: string[]) {
           erros++;
           blocosInvalidos++;
           
-          // Log apenas dos primeiros 5 erros
-          if (erros <= 5) {
-            console.warn(`⚠️ Bloco rejeitado (${block.substring(0, 50)}...)`);
+          // Coletar amostragem de erros de parsing (até 5)
+          if (parsingErrors.length < 5) {
+            parsingErrors.push({
+              type: 'parser_falhou',
+              sample: block.substring(0, 150)
+            });
           }
         }
         
@@ -353,6 +363,21 @@ async function processInBackground(jobId: string, blocks: string[]) {
       })
       .eq('id', jobId);
 
+    // 📊 LOGS DIAGNÓSTICOS FINAIS - Parsing
+    console.log(`\n📊 [Gutenberg] ESTATÍSTICAS DE PARSING:\n` +
+      `   - Blocos processados: ${processados}\n` +
+      `   - Verbetes inseridos: ${inseridos}\n` +
+      `   - Falhas de parsing: ${blocosInvalidos}\n` +
+      `   - Taxa de sucesso: ${((inseridos / processados) * 100).toFixed(1)}%\n` +
+      `   - Taxa de falha: ${((blocosInvalidos / processados) * 100).toFixed(1)}%\n`);
+    
+    if (parsingErrors.length > 0) {
+      console.log(`\n📊 [Gutenberg] AMOSTRAGEM DE ERROS DE PARSING (até 5):`);
+      parsingErrors.forEach((err, idx) => {
+        console.log(`   ${idx + 1}. Tipo: ${err.type}\n      Sample: "${err.sample}..."\n`);
+      });
+    }
+    
     logJobComplete({
       fonte: 'Gutenberg',
       jobId,
@@ -411,13 +436,87 @@ serve(withInstrumentation('process-gutenberg-dictionary', async (req) => {
     
     console.log(`[process-gutenberg] Iniciando processamento para job ${jobId}`);
     
-    // ✅ FASE 1: Split por blocos (uma ou mais linhas vazias)
-    const blocks = fileContent
-      .split(/\n\s*\n/)
+    // 📊 LOGS DIAGNÓSTICOS - Arquivo Recebido
+    const fileStats = {
+      tamanho: fileContent.length,
+      linhas: fileContent.split('\n').length,
+      linhaSeparadora: '\\n\\n (duas quebras consecutivas)'
+    };
+    
+    console.log(`\n📊 [Gutenberg] ARQUIVO RECEBIDO:\n` +
+      `   - Tamanho: ${(fileStats.tamanho / 1024 / 1024).toFixed(2)}MB\n` +
+      `   - Total de linhas: ${fileStats.linhas.toLocaleString()}\n` +
+      `   - Separador de blocos: ${fileStats.linhaSeparadora}\n`);
+    
+    // ✅ NOVO SPLIT ROBUSTO: Usar regex com lookahead para identificar início de verbete
+    // Padrão: Linha que começa com palavra toda em MAIÚSCULAS (opcionalmente seguida de ponto)
+    const verbeteStartRegex = /(?=^[A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑ][A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑ\s-]+\.?\s*$)/m;
+    
+    // Split inicial por esse padrão
+    let blocks = fileContent.split(verbeteStartRegex)
       .map(b => b.trim())
       .filter(b => b.length > 0);
     
-    console.log(`[process-gutenberg] ${blocks.length} blocos encontrados`);
+    // 📊 LOGS DIAGNÓSTICOS - Split
+    console.log(`\n📊 [Gutenberg] SPLIT POR REGEX (lookahead):\n` +
+      `   - Regex pattern: /(?=^[A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑ][A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑ\\s-]+\\.?\\s*$)/m\n` +
+      `   - Blocos detectados: ${blocks.length.toLocaleString()}\n`);
+    
+    // Filtrar blocos muito pequenos ou muito grandes (rejeitados)
+    const MIN_BLOCK_SIZE = 10;  // Muito curto = ruído
+    const MAX_BLOCK_SIZE = 5000; // Muito longo = provável junção incorreta
+    
+    const rejectedBlocks: { reason: string, sample: string, count: number }[] = [];
+    let tooShortCount = 0;
+    let tooLongCount = 0;
+    
+    const validBlocks = blocks.filter(block => {
+      if (block.length < MIN_BLOCK_SIZE) {
+        tooShortCount++;
+        if (rejectedBlocks.length < 3) {
+          rejectedBlocks.push({
+            reason: 'muito curto (< 10 chars)',
+            sample: block.substring(0, 100),
+            count: 1
+          });
+        }
+        return false;
+      }
+      
+      if (block.length > MAX_BLOCK_SIZE) {
+        tooLongCount++;
+        if (rejectedBlocks.length < 3) {
+          rejectedBlocks.push({
+            reason: 'muito longo (> 5000 chars)',
+            sample: block.substring(0, 150) + '...',
+            count: 1
+          });
+        }
+        return false;
+      }
+      
+      return true;
+    });
+    
+    blocks = validBlocks;
+    
+    // 📊 LOGS DIAGNÓSTICOS - Rejeição
+    console.log(`\n📊 [Gutenberg] REJEIÇÃO DE BLOCOS:\n` +
+      `   - Rejeitados muito curtos: ${tooShortCount}\n` +
+      `   - Rejeitados muito longos: ${tooLongCount}\n` +
+      `   - Total rejeitado: ${tooShortCount + tooLongCount}\n` +
+      `   - Blocos válidos aceitos: ${blocks.length.toLocaleString()}\n` +
+      `   - Taxa de aceitação: ${((blocks.length / (blocks.length + tooShortCount + tooLongCount)) * 100).toFixed(1)}%\n`);
+    
+    // 📊 Amostragem de rejeições
+    if (rejectedBlocks.length > 0) {
+      console.log(`\n📊 [Gutenberg] AMOSTRAGEM DE REJEIÇÕES (até 3):`);
+      rejectedBlocks.forEach((rej, idx) => {
+        console.log(`   ${idx + 1}. Razão: ${rej.reason}\n      Sample: "${rej.sample}"\n`);
+      });
+    }
+    
+    console.log(`\n[process-gutenberg] ✅ ${blocks.length} blocos válidos para processamento`);
 
     // Atualizar job com total de blocos
     await supabase
