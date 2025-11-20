@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       body: {
         jobId: job.id,
         fileContent,
-        volumeNum: 'UNIFICADO',
+        volumeNum: 'I', // Processo unificado usa volume I como padrão
         offset: job.offset_inicial || 0
       }
     });

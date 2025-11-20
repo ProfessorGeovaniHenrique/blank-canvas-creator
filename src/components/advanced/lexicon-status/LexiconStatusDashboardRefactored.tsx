@@ -49,10 +49,10 @@ export function LexiconStatusDashboardRefactored() {
     );
   }
 
-  if (!stats) {
+  if (!stats || !stats.gaucho || !stats.navarro || !stats.gutenberg || !stats.rochaPombo || !stats.unesp || !stats.overall) {
     return (
       <Alert>
-        <AlertDescription>Nenhuma estatística disponível</AlertDescription>
+        <AlertDescription>Nenhuma estatística disponível ou estrutura de dados incompleta</AlertDescription>
       </Alert>
     );
   }
