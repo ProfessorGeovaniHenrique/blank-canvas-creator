@@ -1,0 +1,155 @@
+import { useState } from 'react';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable';
+import { VerbeteList } from './VerbeteList';
+import { VerbeteEditor } from './VerbeteEditor';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart3 } from 'lucide-react';
+
+export type ValidationStatus = 'pending' | 'approved' | 'corrected' | 'rejected';
+
+export interface DictionaryEntry {
+  id: string;
+  verbete: string;
+  verbete_normalizado: string;
+  classe_gramatical?: string | null;
+  definicoes?: any;
+  validation_status: ValidationStatus;
+  validation_notes?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  // Raw data for comparison
+  raw_data?: any;
+}
+
+interface ValidationWorkspaceProps {
+  entries: DictionaryEntry[];
+  isLoading?: boolean;
+  onApprove: (id: string) => Promise<void>;
+  onReject: (id: string, notes?: string) => Promise<void>;
+  onSave: (id: string, data: Partial<DictionaryEntry>) => Promise<void>;
+  onRefetch?: () => void;
+}
+
+export function ValidationWorkspace({
+  entries,
+  isLoading = false,
+  onApprove,
+  onReject,
+  onSave,
+  onRefetch,
+}: ValidationWorkspaceProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ValidationStatus>('pending');
+
+  const filteredEntries = entries.filter(e => e.validation_status === statusFilter);
+  const selectedEntry = entries.find(e => e.id === selectedId);
+
+  const stats = {
+    total: entries.length,
+    pending: entries.filter(e => e.validation_status === 'pending').length,
+    approved: entries.filter(e => e.validation_status === 'approved').length,
+    rejected: entries.filter(e => e.validation_status === 'rejected').length,
+    corrected: entries.filter(e => e.validation_status === 'corrected').length,
+  };
+
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    const currentIndex = filteredEntries.findIndex(e => e.id === selectedId);
+    if (currentIndex === -1) return;
+
+    const nextIndex = direction === 'next' 
+      ? (currentIndex + 1) % filteredEntries.length
+      : (currentIndex - 1 + filteredEntries.length) % filteredEntries.length;
+
+    setSelectedId(filteredEntries[nextIndex]?.id || null);
+  };
+
+  const handleApproveAndNext = async (id: string) => {
+    await onApprove(id);
+    handleNavigate('next');
+    onRefetch?.();
+  };
+
+  const handleRejectAndNext = async (id: string, notes?: string) => {
+    await onReject(id, notes);
+    handleNavigate('next');
+    onRefetch?.();
+  };
+
+  return (
+    <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-12rem)] w-full rounded-lg border">
+      {/* Left Panel - List */}
+      <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+        <VerbeteList
+          entries={filteredEntries}
+          selectedId={selectedId}
+          statusFilter={statusFilter}
+          onSelect={setSelectedId}
+          onFilterChange={setStatusFilter}
+          stats={stats}
+          isLoading={isLoading}
+        />
+      </ResizablePanel>
+
+      <ResizableHandle withHandle />
+
+      {/* Right Panel - Editor */}
+      <ResizablePanel defaultSize={70}>
+        <div className="h-full overflow-y-auto">
+          {!selectedEntry ? (
+            <div className="flex h-full items-center justify-center p-8">
+              <Card className="max-w-md">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Estatísticas de Validação
+                  </CardTitle>
+                  <CardDescription>
+                    Selecione um verbete na lista para começar a validação
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total:</span>
+                    <span className="font-semibold">{stats.total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Pendentes:</span>
+                    <span className="font-semibold text-yellow-600">{stats.pending}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Aprovados:</span>
+                    <span className="font-semibold text-green-600">{stats.approved}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Corrigidos:</span>
+                    <span className="font-semibold text-blue-600">{stats.corrected}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Rejeitados:</span>
+                    <span className="font-semibold text-red-600">{stats.rejected}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <VerbeteEditor
+              entry={selectedEntry}
+              onApprove={handleApproveAndNext}
+              onReject={handleRejectAndNext}
+              onSave={onSave}
+              onNavigate={handleNavigate}
+              canNavigate={{
+                prev: filteredEntries.length > 0,
+                next: filteredEntries.length > 0,
+              }}
+            />
+          )}
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  );
+}
