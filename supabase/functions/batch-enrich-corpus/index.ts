@@ -16,14 +16,17 @@ interface EnrichmentResult {
 }
 
 /**
- * Carrega corpus dos arquivos públicos via HTTP
- * Para nordestino, concatena as 3 partes
+ * Carrega corpus do Supabase Storage ou HTTP
+ * Para nordestino, concatena as 3 partes via HTTP
+ * Para gaucho, carrega do Storage para suportar arquivos grandes
  */
-async function loadCorpusFromPublic(corpusType: string, projectBaseUrl: string): Promise<string> {
-  // Usar a URL base do projeto passada como parâmetro
+async function loadCorpusFromStorage(corpusType: string, projectBaseUrl: string): Promise<string> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
   
   if (corpusType === 'nordestino') {
-    console.log('Carregando corpus nordestino (3 partes)...');
+    console.log('Carregando corpus nordestino (3 partes) via HTTP...');
     
     try {
       const parts = await Promise.all([
@@ -52,23 +55,29 @@ async function loadCorpusFromPublic(corpusType: string, projectBaseUrl: string):
     }
   }
   
-  // Para gaucho, é um arquivo único
-  console.log('Carregando corpus gaucho...');
+  // Para gaucho, carregar do Supabase Storage (suporta arquivos grandes)
+  console.log('Carregando corpus gaucho do Supabase Storage...');
   
   try {
-    const response = await fetch(`${projectBaseUrl}/corpus/full-text/gaucho-completo.txt`);
+    const { data, error } = await supabase.storage
+      .from('corpus')
+      .download('full-text/gaucho-completo.txt');
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (error) {
+      throw new Error(`Storage error: ${error.message}`);
     }
     
-    const text = await response.text();
-    console.log(`Corpus gaucho carregado: ${text.length} caracteres`);
+    if (!data) {
+      throw new Error('Arquivo não encontrado no Storage');
+    }
+    
+    const text = await data.text();
+    console.log(`Corpus gaucho carregado do Storage: ${text.length} caracteres`);
     return text;
     
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error('Erro ao carregar corpus gaucho:', errorMsg);
+    console.error('Erro ao carregar corpus gaucho do Storage:', errorMsg);
     throw new Error(`Falha ao carregar corpus gaucho: ${errorMsg}`);
   }
 }
@@ -190,9 +199,9 @@ async function processEnrichment(
       .update({ status: 'processing' })
       .eq('id', jobId);
 
-    // 1. Carregar corpus via HTTP (arquivos em public/)
-    console.log(`[Job ${jobId}] Carregando corpus ${corpusType} via HTTP...`);
-    const corpusText = await loadCorpusFromPublic(corpusType, projectBaseUrl);
+    // 1. Carregar corpus (Storage para gaucho, HTTP para nordestino)
+    console.log(`[Job ${jobId}] Carregando corpus ${corpusType}...`);
+    const corpusText = await loadCorpusFromStorage(corpusType, projectBaseUrl);
     
     // 2. Parsear corpus e identificar músicas sem metadados
     const songs = parseCorpus(corpusText);
