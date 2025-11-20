@@ -64,15 +64,20 @@ async function loadCorpusFromStorage(corpusType: string, projectBaseUrl: string)
       .download('full-text/gaucho-completo.txt');
     
     if (error) {
-      throw new Error(`Storage error: ${error.message}`);
+      console.error('Erro do Storage:', error);
+      throw new Error(`Storage error: ${error.message || JSON.stringify(error)}`);
     }
     
     if (!data) {
       throw new Error('Arquivo não encontrado no Storage');
     }
+
+    const fileSize = data.size;
+    console.log(`Arquivo baixado do Storage: ${fileSize} bytes (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
     
     const text = await data.text();
-    console.log(`Corpus gaucho carregado do Storage: ${text.length} caracteres`);
+    const lines = text.split('\n').length;
+    console.log(`Corpus gaucho carregado: ${text.length} caracteres, ${lines} linhas`);
     return text;
     
   } catch (error) {
@@ -204,7 +209,9 @@ async function processEnrichment(
     const corpusText = await loadCorpusFromStorage(corpusType, projectBaseUrl);
     
     // 2. Parsear corpus e identificar músicas sem metadados
+    console.log(`[Job ${jobId}] Parseando corpus...`);
     const songs = parseCorpus(corpusText);
+    console.log(`[Job ${jobId}] Total de músicas identificadas: ${songs.length}`);
     const toEnrich = songs.filter(s => !s.compositor || s.compositor.trim() === '');
     
     console.log(`[Job ${jobId}] Total de músicas: ${songs.length}, Para enriquecer: ${toEnrich.length}`);
