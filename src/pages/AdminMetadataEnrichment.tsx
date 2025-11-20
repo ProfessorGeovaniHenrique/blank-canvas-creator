@@ -1,9 +1,10 @@
 import { AdminBreadcrumb } from "@/components/AdminBreadcrumb";
 import { MetadataEnrichmentInterface } from "@/components/advanced";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Database, FileText, Info } from "lucide-react";
+import { Sparkles, Database, FileText, Info, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CacheManagementPanel } from "@/components/admin/CacheManagementPanel";
+import { UploadCorpusButton } from "@/components/admin/metadata/UploadCorpusButton";
 
 export default function AdminMetadataEnrichment() {
   return (
@@ -64,6 +65,33 @@ export default function AdminMetadataEnrichment() {
             </CardContent>
           </Card>
           
+          {/* Corpus Upload Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-blue-500" />
+                Upload de Corpus para Storage
+              </CardTitle>
+              <CardDescription>
+                Faça upload dos arquivos de corpus para o Supabase Storage antes de iniciar o enriquecimento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert className="mb-4">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Importante</AlertTitle>
+                <AlertDescription>
+                  O corpus gaúcho (~45MB) precisa estar no Storage para ser processado corretamente. 
+                  Execute o upload apenas uma vez. O sistema verificará se o arquivo já existe.
+                </AlertDescription>
+              </Alert>
+              <div className="flex gap-4">
+                <UploadCorpusButton corpusType="gaucho" />
+                <UploadCorpusButton corpusType="nordestino" />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Cache Management Panel */}
           <CacheManagementPanel />
 
