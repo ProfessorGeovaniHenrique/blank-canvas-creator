@@ -124,7 +124,7 @@ export default function AdminDictionaryImport() {
     <div className="min-h-screen bg-background">
       <MVPHeader />
       
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="container mx-auto pt-32 pb-8 px-4 max-w-7xl">
         <AdminBreadcrumb currentPage="Importação de Dicionários" />
         
         {/* Quick Status Cards */}
