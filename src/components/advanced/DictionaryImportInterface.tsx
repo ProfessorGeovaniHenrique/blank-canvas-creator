@@ -121,72 +121,45 @@ export function DictionaryImportInterface() {
   const importGutenberg = async () => {
     setIsImportingGutenberg(true);
     try {
-      toast.info('Gutenberg: Carregando arquivo grande (~700k verbetes)...');
+      toast.info('Iniciando importação do Gutenberg via backend...');
       
-      const response = await fetch('/src/data/dictionaries/gutenberg-completo.txt');
-      if (!response.ok) {
-        toast.error('Arquivo Gutenberg não encontrado');
-        return;
-      }
+      // Chamar nova edge function que processa direto do repositório
+      let complete = false;
+      let callCount = 0;
       
-      const fullContent = await response.text();
-      if (!fullContent || fullContent.trim().length === 0) {
-        toast.error('Arquivo Gutenberg vazio');
-        return;
-      }
-
-      // ✅ Dividir em verbetes (separados por \n\n)
-      const verbetes = fullContent.split('\n\n').filter(v => v.trim());
-      toast.info(`${verbetes.length.toLocaleString()} verbetes encontrados. Dividindo em chunks...`);
-
-      // ✅ Criar chunks de até 5MB (margem de segurança ampla para 20MB com overhead)
-      const MAX_CHUNK_SIZE = 5_000_000; // 5MB
-      const chunks: string[] = [];
-      let currentChunk = '';
-      
-      for (const verbete of verbetes) {
-        const verbeteWithSeparator = verbete + '\n\n';
-        if ((currentChunk + verbeteWithSeparator).length > MAX_CHUNK_SIZE && currentChunk) {
-          chunks.push(currentChunk);
-          currentChunk = verbeteWithSeparator;
-        } else {
-          currentChunk += verbeteWithSeparator;
-        }
-      }
-      if (currentChunk) chunks.push(currentChunk);
-
-      toast.info(`Arquivo dividido em ${chunks.length} chunks. Iniciando importação...`);
-
-      // ✅ Enviar chunks sequencialmente
-      let jobId: string | null = null;
-      for (let i = 0; i < chunks.length; i++) {
-        toast.info(`Enviando chunk ${i + 1}/${chunks.length}...`);
+      while (!complete && callCount < 50) {
+        const { data, error } = await supabase.functions.invoke('import-gutenberg-backend');
         
-        const { data, error } = await supabase.functions.invoke('process-gutenberg-dictionary', {
-          body: { 
-            fileContent: chunks[i], 
-            batchSize: 5000,
-            startIndex: 0 // Edge function cria jobs separados ou continua o mesmo
-          }
-        });
-
         if (error) {
-          toast.error(`Erro no chunk ${i + 1}: ${error.message}`);
-          break;
+          throw new Error(error.message);
         }
         
-        if (i === 0) {
-          jobId = data.jobId;
-          toast.success(`Importação iniciada! Job ID: ${jobId}`);
+        if (data?.success) {
+          complete = data.complete;
+          toast.info(
+            `Processados: ${data.processados}/${data.total} (${data.inseridos} inseridos)`,
+            { duration: 2000 }
+          );
+          
+          if (!complete) {
+            // Aguardar 2s antes da próxima chamada
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        } else {
+          throw new Error(data?.error || 'Erro desconhecido');
         }
+        
+        callCount++;
       }
-
-      if (jobId) {
-        toast.success(`Todos os chunks enviados! Processamento em andamento.`);
+      
+      if (complete) {
+        toast.success('Importação do Gutenberg concluída com sucesso!');
         setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 500);
+      } else {
+        toast.warning('Importação ainda em andamento. Continue chamando a função ou aguarde.');
       }
     } catch (error: any) {
-      toast.error(`Erro ao iniciar importação do Gutenberg: ${error.message}`);
+      toast.error(`Erro ao importar Gutenberg: ${error.message}`);
     } finally {
       setIsImportingGutenberg(false);
     }
