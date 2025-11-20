@@ -29,5 +29,8 @@ verify_jwt = true
 
 [functions.divide-and-upload-corpus]
 verify_jwt = true
-# Motivo: Requer autenticação para dividir e fazer upload de corpus
-# Proteção: Apenas usuários autenticados (admins) podem processar corpus
+
+[functions.import-gutenberg-backend]
+verify_jwt = true
+# Importação do dicionário Gutenberg via backend
+# Proteção: Apenas usuários autenticados (admins)

@@ -1395,112 +1395,29 @@ export function MetadataEnrichmentInterface() {
                     )}
                   </div>
                 ) : (
-                  displaySongs
-                  .filter(song => {
-                    if (confidenceFilter === 'all') return true;
-                    if (!song.sugestao) return false;
-                    const conf = song.sugestao.confianca;
-                    if (confidenceFilter === 'high') return conf >= 85;
-                    if (confidenceFilter === 'medium') return conf >= 70 && conf < 85;
-                    if (confidenceFilter === 'low') return conf < 70;
-                    return true;
-                  })
-                  .map((song, index) => (
-                  <div 
-                    key={index}
-                    className="p-4 border rounded-lg space-y-2"
-                  >
-                    {/* Original Data */}
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="font-semibold">{song.musica}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {song.artista} {song.album && `- ${song.album}`}
-                        </div>
-                        {song.ano && (
-                          <div className="text-xs text-muted-foreground">Ano: {song.ano}</div>
-                        )}
-                      </div>
-                      
-                      <Badge variant={
-                        song.status === 'validated' ? 'default' :
-                        song.status === 'rejected' ? 'destructive' :
-                        song.status === 'enriching' ? 'secondary' :
-                        'outline'
-                      }>
-                        {song.status}
-                      </Badge>
-                    </div>
-
-                    {/* Suggestion */}
-                    {song.sugestao && song.status !== 'validated' && song.status !== 'rejected' && (
-                      <div className={`p-3 rounded space-y-2 ${
-                        song.sugestao.confianca < 70 
-                          ? 'bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-700' 
-                          : 'bg-blue-50 dark:bg-blue-950/20'
-                      }`}>
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          {song.sugestao.fonte === 'musicbrainz' ? (
-                            <Database className="h-4 w-4" />
-                          ) : (
-                            <Sparkles className="h-4 w-4" />
-                          )}
-                          <span>Sugestão</span>
-                          <Badge className={getConfidenceBadge(song.sugestao.confianca).className}>
-                            {getConfidenceBadge(song.sugestao.confianca).icon} {song.sugestao.confianca}% - {getConfidenceBadge(song.sugestao.confianca).label}
-                          </Badge>
-                        </div>
-                        
-                        {song.sugestao.compositor && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">Compositor:</span>
-                            <Input
-                              value={song.compositorEditado ?? song.sugestao.compositor}
-                              onChange={(e) => editComposer(index, e.target.value)}
-                              className="h-8 flex-1"
-                            />
-                          </div>
-                        )}
-                        
-                        {song.sugestao.detalhes && (
-                          <div className="text-xs text-muted-foreground">
-                            {song.sugestao.detalhes}
-                          </div>
-                        )}
-
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => validateSong(index, true)}
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Validar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => validateSong(index, false)}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Rejeitar
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Validated Data */}
-                    {song.status === 'validated' && song.compositor && (
-                      <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded">
-                        <div className="text-sm">
-                          <span className="font-medium">✓ Compositor:</span> {song.compositor}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Fonte: {song.fonteValidada || 'manual'}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  ))
+                  <VirtualizedSongList
+                    songs={songs}
+                    displaySongs={displaySongs
+                      .filter(song => {
+                        if (confidenceFilter === 'all') return true;
+                        if (!song.sugestao) return false;
+                        const conf = song.sugestao.confianca;
+                        if (confidenceFilter === 'high') return conf >= 85;
+                        if (confidenceFilter === 'medium') return conf >= 70 && conf < 85;
+                        if (confidenceFilter === 'low') return conf < 70;
+                        return true;
+                      })
+                    }
+                    isEnriching={isEnriching}
+                    onValidate={validateSong}
+                    onEdit={(index, compositor) => editComposer(index, compositor)}
+                    editingComposer={{}}
+                    onEditChange={editComposer}
+                    onEditToggle={(index) => {
+                      const song = songs[index];
+                      editComposer(index, song.compositorEditado || song.sugestao?.compositor || '');
+                    }}
+                  />
                 )}
               </div>
             </ScrollArea>
