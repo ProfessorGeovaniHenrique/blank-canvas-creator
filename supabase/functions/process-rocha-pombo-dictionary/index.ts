@@ -22,18 +22,13 @@ function parseRochaPomboLine(line: string): RochaPomboEntry | null {
   if (cleanLine.includes('===') || cleanLine.includes('---')) return null;
   if (cleanLine.match(/^(DICIONÁRIO|SINÔNIMOS|VOLUME|PÁGINA)/i)) return null;
 
-  // ✅ NOVA REGEX: 
-  // 1. Começa com letra maiúscula ou acentuada
-  // 2. Permite letras minúsculas, espaços, hífens e vírgulas no meio
-  // 3. Termina com ponto final seguido de espaço
-  const match = cleanLine.match(/^([A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑ][a-zA-ZÁÀÃÂÉÊÍÓÔÕÚÇÑáàãâéêíóôõúçñ\s\-,]*?)\.\s+(.+)/);
+  // 🔥 DEBUG: REGEX ULTRA-PERMISSIVA
+  // Pega QUALQUER coisa que tenha um ponto separando duas partes
+  const match = cleanLine.match(/^(.+?)\.\s+(.+)$/);
 
   if (!match) {
-    // LOG DE DEBUG: Ajuda a identificar por que linhas estão sendo rejeitadas
-    // (Limitado a 0.1% das linhas para não poluir o log)
-    if (Math.random() < 0.001) { 
-      console.log(`[Pombo] Linha rejeitada (formato não bateu): ${cleanLine.substring(0, 80)}...`);
-    }
+    // 🔥 LOG DE FALHA CRÍTICA: Mostra TODAS as linhas que falharam
+    console.error("FALHA CRÍTICA PARSE: ", cleanLine);
     return null;
   }
 
@@ -72,6 +67,11 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log(`📖 Processando Dicionário Rocha Pombo - Job: ${jobId}`);
+
+    // 🔥 DEBUG: LOG DO CONTEÚDO BRUTO (primeiras 200 chars)
+    console.log("🔍 PRIMEIRAS 200 CHARS DO ARQUIVO:");
+    console.log(fileContent.substring(0, 200));
+    console.log("---");
 
     // Pular metadados (primeiras ~200 linhas)
     const allLines = fileContent.split('\n');
