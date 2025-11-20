@@ -1,9 +1,10 @@
 import { memo } from 'react';
-// @ts-ignore - react-window module compatibility
 import * as ReactWindow from 'react-window';
-
-const FixedSizeList = (ReactWindow as any).FixedSizeList;
 import { Badge } from '@/components/ui/badge';
+
+// Extrair FixedSizeList com fallback
+const FixedSizeList = (ReactWindow as any)?.FixedSizeList || 
+                       (ReactWindow as any)?.default?.FixedSizeList;
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, X, Edit2, Music } from 'lucide-react';
