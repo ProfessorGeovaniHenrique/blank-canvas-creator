@@ -93,63 +93,65 @@ serve(async (req) => {
   }
 });
 
-function parseNordestinoEntry(line: string): ParsedEntry[] {
-  const entries: ParsedEntry[] = [];
-  
-  // Padrões de classe gramatical
-  const posPatterns = ['s.m.', 's.f.', 's.2g.', 'v.t.d.', 'v.t.i.', 'v.int.', 'v.pron.', 'adj.', 'adv.', 'loc.', 'fraseol.'];
-  
+function parseNordestinoEntry(line: string): ParsedEntry | null {
   // Split por bullet point
   const parts = line.split('•').map(p => p.trim()).filter(p => p);
   
-  if (parts.length < 2) return entries;
+  if (parts.length < 2) return null;
   
   const verbete = parts[0].trim();
   
-  // Detectar múltiplas acepções (padrão: "1 • s.m.", "2 • adj.")
-  const acepcoes: Array<{pos: string, regioes: string[], variantes: string[], definicoes: string[]}> = [];
-  let currentAcepcao = '';
+  // Extrair TODAS as acepções
+  const acepcoes = extractAcepcoes(parts.slice(1));
   
-  for (let i = 1; i < parts.length; i++) {
-    const part = parts[i];
-    
-    // Verificar se é início de nova acepção (número seguido de POS)
-    const acepcaoMatch = part.match(/^(\d+)\s+(.+)/);
-    if (acepcaoMatch) {
-      if (currentAcepcao) {
-        acepcoes.push(parseAcepcao(currentAcepcao));
+  if (acepcoes.length === 0) return null;
+  
+  // Consolidar todas as acepções em um único registro
+  const allClasses = [...new Set(acepcoes.map(a => a.pos))].join(' / ');
+  const allRegioes = [...new Set(acepcoes.flatMap(a => a.regioes))];
+  const allVariantes = [...new Set(acepcoes.flatMap(a => a.variantes))];
+  const allDefinicoes = acepcoes.flatMap(a => a.definicoes);
+  
+  return {
+    verbete,
+    verbete_normalizado: verbete.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+    classe_gramatical: allClasses,
+    origem_regionalista: allRegioes,
+    variantes: allVariantes,
+    definicoes: allDefinicoes,
+    volume_fonte: 'Navarro 2014',
+    confianca_extracao: 0.92
+  };
+}
+
+function extractAcepcoes(parts: string[]): Array<{pos: string, regioes: string[], variantes: string[], definicoes: string[]}> {
+  const acepcoes: Array<{pos: string, regioes: string[], variantes: string[], definicoes: string[]}> = [];
+  let currentContent = '';
+  
+  for (const part of parts) {
+    // Detectar início de nova acepção numerada (1 •, 2 •, etc)
+    const match = part.match(/^(\d+)\s+(.+)/);
+    if (match) {
+      if (currentContent) {
+        acepcoes.push(parseAcepcao(currentContent));
       }
-      currentAcepcao = acepcaoMatch[2];
+      currentContent = match[2];
     } else {
-      currentAcepcao += ' • ' + part;
+      currentContent += (currentContent ? ' • ' : '') + part;
     }
   }
   
-  // Adicionar última acepção
-  if (currentAcepcao) {
-    acepcoes.push(parseAcepcao(currentAcepcao));
+  // Adicionar última acepção ou única
+  if (currentContent) {
+    acepcoes.push(parseAcepcao(currentContent));
   }
   
-  // Se não há acepções numeradas, tratar como única
+  // Se não há acepções, tratar todo conteúdo como única acepção
   if (acepcoes.length === 0) {
-    acepcoes.push(parseAcepcao(parts.slice(1).join(' • ')));
+    acepcoes.push(parseAcepcao(parts.join(' • ')));
   }
   
-  // Criar uma entrada para cada acepção
-  for (const acepcao of acepcoes) {
-    entries.push({
-      verbete,
-      verbete_normalizado: verbete.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
-      classe_gramatical: acepcao.pos,
-      origem_regionalista: acepcao.regioes,
-      variantes: acepcao.variantes,
-      definicoes: acepcao.definicoes,
-      volume_fonte: 'Navarro 2014',
-      confianca_extracao: 0.92
-    });
-  }
-  
-  return entries;
+  return acepcoes;
 }
 
 function parseAcepcao(content: string): {pos: string, regioes: string[], variantes: string[], definicoes: string[]} {
@@ -225,8 +227,10 @@ async function processInBackground(supabase: any, jobId: string, lines: string[]
       if (!line || !line.includes('•')) continue;
 
       try {
-        const parsedEntries = parseNordestinoEntry(line);
-        verbetes.push(...parsedEntries);
+        const parsedEntry = parseNordestinoEntry(line);
+        if (parsedEntry) {
+          verbetes.push(parsedEntry);
+        }
       } catch (parseError) {
         console.error(`Erro ao parsear linha ${i}:`, line, parseError);
         erros++;
