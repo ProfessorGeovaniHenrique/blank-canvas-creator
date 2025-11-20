@@ -19,8 +19,7 @@ import { DictionaryMetadataCard } from './lexicon-status/DictionaryMetadataCard'
 import { BatchValidationDialog } from './lexicon-status/BatchValidationDialog';
 
 export function DictionaryImportInterface() {
-  const [isImportingVolI, setIsImportingVolI] = useState(false);
-  const [isImportingVolII, setIsImportingVolII] = useState(false);
+  const [isImportingGaucho, setIsImportingGaucho] = useState(false);
   const [isImportingGutenberg, setIsImportingGutenberg] = useState(false);
   const [isImportingRochaPombo, setIsImportingRochaPombo] = useState(false);
   const [isImportingUnesp, setIsImportingUnesp] = useState(false);
@@ -66,24 +65,23 @@ export function DictionaryImportInterface() {
     localStorage.setItem('dict-notifications-sound', String(soundEnabled));
   }, [soundEnabled]);
 
-  const importDialectalVolume = async (volumeNum: 'I' | 'II') => {
-    const setter = volumeNum === 'I' ? setIsImportingVolI : setIsImportingVolII;
-    setter(true);
+  const importGauchoUnificado = async () => {
+    setIsImportingGaucho(true);
     try {
-      toast.info(`Iniciando importação do Volume ${volumeNum}...`);
+      toast.info('Iniciando importação do Dicionário Gaúcho Unificado...');
       
       const { data, error } = await supabase.functions.invoke('import-dialectal-backend', {
-        body: { volumeNum }
+        body: {}
       });
 
       if (error) throw error;
       
-      toast.success(`Importação iniciada! Job ID: ${data.jobId}`);
+      toast.success(`✅ Importação do Gaúcho Unificado iniciada! Job ID: ${data.jobId}`);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 500);
     } catch (error: any) {
-      toast.error(`Erro ao iniciar importação do Volume ${volumeNum}: ${error.message}`);
+      toast.error(`❌ Erro ao iniciar importação do Gaúcho: ${error.message}`);
     } finally {
-      setter(false);
+      setIsImportingGaucho(false);
     }
   };
 
@@ -192,12 +190,27 @@ export function DictionaryImportInterface() {
   };
 
   const handleResume = async (job: any) => {
-    const volumeNum = job.tipo_dicionario.includes('_I') ? 'I' : 'II';
-    const setter = volumeNum === 'I' ? setIsImportingVolI : setIsImportingVolII;
+    // Determinar qual setState usar baseado no tipo de dicionário
+    let setter: (value: boolean) => void;
+    
+    if (job.tipo_dicionario === 'gaucho_unificado' || job.tipo_dicionario.includes('dialectal')) {
+      setter = setIsImportingGaucho;
+    } else if (job.tipo_dicionario === 'GUTENBERG') {
+      setter = setIsImportingGutenberg;
+    } else if (job.tipo_dicionario === 'ROCHA_POMBO') {
+      setter = setIsImportingRochaPombo;
+    } else if (job.tipo_dicionario === 'UNESP') {
+      setter = setIsImportingUnesp;
+    } else if (job.tipo_dicionario === 'nordestino_navarro') {
+      setter = setIsImportingNavarro;
+    } else {
+      setter = () => {}; // Fallback
+    }
+    
     setter(true);
     
     try {
-      toast.info(`Retomando importação do ${job.tipo_dicionario}...`);
+      toast.info(`Retomando importação do ${getDictionaryDisplayName(job.tipo_dicionario)}...`);
       await resumeImport(job, ''); // Edge function busca o arquivo diretamente do GitHub
       toast.success('Importação retomada com sucesso!');
     } catch (error: any) {
@@ -258,6 +271,20 @@ export function DictionaryImportInterface() {
     }
   };
 
+  // Helper para mapear tipos de dicionário para nomes amigáveis
+  const getDictionaryDisplayName = (tipo: string): string => {
+    const mapping: Record<string, string> = {
+      'gaucho_unificado': 'Gaúcho Unificado',
+      'dialectal_I': 'Gaúcho Vol. I (Legacy)',
+      'dialectal_II': 'Gaúcho Vol. II (Legacy)',
+      'nordestino_navarro': 'Navarro 2014',
+      'GUTENBERG': 'Gutenberg',
+      'ROCHA_POMBO': 'Rocha Pombo (ABL)',
+      'UNESP': 'UNESP'
+    };
+    return mapping[tipo] || tipo;
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="space-y-6">
@@ -274,21 +301,76 @@ export function DictionaryImportInterface() {
           onSoundEnabledChange={setSoundEnabled}
         />
 
-        {/* ✅ FASE 3: Metadata Cards dos Dicionários */}
+        {/* ✅ FASE 3: Metadata Cards dos Dicionários - 5 Dicionários Unificados */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Dicionários Disponíveis</h3>
+          <p className="text-sm text-muted-foreground">Ordem recomendada de importação: Rocha Pombo → UNESP → Navarro → Gaúcho → Gutenberg</p>
           <div className="grid gap-4 md:grid-cols-2">
+            {/* 1️⃣ Rocha Pombo (ABL) - Sinônimos primeiro */}
             <DictionaryMetadataCard
               metadata={{
-                nome: 'Dialectal Gaúcho - Volume I',
-                fonte: 'Vocabulário Sul-Rio-Grandense',
-                edicao: 'Volume I (A-F)',
-                ano: 1964,
-                tipo: 'dialectal',
-                esperado: 3500,
-                atual: jobs?.find(j => j.tipo_dicionario === 'dialectal_I')?.verbetes_inseridos || 0,
+                nome: 'Rocha Pombo (ABL)',
+                fonte: 'Academia Brasileira de Letras',
+                edicao: '2ª edição',
+                ano: 2011,
+                tipo: 'rochaPombo',
+                esperado: 50000,
+                atual: jobs?.find(j => j.tipo_dicionario === 'ROCHA_POMBO')?.verbetes_inseridos || 0,
                 githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/tree/main/public/dictionaries',
-                descricao: 'Primeira parte do léxico regionalista gaúcho com termos campeiros, platinismos e expressões típicas.',
+                descricao: 'Dicionário oficial de sinônimos da ABL, referência nacional para sinonímia e antonímia.',
+                licenca: 'ABL - Uso Acadêmico'
+              }}
+              onImport={importRochaPombo}
+              isImporting={isImportingRochaPombo}
+            />
+
+            {/* 2️⃣ UNESP - Definições */}
+            <DictionaryMetadataCard
+              metadata={{
+                nome: 'UNESP Definições',
+                fonte: 'Universidade Estadual Paulista',
+                ano: 2023,
+                tipo: 'unesp',
+                esperado: 100000,
+                atual: jobs?.find(j => j.tipo_dicionario === 'UNESP')?.verbetes_inseridos || 0,
+                githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/tree/main/src/data/dictionaries',
+                descricao: 'Definições lexicográficas acadêmicas com exemplos contextualizados e registro de uso.',
+                licenca: 'CC BY-NC-SA 4.0'
+              }}
+              onImport={importUnesp}
+              isImporting={isImportingUnesp}
+            />
+
+            {/* 3️⃣ Navarro 2014 - Regionalismo Nordestino */}
+            <DictionaryMetadataCard
+              metadata={{
+                nome: 'Dicionário do Nordeste',
+                fonte: 'Fred Navarro',
+                edicao: '1ª edição',
+                ano: 2014,
+                tipo: 'nordestino_navarro',
+                esperado: 15000,
+                atual: jobs?.find(j => j.tipo_dicionario === 'nordestino_navarro')?.verbetes_inseridos || 0,
+                githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/blob/main/public/corpus/nordestino_navarro_2014.txt',
+                descricao: 'Dicionário especializado do léxico nordestino com regionalismos, expressões idiomáticas e marcadores culturais. Inclui variações dialetais de todos os estados do Nordeste.',
+                licenca: 'CEPE - Uso Acadêmico'
+              }}
+              onImport={importNavarro}
+              isImporting={isImportingNavarro}
+            />
+
+            {/* 4️⃣ Gaúcho Unificado - Regionalismo Gaúcho (NOVO - substitui Vol I e II) */}
+            <DictionaryMetadataCard
+              metadata={{
+                nome: 'Gaúcho Unificado',
+                fonte: 'Vocabulário Sul-Rio-Grandense',
+                edicao: 'Volumes I e II Unificados (A-Z)',
+                ano: 1964,
+                tipo: 'gaucho_unificado',
+                esperado: 7000,
+                atual: jobs?.find(j => j.tipo_dicionario === 'gaucho_unificado')?.verbetes_inseridos || 0,
+                githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/blob/main/public/dictionaries/VOLI.txt',
+                descricao: 'Léxico regionalista gaúcho completo com termos campeiros, platinismos e expressões típicas de A a Z.',
                 licenca: 'Domínio Público',
                 customActions: (
                   <div className="flex gap-2">
@@ -305,41 +387,11 @@ export function DictionaryImportInterface() {
                   </div>
                 )
               }}
-              onImport={() => importDialectalVolume('I')}
-              isImporting={isImportingVolI}
+              onImport={importGauchoUnificado}
+              isImporting={isImportingGaucho}
             />
 
-            <DictionaryMetadataCard
-              metadata={{
-                nome: 'Dialectal Gaúcho - Volume II',
-                fonte: 'Vocabulário Sul-Rio-Grandense',
-                edicao: 'Volume II (G-Z)',
-                ano: 1964,
-                tipo: 'dialectal',
-                esperado: 3500,
-                atual: jobs?.find(j => j.tipo_dicionario === 'dialectal_II')?.verbetes_inseridos || 0,
-                githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/tree/main/public/dictionaries',
-                descricao: 'Segunda parte do léxico regionalista gaúcho com termos campeiros, platinismos e expressões típicas.',
-                licenca: 'Domínio Público',
-                customActions: (
-                  <div className="flex gap-2">
-                    <BatchValidationDialog
-                      batchSize={1000}
-                      dictionaryType="dialectal"
-                      onSuccess={() => queryClient.invalidateQueries()}
-                    />
-                    <BatchValidationDialog
-                      batchSize={10000}
-                      dictionaryType="dialectal"
-                      onSuccess={() => queryClient.invalidateQueries()}
-                    />
-                  </div>
-                )
-              }}
-              onImport={() => importDialectalVolume('II')}
-              isImporting={isImportingVolII}
-            />
-
+            {/* 5️⃣ Gutenberg - Dicionário Geral por último */}
             <DictionaryMetadataCard
               metadata={{
                 nome: 'Dicionário Gutenberg',
@@ -368,56 +420,6 @@ export function DictionaryImportInterface() {
               }}
               onImport={importGutenberg}
               isImporting={isImportingGutenberg}
-            />
-
-            <DictionaryMetadataCard
-              metadata={{
-                nome: 'Rocha Pombo (ABL)',
-                fonte: 'Academia Brasileira de Letras',
-                edicao: '2ª edição',
-                ano: 2011,
-                tipo: 'rochaPombo',
-                esperado: 50000,
-                atual: jobs?.find(j => j.tipo_dicionario === 'ROCHA_POMBO')?.verbetes_inseridos || 0,
-                githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/tree/main/public/dictionaries',
-                descricao: 'Dicionário oficial de sinônimos da ABL, referência nacional para sinonímia e antonímia.',
-                licenca: 'ABL - Uso Acadêmico'
-              }}
-              onImport={importRochaPombo}
-              isImporting={isImportingRochaPombo}
-            />
-
-            <DictionaryMetadataCard
-              metadata={{
-                nome: 'UNESP Definições',
-                fonte: 'Universidade Estadual Paulista',
-                ano: 2023,
-                tipo: 'unesp',
-                esperado: 100000,
-                atual: jobs?.find(j => j.tipo_dicionario === 'UNESP')?.verbetes_inseridos || 0,
-                githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/tree/main/src/data/dictionaries',
-                descricao: 'Definições lexicográficas acadêmicas com exemplos contextualizados e registro de uso.',
-                licenca: 'CC BY-NC-SA 4.0'
-              }}
-              onImport={importUnesp}
-              isImporting={isImportingUnesp}
-            />
-
-            <DictionaryMetadataCard
-              metadata={{
-                nome: 'Dicionário do Nordeste',
-                fonte: 'Fred Navarro',
-                edicao: '1ª edição',
-                ano: 2014,
-                tipo: 'nordestino_navarro',
-                esperado: 15000,
-                atual: jobs?.find(j => j.tipo_dicionario === 'nordestino_navarro')?.verbetes_inseridos || 0,
-                githubUrl: 'https://github.com/ProfessorGeovaniHenrique/estilisticadecorpus/blob/main/public/corpus/nordestino_navarro_2014.txt',
-                descricao: 'Dicionário especializado do léxico nordestino com regionalismos, expressões idiomáticas e marcadores culturais. Inclui variações dialetais de todos os estados do Nordeste.',
-                licenca: 'CEPE - Uso Acadêmico'
-              }}
-              onImport={importNavarro}
-              isImporting={isImportingNavarro}
             />
           </div>
         </div>
@@ -528,7 +530,7 @@ export function DictionaryImportInterface() {
                     <div className="space-y-1">
                       <CardTitle className="text-base flex items-center gap-2">
                         {getStatusIcon(job.status, job.isStalled)}
-                        {job.tipo_dicionario.replace(/_/g, ' ')}
+                        {getDictionaryDisplayName(job.tipo_dicionario)}
                       </CardTitle>
                       <CardDescription className="text-xs">
                         {job.verbetes_inseridos.toLocaleString()} / {job.total_verbetes.toLocaleString()} verbetes
@@ -585,7 +587,7 @@ export function DictionaryImportInterface() {
                           size="sm" 
                           variant="outline"
                           onClick={() => handleResume(job)}
-                          disabled={isImportingVolI || isImportingVolII || isImportingGutenberg || isImportingRochaPombo || isImportingUnesp}
+                          disabled={isImportingGaucho || isImportingGutenberg || isImportingRochaPombo || isImportingUnesp || isImportingNavarro}
                           className="h-8 px-2 text-xs"
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
@@ -608,7 +610,7 @@ export function DictionaryImportInterface() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Confirmar Limpeza</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Remover {job.verbetes_inseridos.toLocaleString()} verbetes do {job.tipo_dicionario}?
+                            Remover {job.verbetes_inseridos.toLocaleString()} verbetes do {getDictionaryDisplayName(job.tipo_dicionario)}?
                             Você precisará reimportar após esta ação.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
