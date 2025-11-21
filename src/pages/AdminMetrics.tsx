@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Key, UserCheck, Clock, TrendingUp, Calendar } from "lucide-react";
 import { AdminBreadcrumb } from "@/components/AdminBreadcrumb";
+import { PageToolbar } from "@/components/PageToolbar";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -119,6 +120,11 @@ export default function AdminMetrics() {
   }
 
   return (
+    <>
+      <PageToolbar
+        onRefresh={fetchMetrics}
+        showSearch={false}
+      />
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-6">
       <div className="container mx-auto max-w-7xl space-y-6">
         <AdminBreadcrumb currentPage="Métricas do Sistema" />
@@ -374,5 +380,6 @@ export default function AdminMetrics() {
         </Tabs>
       </div>
     </div>
+    </>
   );
 }

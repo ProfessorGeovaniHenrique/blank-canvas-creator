@@ -4,6 +4,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AdminBreadcrumb } from "@/components/AdminBreadcrumb";
+import { PageToolbar } from "@/components/PageToolbar";
 import {
   Card,
   CardContent,
@@ -225,6 +226,23 @@ export default function AdminUsers() {
   const noRole = users.filter((u) => u.role === null).length;
 
   return (
+    <>
+      <PageToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar usuários por email..."
+        onRefresh={fetchUsers}
+        rightActions={
+          <Button
+            size="sm"
+            className="h-9 gap-2"
+            onClick={() => navigate("/admin/dashboard")}
+          >
+            <UserPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Criar Convite</span>
+          </Button>
+        }
+      />
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-6">
       <div className="container mx-auto max-w-7xl space-y-6">
         <AdminBreadcrumb currentPage="Gerenciar Usuários" />
@@ -464,5 +482,6 @@ export default function AdminUsers() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }
