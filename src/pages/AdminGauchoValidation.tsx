@@ -74,6 +74,9 @@ export default function AdminGauchoValidation() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  // Debug: Log total de entradas carregadas
+  console.log(`📊 [Debug] Total carregado: ${allEntries.length} | Filtrados: ${filteredEntries.length} | Paginados: ${paginatedEntries.length}`);
+
   // Handlers
   const handleValidate = (entry: any) => {
     const adaptedEntry = {
