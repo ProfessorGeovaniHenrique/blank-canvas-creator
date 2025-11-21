@@ -59,7 +59,13 @@ const extractYoutubeVideoId = (url: string): string | null => {
 
 export function SongCard({ song, onView, onEdit, onEnrich, onReEnrich, onMarkReviewed, onDelete, isEnriching }: SongCardProps) {
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
   const videoId = song.youtubeUrl ? extractYoutubeVideoId(song.youtubeUrl) : null;
+  
+  // Lógica de thumbnail: prioriza YouTube, depois thumbnail do banco, depois fallback
+  const thumbnailUrl = videoId && !thumbnailError
+    ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+    : song.thumbnail || null;
   const getStatusBadge = (status?: string) => {
     if (!status) return null;
     
@@ -141,84 +147,165 @@ export function SongCard({ song, onView, onEdit, onEnrich, onReEnrich, onMarkRev
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <CardContent className="p-0">
-        {/* Thumbnail */}
-        <div className="aspect-square bg-muted flex items-center justify-center relative overflow-hidden">
-          {song.thumbnail ? (
+      <CardContent className="flex flex-row p-0">
+        {/* Thumbnail (Esquerda) */}
+        <div 
+          className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 bg-muted flex items-center justify-center relative overflow-hidden group cursor-pointer"
+          onClick={() => videoId && setShowVideoPlayer(!showVideoPlayer)}
+        >
+          {thumbnailUrl ? (
             <img
-              src={song.thumbnail}
+              src={thumbnailUrl}
               alt={song.title}
               className="w-full h-full object-cover"
+              loading="lazy"
+              onError={() => setThumbnailError(true)}
             />
           ) : (
-            <Music className="h-16 w-16 text-muted-foreground" />
+            <Music className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground" />
           )}
           
-          {/* Status & Confidence Badges + Menu Overlay */}
-          <div className="absolute top-2 right-2 flex gap-2">
-            <div className="flex flex-col gap-2">
-              {getStatusBadge(song.status)}
-              {song.confidence > 0 && getConfidenceBadge(song.confidence)}
+          {/* Hover Overlay com Play Icon */}
+          {videoId && (
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Play className="w-8 h-8 text-white drop-shadow-lg" />
             </div>
-            
-            {/* Dropdown Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-8 w-8 p-0 shadow-sm"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {onEdit && (
-                  <DropdownMenuItem onClick={() => onEdit(song)}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar Manualmente
-                  </DropdownMenuItem>
-                )}
-                {onReEnrich && (
-                  <DropdownMenuItem onClick={() => onReEnrich(song.id)} disabled={isEnriching}>
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isEnriching ? 'animate-spin' : ''}`} />
-                    Re-enriquecer
-                  </DropdownMenuItem>
-                )}
-                {onMarkReviewed && song.status !== 'approved' && (
-                  <DropdownMenuItem onClick={() => onMarkReviewed(song.id)}>
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Marcar como Revisado
-                  </DropdownMenuItem>
-                )}
-                {onDelete && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => onDelete(song.id)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Deletar Música
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          )}
+          
+          {/* Badges posicionados no canto superior direito da thumbnail */}
+          <div className="absolute top-1 right-1 flex flex-col gap-1">
+            {getStatusBadge(song.status)}
+            {song.confidence > 0 && getConfidenceBadge(song.confidence)}
           </div>
         </div>
 
-        {/* Info */}
-        <div className="p-4 space-y-2">
-          <h3 className="font-semibold text-lg line-clamp-2" title={song.title}>
-            {song.title}
-          </h3>
+        {/* Conteúdo (Direita) */}
+        <div className="flex-1 p-4 space-y-2 min-w-0">
+          {/* Header: Título + Ações */}
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-lg line-clamp-2 flex-1" title={song.title}>
+              {song.title}
+            </h3>
+            
+            {/* Botões de Ação + Dropdown */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {videoId && (
+                <>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setShowVideoPlayer(!showVideoPlayer)}
+                        >
+                          <Play className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Assistir no card</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => window.open(song.youtubeUrl!, '_blank', 'noopener,noreferrer')}
+                        >
+                          <Youtube className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Abrir no YouTube</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </>
+              )}
+              
+              {song.status === 'enriched' && (
+                <Badge variant="success" className="text-xs">
+                  Enriquecido
+                </Badge>
+              )}
+              
+              {/* Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {onEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(song)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar Manualmente
+                    </DropdownMenuItem>
+                  )}
+                  {onReEnrich && (
+                    <DropdownMenuItem onClick={() => onReEnrich(song.id)} disabled={isEnriching}>
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isEnriching ? 'animate-spin' : ''}`} />
+                      Re-enriquecer
+                    </DropdownMenuItem>
+                  )}
+                  {onMarkReviewed && song.status !== 'approved' && (
+                    <DropdownMenuItem onClick={() => onMarkReviewed(song.id)}>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Marcar como Revisado
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(song.id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Deletar Música
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           
-          <p className="text-sm text-muted-foreground line-clamp-1" title={song.artist}>
-            {song.artist}
-          </p>
+          {/* Metadados em Grid */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div>
+              <span className="text-muted-foreground">Compositor</span>
+              <p className="text-foreground font-medium">Não identificado</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Ano de Lançamento</span>
+              <p className="text-foreground font-medium flex items-center gap-1">
+                {song.year || '—'}
+                {song.year && <Edit className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-foreground" />}
+              </p>
+            </div>
+          </div>
           
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          {/* Fonte e Confiança */}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Fonte: AI</span>
+            {song.confidence > 0 && (
+              <span className="text-success">Confiança: {(song.confidence * 100).toFixed(0)}%</span>
+            )}
+          </div>
+          
+          {/* Badges Adicionais */}
+          <div className="flex flex-wrap gap-2">
             {song.corpusName && (
               <Badge 
                 variant="outline" 
@@ -229,49 +316,6 @@ export function SongCard({ song, onView, onEdit, onEnrich, onReEnrich, onMarkRev
                 {song.corpusName}
               </Badge>
             )}
-            {song.youtubeUrl && videoId && (
-              <div className="flex gap-1">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={`h-6 px-2 text-xs border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600 ${showVideoPlayer ? 'bg-red-50' : ''}`}
-                        onClick={() => setShowVideoPlayer(!showVideoPlayer)}
-                      >
-                        {showVideoPlayer ? <X className="w-3 h-3 mr-1" /> : <Play className="w-3 h-3 mr-1" />}
-                        {showVideoPlayer ? 'Fechar' : 'Play'}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{showVideoPlayer ? 'Fechar player' : 'Assistir no card'}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-xs border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
-                        onClick={() => window.open(song.youtubeUrl!, '_blank', 'noopener,noreferrer')}
-                      >
-                        <Youtube className="w-3 h-3" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Abrir no YouTube</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
-            {song.album && (
-              <span className="line-clamp-1" title={song.album}>📀 {song.album}</span>
-            )}
-            {song.year && <span>📅 {song.year}</span>}
             {song.genre && (
               <Badge variant="secondary" className="text-xs">
                 {song.genre}
@@ -281,7 +325,7 @@ export function SongCard({ song, onView, onEdit, onEnrich, onReEnrich, onMarkRev
 
           {/* YouTube Player Embed */}
           {showVideoPlayer && videoId && (
-            <div className="w-full aspect-video mt-4 rounded-lg overflow-hidden bg-black animate-fade-in">
+            <div className="w-full aspect-video rounded-lg overflow-hidden bg-black animate-fade-in">
               <iframe
                 width="100%"
                 height="100%"
@@ -295,42 +339,20 @@ export function SongCard({ song, onView, onEdit, onEnrich, onReEnrich, onMarkRev
               />
             </div>
           )}
+          
+          {/* Botão Ver Letra */}
+          {onView && (
+            <Button 
+              variant="ghost" 
+              className="w-full justify-between text-sm"
+              onClick={() => onView(song)}
+            >
+              Ocultar Letra
+              <AlertCircle className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
-
-      <CardFooter className="p-4 pt-0 flex gap-2">
-        {onEnrich && song.status === 'pending' && (
-          <Button 
-            variant="default" 
-            className="flex-1" 
-            onClick={() => onEnrich(song.id)}
-            disabled={isEnriching}
-          >
-            {isEnriching ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Enriquecendo...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Enriquecer
-              </>
-            )}
-          </Button>
-        )}
-        {onView && (
-          <Button variant="outline" className="flex-1" onClick={() => onView(song)}>
-            <Eye className="h-4 w-4 mr-2" />
-            Ver
-          </Button>
-        )}
-        {onEdit && (
-          <Button variant="ghost" size="icon" onClick={() => onEdit(song)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-        )}
-      </CardFooter>
     </Card>
   );
 }
