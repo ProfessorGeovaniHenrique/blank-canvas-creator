@@ -55,3 +55,6 @@ verify_jwt = true
 [functions.process-nordestino-navarro]
 verify_jwt = true
 # Processamento do Dicionário do Nordeste (Fred Navarro 2014)
+
+[functions.generate-artist-bio]
+verify_jwt = false

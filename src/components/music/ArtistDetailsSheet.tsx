@@ -65,6 +65,7 @@ interface ArtistDetailsSheetProps {
   onReEnrichSong?: (songId: string) => void;
   onMarkReviewed?: (songId: string) => void;
   onDeleteSong?: (songId: string) => void;
+  onBioEnriched?: (artistId: string) => void;
 }
 
 export function ArtistDetailsSheet({
@@ -78,6 +79,7 @@ export function ArtistDetailsSheet({
   onReEnrichSong,
   onMarkReviewed,
   onDeleteSong,
+  onBioEnriched,
 }: ArtistDetailsSheetProps) {
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   const [isEnrichingBio, setIsEnrichingBio] = useState(false);
@@ -94,17 +96,29 @@ export function ArtistDetailsSheet({
         description: `Pesquisando informações sobre ${artist.name}...`,
       });
 
-      // Simulação - implementar chamada real à API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data, error } = await supabase.functions.invoke('generate-artist-bio', {
+        body: {
+          artistId: artist.id,
+          artistName: artist.name
+        }
+      });
+
+      if (error) throw error;
 
       toast({
-        title: "Biografia encontrada!",
-        description: "A biografia foi adicionada com sucesso.",
+        title: "Biografia carregada!",
+        description: "A biografia foi atualizada com sucesso.",
       });
+
+      // Notifica o componente pai para recarregar os dados do artista
+      if (onBioEnriched) {
+        onBioEnriched(artist.id);
+      }
     } catch (error) {
+      console.error('Error enriching bio:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível buscar a biografia",
+        description: error instanceof Error ? error.message : "Não foi possível buscar a biografia",
         variant: "destructive",
       });
     } finally {
@@ -173,28 +187,47 @@ export function ArtistDetailsSheet({
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-primary" />
                   <h3 className="font-semibold text-lg">Biografia</h3>
+                  {artist.biography_source === 'gemini' && (
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Enriquecida
+                    </Badge>
+                  )}
                 </div>
 
-                {!artist.biography && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleEnrichBio}
-                    disabled={isEnrichingBio}
-                  >
-                    {isEnrichingBio ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Buscando...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Buscar Biografia
-                      </>
-                    )}
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {artist.biography && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleEnrichBio}
+                      disabled={isEnrichingBio}
+                      title="Atualizar biografia"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isEnrichingBio ? 'animate-spin' : ''}`} />
+                    </Button>
+                  )}
+                  {!artist.biography && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleEnrichBio}
+                      disabled={isEnrichingBio}
+                    >
+                      {isEnrichingBio ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Buscando...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Buscar Biografia
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {artist.biography ? (
