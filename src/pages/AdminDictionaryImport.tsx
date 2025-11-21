@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { MVPHeader } from '@/components/mvp/MVPHeader';
 import { MVPFooter } from '@/components/mvp/MVPFooter';
 import { AdminBreadcrumb } from '@/components/AdminBreadcrumb';
+import { PageToolbar } from '@/components/PageToolbar';
 import { CancelJobDialog } from '@/components/advanced/CancelJobDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { notifications } from '@/lib/notifications';
@@ -170,6 +171,21 @@ export default function AdminDictionaryImport() {
   }
 
   return (
+    <>
+      <PageToolbar
+        onRefresh={refetch}
+        showSearch={false}
+        rightActions={
+          <Button
+            size="sm"
+            className="h-9 gap-2"
+            onClick={() => refetch()}
+          >
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">Ver Estatísticas</span>
+          </Button>
+        }
+      />
     <div className="min-h-screen bg-background">
       <MVPHeader />
       
@@ -898,5 +914,6 @@ export default function AdminDictionaryImport() {
 
       <MVPFooter />
     </div>
+    </>
   );
 }

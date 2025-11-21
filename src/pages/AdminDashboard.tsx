@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminBreadcrumb } from "@/components/AdminBreadcrumb";
+import { PageToolbar } from "@/components/PageToolbar";
 import {
   Select,
   SelectContent,
@@ -176,6 +177,70 @@ export default function AdminDashboard() {
   ).length;
 
   return (
+    <>
+      <PageToolbar
+        onRefresh={fetchInvites}
+        showSearch={false}
+        rightActions={
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="h-9 gap-2">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Novo Convite</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Novo Convite</DialogTitle>
+                <DialogDescription>
+                  Gere um código de convite para novos usuários
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role a Atribuir</Label>
+                  <Select value={roleForInvite} onValueChange={(value) => setRoleForInvite(value as AppRole)}>
+                    <SelectTrigger id="role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="evaluator">Avaliador</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expires">Data de Expiração (Opcional)</Label>
+                  <Input
+                    id="expires"
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notas (Opcional)</Label>
+                  <Input
+                    id="notes"
+                    placeholder="Ex: Convite para pesquisador fulano"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={generateInvite}
+                  disabled={creatingInvite}
+                  className="w-full"
+                >
+                  {creatingInvite ? "Gerando..." : "Gerar Convite"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-6">
       <div className="container mx-auto max-w-7xl space-y-6">
         <AdminBreadcrumb currentPage="Gerenciar Convites" />
@@ -546,5 +611,6 @@ export default function AdminDashboard() {
         </Card>
       </div>
     </div>
+    </>
   );
 }
