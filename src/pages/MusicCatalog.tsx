@@ -490,6 +490,34 @@ export default function MusicCatalog() {
     }
   };
 
+  // Handler para quando a biografia for enriquecida
+  const handleBioEnriched = async (artistId: string) => {
+    try {
+      // Recarrega apenas o artista específico
+      const { data: artistData, error } = await supabase
+        .from('artists')
+        .select(`
+          *,
+          corpora (
+            id,
+            name,
+            color
+          )
+        `)
+        .eq('id', artistId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (artistData) {
+        // Atualiza o artista na lista
+        setArtists(prev => prev.map(a => a.id === artistId ? artistData : a));
+      }
+    } catch (error) {
+      console.error('Erro ao recarregar artista:', error);
+    }
+  };
+
   const handleClearCatalog = async () => {
     setIsClearingCatalog(true);
     try {
@@ -955,6 +983,7 @@ export default function MusicCatalog() {
         onReEnrichSong={handleReEnrichSong}
         onMarkReviewed={handleMarkReviewed}
         onDeleteSong={handleDeleteSong}
+        onBioEnriched={handleBioEnriched}
       />
       </div>
     </div>
