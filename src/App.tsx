@@ -24,6 +24,7 @@ import DevOpsMetrics from "./pages/DevOpsMetrics";
 import DeveloperLogs from "./pages/DeveloperLogs";
 import AdminLexiconSetupRefactored from "./pages/AdminLexiconSetupRefactored";
 import AdminNavarroDictValidation from "./pages/AdminNavarroDictValidation";
+import AdminGauchoValidation from "./pages/AdminGauchoValidation";
 import AdminDictionaryValidation from "./pages/AdminDictionaryValidation";
 import AdminDictionaryImport from "./pages/AdminDictionaryImport";
 import AdminUsers from "./pages/AdminUsers";
@@ -109,6 +110,14 @@ const RouterContent = () => {
             element={
               <ProtectedRoute requiredRole="admin">
                 <AdminNavarroDictValidation />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/gaucho-validation" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminGauchoValidation />
               </ProtectedRoute>
             } 
           />

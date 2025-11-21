@@ -27,7 +27,7 @@ export const DICTIONARY_CONFIG: Record<string, DictionaryConfig> = {
     color: 'hsl(var(--chart-1))',
     icon: '🐎',
     estimatedEntries: 1757,
-    validationRoute: '/admin/dictionary-validation/gaucho_unificado',
+    validationRoute: '/admin/gaucho-validation',
   },
   navarro: {
     id: 'navarro_nordeste_2014',
