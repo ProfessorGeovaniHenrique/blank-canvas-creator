@@ -91,11 +91,11 @@ export function useDialectalLexicon(filters?: DialectalFilters) {
         }
       });
     },
-    // ✅ CACHE TTL: Dicionário dialectal muda raramente
-    staleTime: 24 * 60 * 60 * 1000, // 24 horas
-    gcTime: 48 * 60 * 60 * 1000, // 48 horas
+    // ✅ CACHE TTL: Atualiza após validações em lote
+    staleTime: 5 * 60 * 1000, // 5 minutos (permite updates frequentes)
+    gcTime: 30 * 60 * 1000, // 30 minutos
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true, // ✅ Recarrega quando componente monta após invalidação
   });
 
   const stats = {

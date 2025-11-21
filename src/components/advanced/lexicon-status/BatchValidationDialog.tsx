@@ -44,12 +44,15 @@ export function BatchValidationDialog({ batchSize, dictionaryType, onSuccess, tr
 
       if (error) throw error;
 
-      // Invalidar todas as queries relacionadas para forçar atualização
+      // Invalidar e refetch todas as queries relacionadas
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['backend-lexicon'] }),
         queryClient.invalidateQueries({ queryKey: ['lexicon-stats'] }),
         queryClient.invalidateQueries({ queryKey: ['dialectal-lexicon'] }),
       ]);
+      
+      // ✅ Forçar refetch imediato das queries invalidadas
+      await queryClient.refetchQueries({ queryKey: ['dialectal-lexicon'], type: 'active' });
 
       // Buscar stats atualizadas para o toast
       const newStats = queryClient.getQueryData(['lexicon-stats']) as any;
