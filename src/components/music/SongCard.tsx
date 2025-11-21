@@ -1,8 +1,15 @@
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Music, Eye, Edit, Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Music, Eye, Edit, Sparkles, Loader2, AlertCircle, CheckCircle2, MoreVertical, RefreshCw, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 export interface Song {
   id: string;
@@ -21,10 +28,13 @@ interface SongCardProps {
   onView?: (song: Song) => void;
   onEdit?: (song: Song) => void;
   onEnrich?: (songId: string) => void;
+  onReEnrich?: (songId: string) => void;
+  onMarkReviewed?: (songId: string) => void;
+  onDelete?: (songId: string) => void;
   isEnriching?: boolean;
 }
 
-export function SongCard({ song, onView, onEdit, onEnrich, isEnriching }: SongCardProps) {
+export function SongCard({ song, onView, onEdit, onEnrich, onReEnrich, onMarkReviewed, onDelete, isEnriching }: SongCardProps) {
   const getStatusBadge = (status?: string) => {
     if (!status) return null;
     
@@ -119,10 +129,57 @@ export function SongCard({ song, onView, onEdit, onEnrich, isEnriching }: SongCa
             <Music className="h-16 w-16 text-muted-foreground" />
           )}
           
-          {/* Status & Confidence Badges Overlay */}
-          <div className="absolute top-2 right-2 flex flex-col gap-2">
-            {getStatusBadge(song.status)}
-            {song.confidence > 0 && getConfidenceBadge(song.confidence)}
+          {/* Status & Confidence Badges + Menu Overlay */}
+          <div className="absolute top-2 right-2 flex gap-2">
+            <div className="flex flex-col gap-2">
+              {getStatusBadge(song.status)}
+              {song.confidence > 0 && getConfidenceBadge(song.confidence)}
+            </div>
+            
+            {/* Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 w-8 p-0 shadow-sm"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(song)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar Manualmente
+                  </DropdownMenuItem>
+                )}
+                {onReEnrich && (
+                  <DropdownMenuItem onClick={() => onReEnrich(song.id)} disabled={isEnriching}>
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isEnriching ? 'animate-spin' : ''}`} />
+                    Re-enriquecer
+                  </DropdownMenuItem>
+                )}
+                {onMarkReviewed && song.status !== 'approved' && (
+                  <DropdownMenuItem onClick={() => onMarkReviewed(song.id)}>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Marcar como Revisado
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => onDelete(song.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Deletar Música
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

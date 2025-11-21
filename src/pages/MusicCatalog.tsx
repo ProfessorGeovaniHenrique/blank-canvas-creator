@@ -348,6 +348,100 @@ export default function MusicCatalog() {
     });
   };
 
+  // Handler para editar música manualmente
+  const handleEditSong = (song: any) => {
+    toast({
+      title: "Em desenvolvimento",
+      description: "Funcionalidade de edição manual em breve.",
+    });
+  };
+
+  // Handler para re-enriquecer música
+  const handleReEnrichSong = async (songId: string) => {
+    if (enrichingIds.has(songId)) return;
+    
+    setEnrichingIds(prev => new Set(prev).add(songId));
+    
+    try {
+      toast({
+        title: "Re-enriquecendo",
+        description: "Buscando metadados atualizados...",
+      });
+      
+      const result = await handleEnrichSong(songId);
+      
+      if (result.success) {
+        toast({
+          title: "✨ Re-enriquecimento concluído!",
+          description: result.message
+        });
+        await loadData();
+      } else {
+        toast({
+          title: "Erro",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setEnrichingIds(prev => {
+        const next = new Set(prev);
+        next.delete(songId);
+        return next;
+      });
+    }
+  };
+
+  // Handler para marcar como revisado
+  const handleMarkReviewed = async (songId: string) => {
+    try {
+      const { error } = await supabase
+        .from('songs')
+        .update({ status: 'approved' })
+        .eq('id', songId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "✓ Aprovado",
+        description: "Música marcada como revisada e aprovada."
+      });
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao marcar como revisado:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar status da música.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handler para deletar música
+  const handleDeleteSong = async (songId: string) => {
+    try {
+      const { error } = await supabase
+        .from('songs')
+        .delete()
+        .eq('id', songId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "🗑️ Música deletada",
+        description: "A música foi removida do catálogo."
+      });
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao deletar música:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao deletar música.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleClearCatalog = async () => {
     setIsClearingCatalog(true);
     try {
@@ -621,8 +715,11 @@ export default function MusicCatalog() {
                     confidence: song.confidence_score || 0,
                     status: song.status || 'pending'
                   }}
-                  onEdit={() => {}}
+                  onEdit={handleEditSong}
                   onEnrich={handleEnrichSongUI}
+                  onReEnrich={handleReEnrichSong}
+                  onMarkReviewed={handleMarkReviewed}
+                  onDelete={handleDeleteSong}
                   isEnriching={enrichingIds.has(song.id)}
                 />
               ))}
@@ -773,6 +870,10 @@ export default function MusicCatalog() {
         artist={selectedArtistId ? artists.find(a => a.id === selectedArtistId) : null}
         songs={selectedArtistId ? songs.filter(s => s.artist_id === selectedArtistId) : []}
         onEnrichSong={handleEnrichSong}
+        onEditSong={handleEditSong}
+        onReEnrichSong={handleReEnrichSong}
+        onMarkReviewed={handleMarkReviewed}
+        onDeleteSong={handleDeleteSong}
       />
       </div>
     </div>

@@ -13,6 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
   Music,
   BookOpen,
   ExternalLink,
@@ -20,6 +27,11 @@ import {
   List,
   Calendar,
   Sparkles,
+  MoreVertical,
+  Edit,
+  RefreshCw,
+  CheckCircle2,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,6 +61,10 @@ interface ArtistDetailsSheetProps {
   artist: Artist | null;
   songs: Song[];
   onEnrichSong: (songId: string) => Promise<any>;
+  onEditSong?: (song: Song) => void;
+  onReEnrichSong?: (songId: string) => void;
+  onMarkReviewed?: (songId: string) => void;
+  onDeleteSong?: (songId: string) => void;
 }
 
 export function ArtistDetailsSheet({
@@ -58,6 +74,10 @@ export function ArtistDetailsSheet({
   artist,
   songs,
   onEnrichSong,
+  onEditSong,
+  onReEnrichSong,
+  onMarkReviewed,
+  onDeleteSong,
 }: ArtistDetailsSheetProps) {
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   const [isEnrichingBio, setIsEnrichingBio] = useState(false);
@@ -237,6 +257,10 @@ export function ArtistDetailsSheet({
                     song={song}
                     isEnriching={recentlyEnrichedIds.has(song.id)}
                     onEnrich={() => handleEnrichSong(song.id)}
+                    onEdit={onEditSong}
+                    onReEnrich={onReEnrichSong}
+                    onMarkReviewed={onMarkReviewed}
+                    onDelete={onDeleteSong}
                   />
                 ))}
               </ScrollArea>
@@ -266,6 +290,10 @@ export function ArtistDetailsSheet({
                           song={song}
                           isEnriching={recentlyEnrichedIds.has(song.id)}
                           onEnrich={() => handleEnrichSong(song.id)}
+                          onEdit={onEditSong}
+                          onReEnrich={onReEnrichSong}
+                          onMarkReviewed={onMarkReviewed}
+                          onDelete={onDeleteSong}
                         />
                       ))}
                     </div>
@@ -291,6 +319,10 @@ export function ArtistDetailsSheet({
                           song={song}
                           isEnriching={recentlyEnrichedIds.has(song.id)}
                           onEnrich={() => handleEnrichSong(song.id)}
+                          onEdit={onEditSong}
+                          onReEnrich={onReEnrichSong}
+                          onMarkReviewed={onMarkReviewed}
+                          onDelete={onDeleteSong}
                         />
                       ))}
                     </div>
@@ -309,9 +341,13 @@ interface SongItemProps {
   song: Song;
   isEnriching: boolean;
   onEnrich: () => void;
+  onEdit?: (song: Song) => void;
+  onReEnrich?: (songId: string) => void;
+  onMarkReviewed?: (songId: string) => void;
+  onDelete?: (songId: string) => void;
 }
 
-function SongItem({ song, isEnriching, onEnrich }: SongItemProps) {
+function SongItem({ song, isEnriching, onEnrich, onEdit, onReEnrich, onMarkReviewed, onDelete }: SongItemProps) {
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'enriched':
@@ -350,21 +386,57 @@ function SongItem({ song, isEnriching, onEnrich }: SongItemProps) {
 
           <div className="flex items-center gap-2 shrink-0">
             {getStatusBadge(song.status)}
-            {song.status === 'pending' && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={onEnrich}
-                disabled={isEnriching}
-                className="h-7 px-2"
-              >
-                {isEnriching ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3 w-3" />
+            
+            {/* Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(song)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
                 )}
-              </Button>
-            )}
+                {song.status === 'pending' && (
+                  <DropdownMenuItem onClick={onEnrich} disabled={isEnriching}>
+                    <Sparkles className={`w-4 h-4 mr-2 ${isEnriching ? 'animate-spin' : ''}`} />
+                    Enriquecer
+                  </DropdownMenuItem>
+                )}
+                {onReEnrich && song.status !== 'pending' && (
+                  <DropdownMenuItem onClick={() => onReEnrich(song.id)} disabled={isEnriching}>
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isEnriching ? 'animate-spin' : ''}`} />
+                    Re-enriquecer
+                  </DropdownMenuItem>
+                )}
+                {onMarkReviewed && song.status !== 'approved' && (
+                  <DropdownMenuItem onClick={() => onMarkReviewed(song.id)}>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Marcar Revisado
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => onDelete(song.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Deletar
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardContent>
