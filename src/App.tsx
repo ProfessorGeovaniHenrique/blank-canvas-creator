@@ -35,6 +35,7 @@ import DeveloperHistory from "./pages/DeveloperHistory";
 import AdminMetricsRealtime from "./pages/AdminMetricsRealtime";
 import MusicEnrichment from "./pages/MusicEnrichment";
 import MusicCatalog from "./pages/MusicCatalog";
+import ApiUsage from "./pages/ApiUsage";
 import NotFound from "./pages/NotFound";
 import { lazy, Suspense } from "react";
 
@@ -223,6 +224,14 @@ const RouterContent = () => {
             element={
               <ProtectedRoute requiredRole="admin">
                 <MusicCatalog />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/api-usage" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ApiUsage />
               </ProtectedRoute>
             } 
           />

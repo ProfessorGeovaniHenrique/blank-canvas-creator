@@ -1116,6 +1116,48 @@ export type Database = {
         }
         Relationships: []
       }
+      gemini_api_usage: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          function_name: string
+          id: string
+          metadata: Json | null
+          model_used: string
+          request_type: string
+          success: boolean
+          tokens_input: number | null
+          tokens_output: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          function_name: string
+          id?: string
+          metadata?: Json | null
+          model_used?: string
+          request_type: string
+          success?: boolean
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          metadata?: Json | null
+          model_used?: string
+          request_type?: string
+          success?: boolean
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       gutenberg_lexicon: {
         Row: {
           antonimos: string[] | null
