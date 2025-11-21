@@ -133,6 +133,10 @@ serve(async (req) => {
           ? `YouTube Video ID encontrado: ${enrichedData.youtubeVideoId}` 
           : 'Nenhum vídeo do YouTube encontrado';
 
+        const startTime = Date.now();
+        let tokensInput = 0;
+        let tokensOutput = 0;
+        
         const systemPrompt = `Você é um especialista em metadados musicais.
 Sua tarefa é identificar o Compositor e o Ano de Lançamento da música.
 
@@ -178,6 +182,12 @@ Não adicione markdown \`\`\`json ou explicações. Apenas o objeto JSON cru.`;
         const geminiData = await geminiResponse.json();
         console.log('[enrich-music-data] Gemini raw response:', JSON.stringify(geminiData));
         
+        // Extrair usage metadata
+        if (geminiData.usageMetadata) {
+          tokensInput = geminiData.usageMetadata.promptTokenCount || 0;
+          tokensOutput = geminiData.usageMetadata.candidatesTokenCount || 0;
+        }
+        
         const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
         console.log('[enrich-music-data] Gemini text extracted:', rawText);
         
@@ -218,10 +228,40 @@ Não adicione markdown \`\`\`json ou explicações. Apenas o objeto JSON cru.`;
 
         sources.push('gemini');
         console.log(`[enrich-music-data] Gemini enrichment successful: composer=${metadata.composer}, year=${metadata.release_year}`);
+        
+        // Log API usage
+        await supabase.from("gemini_api_usage").insert({
+          function_name: "enrich-music-data",
+          model_used: "gemini-1.5-flash",
+          request_type: "enrich_song",
+          tokens_input: tokensInput,
+          tokens_output: tokensOutput,
+          success: true,
+          metadata: {
+            song_id: songId,
+            artist: artistName,
+            title: song.title,
+            processing_time_ms: Date.now() - startTime,
+          },
+        });
 
       } catch (error) {
         console.error('[enrich-music-data] Gemini API error:', error);
         console.error('[enrich-music-data] Error details:', error instanceof Error ? error.message : String(error));
+        
+        // Log failed API call
+        try {
+          await supabase.from("gemini_api_usage").insert({
+            function_name: "enrich-music-data",
+            model_used: "gemini-1.5-flash",
+            request_type: "enrich_song",
+            success: false,
+            error_message: error instanceof Error ? error.message : String(error),
+            metadata: { song_id: songId, artist: artistName, title: song.title },
+          });
+        } catch (logError) {
+          console.error("Failed to log API error:", logError);
+        }
       }
     }
 

@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
-import { Key, Users, BarChart3, Database, Upload, Music, Library } from "lucide-react";
+import { Key, Users, BarChart3, Database, Upload, Music, Library, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function AdminLayout() {
@@ -60,6 +60,12 @@ export default function AdminLayout() {
                     <NavLink to="/music-catalog" activeClassName="bg-primary/10 text-primary">
                       <Library className="h-4 w-4 mr-2" />
                       Catálogo
+                    </NavLink>
+                  </Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <NavLink to="/api-usage" activeClassName="bg-primary/10 text-primary">
+                      <Activity className="h-4 w-4 mr-2" />
+                      API Usage
                     </NavLink>
                   </Button>
                 </div>
