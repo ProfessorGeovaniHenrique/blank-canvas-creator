@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDialectalLexicon } from '@/hooks/useDialectalLexicon';
 import { ValidationInterface } from '@/components/advanced/ValidationInterface';
+import { EditVerbeteDialog } from '@/components/validation/EditVerbeteDialog';
 import { BatchValidationDialog } from '@/components/advanced/lexicon-status/BatchValidationDialog';
 import { KeyboardShortcutsHelper } from '@/components/validation/KeyboardShortcutsHelper';
 import { VerbeteCard } from '@/components/validation/VerbeteCard';
@@ -26,6 +27,8 @@ export default function AdminGauchoValidation() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [validationOpen, setValidationOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -88,10 +91,21 @@ export default function AdminGauchoValidation() {
     setValidationOpen(true);
   };
 
+  const handleEdit = (entry: any) => {
+    setEditingEntry(entry);
+    setEditDialogOpen(true);
+  };
+
   const handleValidationSuccess = () => {
     refetch();
     setValidationOpen(false);
     setSelectedEntry(null);
+  };
+
+  const handleEditSuccess = () => {
+    refetch();
+    setEditDialogOpen(false);
+    setEditingEntry(null);
   };
 
   const handleApprove = async (id: string) => {
@@ -406,7 +420,7 @@ export default function AdminGauchoValidation() {
                         entry={entry as LexiconEntry}
                         onApprove={handleApprove}
                         onReject={handleReject}
-                        onEdit={handleValidate}
+                        onEdit={handleEdit}
                         isSelected={selectedEntryId === entry.id}
                       />
                     </div>
@@ -418,13 +432,23 @@ export default function AdminGauchoValidation() {
         </div>
       </div>
 
-      {/* Modal de Validação */}
+      {/* Modal de Validação de Anotações */}
       {selectedEntry && (
         <ValidationInterface
           entry={selectedEntry}
           open={validationOpen}
           onOpenChange={setValidationOpen}
           onSuccess={handleValidationSuccess}
+        />
+      )}
+
+      {/* Modal de Edição de Verbete */}
+      {editingEntry && (
+        <EditVerbeteDialog
+          entry={editingEntry}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSuccess={handleEditSuccess}
         />
       )}
 

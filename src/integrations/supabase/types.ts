@@ -684,6 +684,7 @@ export type Database = {
           frequencia_uso: string | null
           id: string
           influencia_platina: boolean | null
+          manually_edited: boolean | null
           marcacao_temporal: string | null
           marcadores_uso: string[] | null
           origem_primaria: string | null
@@ -716,6 +717,7 @@ export type Database = {
           frequencia_uso?: string | null
           id?: string
           influencia_platina?: boolean | null
+          manually_edited?: boolean | null
           marcacao_temporal?: string | null
           marcadores_uso?: string[] | null
           origem_primaria?: string | null
@@ -748,6 +750,7 @@ export type Database = {
           frequencia_uso?: string | null
           id?: string
           influencia_platina?: boolean | null
+          manually_edited?: boolean | null
           marcacao_temporal?: string | null
           marcadores_uso?: string[] | null
           origem_primaria?: string | null

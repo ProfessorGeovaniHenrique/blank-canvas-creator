@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, XCircle, Edit3, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, XCircle, Edit3, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import type { LexiconEntry } from '@/hooks/useBackendLexicon';
@@ -35,7 +35,7 @@ export function VerbeteCard({ entry, onApprove, onReject, onEdit, isSelected }: 
             <h3 className="font-semibold text-lg truncate">
               {entry.verbete || entry.palavra}
             </h3>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <Badge variant="outline" className="text-xs">
                 {entry.classe_gramatical || entry.pos || 'N/A'}
               </Badge>
@@ -43,6 +43,12 @@ export function VerbeteCard({ entry, onApprove, onReject, onEdit, isSelected }: 
                 <span className="text-xs text-muted-foreground">
                   {definitions.length} {definitions.length === 1 ? 'definição' : 'definições'}
                 </span>
+              )}
+              {(entry as any).manually_edited && (
+                <Badge variant="secondary" className="text-xs gap-1">
+                  <Pencil className="h-3 w-3" />
+                  Editado
+                </Badge>
               )}
             </div>
           </div>
