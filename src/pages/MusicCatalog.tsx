@@ -45,7 +45,6 @@ export default function MusicCatalog() {
             genre
           )
         `)
-        .eq('status', 'enriched')
         .order('created_at', { ascending: false })
         .limit(100);
 
