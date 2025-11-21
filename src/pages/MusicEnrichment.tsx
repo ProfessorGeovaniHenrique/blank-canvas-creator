@@ -1,8 +1,5 @@
 import { useCallback, useState } from 'react';
 import { ProcessingProvider, useProcessing } from '@/contexts/ProcessingContext';
-import { BatchProcessingProvider } from '@/contexts/BatchProcessingContext';
-import { ResultsProvider } from '@/contexts/ResultsContext';
-import { WorkflowProvider } from '@/contexts/WorkflowContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EmptyStateMusicEnrichment } from '@/components/music/EmptyStateMusicEnrichment';
@@ -58,6 +55,21 @@ function MusicEnrichmentContent() {
       toast.success(
         `${result.songsCreated} músicas importadas ${corpusId ? 'no corpus selecionado' : 'no catálogo geral'}! ${result.artistsCreated} artistas criados.`
       );
+
+      // ✅ FASE 1: Auto-enriquecer primeiras 10 músicas após importação
+      if (result.songIds.length > 0) {
+        toast.info('Iniciando enriquecimento automático das primeiras 10 músicas...');
+        
+        const { enrichmentService } = await import('@/services/enrichmentService');
+        const toEnrich = result.songIds.slice(0, 10);
+        
+        await enrichmentService.enrichBatch(toEnrich, (current, total) => {
+          console.log(`[MusicEnrichment] Auto-enriquecimento: ${current}/${total}`);
+        });
+        
+        toast.success('Enriquecimento automático concluído!');
+      }
+      
       navigate('/music-catalog');
     } catch (error) {
       toast.error('Erro ao importar dados');
@@ -110,16 +122,11 @@ function MusicEnrichmentContent() {
   );
 }
 
+// ✅ FASE 1: Remover contextos desnecessários, manter apenas ProcessingProvider
 export default function MusicEnrichment() {
   return (
-    <WorkflowProvider>
-      <ProcessingProvider>
-        <BatchProcessingProvider>
-          <ResultsProvider>
-            <MusicEnrichmentContent />
-          </ResultsProvider>
-        </BatchProcessingProvider>
-      </ProcessingProvider>
-    </WorkflowProvider>
+    <ProcessingProvider>
+      <MusicEnrichmentContent />
+    </ProcessingProvider>
   );
 }
