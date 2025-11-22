@@ -61,6 +61,7 @@ export default function MusicCatalog() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [songs, setSongs] = useState<Song[]>([]);
+  const [allSongs, setAllSongs] = useState<Song[]>([]); // Todas as músicas sem filtro
   const [artists, setArtists] = useState<LocalArtist[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -140,6 +141,9 @@ export default function MusicCatalog() {
       if (allSongsError) throw allSongsError;
 
       const allSongs = allSongsData || [];
+      
+      // Salvar todas as músicas no estado
+      setAllSongs(allSongs);
 
       // Filtrar músicas baseado no filtro de status
       const displayedSongs = statusFilter === 'all' 
@@ -940,7 +944,7 @@ export default function MusicCatalog() {
         <TabsContent value="artists" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {artists.map((artist) => {
-              const artistSongs = songs.filter(s => s.artist_id === artist.id);
+              const artistSongs = allSongs.filter(s => s.artist_id === artist.id);
               const pendingSongs = artistSongs.filter(s => s.status === 'pending').length;
               const enrichedSongs = artistSongs.filter(s => s.status === 'enriched').length;
               const enrichedPercentage = artistSongs.length > 0
