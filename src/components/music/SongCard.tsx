@@ -85,17 +85,6 @@ const extractYoutubeVideoId = (url: string): string | null => {
   return null;
 };
 
-// Função para verificar se a música foi enriquecida recentemente (últimos 5 minutos)
-const isRecentlyEnriched = (updatedAt?: string, status?: string): boolean => {
-  if (!updatedAt || status !== 'enriched') return false;
-  
-  const now = new Date().getTime();
-  const updated = new Date(updatedAt).getTime();
-  const fiveMinutes = 5 * 60 * 1000; // 5 minutos em milissegundos
-  
-  return (now - updated) <= fiveMinutes;
-};
-
 export function SongCard({ 
   song, 
   variant = 'full',
@@ -124,9 +113,7 @@ export function SongCard({
   const confidence = song.confidence || (song.confidence_score ? song.confidence_score / 100 : 0);
   const releaseYear = song.year || song.release_year;
   const isCompact = variant === 'compact';
-  const recentlyEnriched = isRecentlyEnriched(song.updated_at, song.status);
-  
-  const getStatusBadge = (status?: string, showOnlyErrors: boolean = false) => {
+  const getStatusBadge = (status?: string) => {
     if (!status) return null;
     
     const statusConfig = {
@@ -159,17 +146,14 @@ export function SongCard({
     const config = statusConfig[status as keyof typeof statusConfig];
     if (!config) return null;
 
-    // Se showOnlyErrors for true, mostra apenas pending e error
-    if (showOnlyErrors && status !== 'pending' && status !== 'error') return null;
-
     const Icon = config.icon;
 
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant={config.variant} className={`flex items-center gap-1 cursor-help ${isCompact ? 'text-[10px] h-5 px-1.5' : ''}`}>
-              <Icon className={`${isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
+            <Badge variant={config.variant} className="flex items-center gap-1 cursor-help">
+              <Icon className="w-3 h-3" />
               {config.label}
             </Badge>
           </TooltipTrigger>
@@ -196,7 +180,7 @@ export function SongCard({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant={variant} className={`cursor-help ${isCompact ? 'text-[10px] h-5 px-1.5' : ''}`}>
+            <Badge variant={variant} className="cursor-help">
               ✓ {(confidence * 100).toFixed(0)}%
             </Badge>
           </TooltipTrigger>
@@ -237,20 +221,10 @@ export function SongCard({
           
           {/* Badges posicionados no canto superior direito da thumbnail */}
           <div className="absolute top-1 right-1 flex flex-col gap-1">
-            {/* Modo compact: mostra sempre status e confiança */}
-            {/* Modo full: mostra apenas pending/error (success fica implícito) */}
-            {isCompact ? (
-              <>
-                {getStatusBadge(song.status)}
-                {confidence > 0 && getConfidenceBadge(confidence)}
-              </>
-            ) : (
-              getStatusBadge(song.status, true)
-            )}
-            
-            {/* Badge "Novo" apenas para músicas enriquecidas nos últimos 5 minutos */}
-            {recentlyEnriched && (
-              <Badge variant="default" className={`animate-pulse ${isCompact ? 'text-[10px] h-5 px-1.5' : 'text-xs'}`}>
+            {getStatusBadge(song.status)}
+            {confidence > 0 && getConfidenceBadge(confidence)}
+            {song.status === 'enriched' && (
+              <Badge variant="default" className="text-xs animate-pulse">
                 Novo
               </Badge>
             )}
@@ -304,6 +278,12 @@ export function SongCard({
                     </Tooltip>
                   </TooltipProvider>
                 </>
+              )}
+              
+              {!isCompact && song.status === 'enriched' && (
+                <Badge variant="success" className="text-xs">
+                  Enriquecido
+                </Badge>
               )}
               
               {/* Dropdown Menu */}
