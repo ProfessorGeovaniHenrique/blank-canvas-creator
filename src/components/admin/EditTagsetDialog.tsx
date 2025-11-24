@@ -149,6 +149,7 @@ export function EditTagsetDialog({
       // Validações de negócio
       if (data.nivel_profundidade > 1 && !data.categoria_pai) {
         toast.error('Tagsets de nível 2-4 devem ter um pai');
+        setIsSubmitting(false); // 🔥 CORREÇÃO 2: Liberar loading state
         return;
       }
 
@@ -157,12 +158,17 @@ export function EditTagsetDialog({
         data.categoria_pai = undefined;
       }
 
+      // 🔥 CORREÇÃO 3: Garantir envio correto de NULL para categoria_pai
+      const categoriaPaiValue = data.nivel_profundidade === 1 
+        ? null 
+        : (data.categoria_pai?.trim() || null);
+
       await updateTagset(tagset.id, {
         nome: data.nome,
         descricao: data.descricao || null,
         exemplos: (data.exemplos || []).map(e => e.value),
         nivel_profundidade: data.nivel_profundidade,
-        categoria_pai: data.categoria_pai || null,
+        categoria_pai: categoriaPaiValue,
       });
 
       toast.success('Domínio semântico atualizado com sucesso!');
@@ -176,6 +182,23 @@ export function EditTagsetDialog({
   };
 
   const nivelAtual = form.watch('nivel_profundidade');
+
+  // 🔥 CORREÇÃO 1: useEffect para sincronizar categoria_pai com nivel_profundidade
+  useEffect(() => {
+    const categoriaPaiAtual = form.getValues('categoria_pai');
+    
+    // Se mudou para nível 1 E tem pai definido → limpar
+    if (nivelAtual === 1 && categoriaPaiAtual) {
+      console.log('[EditTagsetDialog] Nível 1 detectado, limpando categoria_pai');
+      form.setValue('categoria_pai', '', { shouldValidate: true });
+    }
+    
+    // Se mudou para nível 2+ E não tem pai → forçar validação
+    if (nivelAtual > 1 && !categoriaPaiAtual) {
+      console.log('[EditTagsetDialog] Nível 2+ detectado sem pai, forçando validação');
+      form.trigger('categoria_pai');
+    }
+  }, [nivelAtual, form]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
