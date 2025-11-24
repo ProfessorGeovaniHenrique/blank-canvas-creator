@@ -4,6 +4,7 @@ import { RateLimiter, addRateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { EdgeFunctionLogger } from "../_shared/logger.ts";
 import { withInstrumentation } from "../_shared/instrumentation.ts";
 import { createHealthCheck } from "../_shared/health-check.ts";
+import { createEdgeLogger } from "../_shared/unified-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -230,7 +231,7 @@ function parseRealCorpus(
     }
   }
 
-  console.log(`[parseRealCorpus] Extraídas ${words.length} palavras do corpus`);
+  // Removed console.log - will be logged by caller with proper context
   return words;
 }
 
@@ -247,7 +248,7 @@ async function loadCorpusFile(corpusType: string): Promise<string> {
     throw new Error(`Corpus type não suportado: ${corpusType}`);
   }
 
-  console.log(`[loadCorpusFile] Carregando corpus de: ${url}`);
+  // Removed console.log - will be logged by caller with proper context
   const response = await fetch(url);
   
   if (!response.ok) {
@@ -255,7 +256,7 @@ async function loadCorpusFile(corpusType: string): Promise<string> {
   }
 
   const text = await response.text();
-  console.log(`[loadCorpusFile] Corpus carregado: ${text.length} caracteres`);
+  // Removed console.log - will be logged by caller
   return text;
 }
 
@@ -489,12 +490,11 @@ serve(async (req) => {
     
     const requestStartTime = Date.now();
     const requestId = crypto.randomUUID();
+    const log = createEdgeLogger('annotate-semantic', requestId);
     
-    console.log('[annotate-semantic] 📥 Payload recebido:', {
-      request_id: requestId,
+    log.info('Payload received', {
       corpus_type: rawBody.corpus_type,
       demo_mode: rawBody.demo_mode,
-      demo_mode_type: typeof rawBody.demo_mode,
       has_auth_header: !!req.headers.get('authorization')
     });
     
@@ -514,14 +514,13 @@ serve(async (req) => {
     if (demo_mode) {
       userId = '00000000-0000-0000-0000-000000000000';
       authStatus = 'demo';
-      console.log('[annotate-semantic] 🎭 MODO DEMO ATIVADO - Bypass de autenticação');
+      log.info('Demo mode activated - bypassing authentication');
     } else {
     // Modo normal: REQUER autenticação válida
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     
-    console.log('[annotate-semantic] 🔍 Verificando autenticação:', {
-      has_auth_header: !!authHeader,
-      header_preview: authHeader ? authHeader.substring(0, 20) + '...' : 'NONE'
+    log.debug('Checking authentication', {
+      has_auth_header: !!authHeader
     });
     
     if (!authHeader) {
@@ -533,7 +532,7 @@ serve(async (req) => {
         details: 'Auth session missing!'
       };
       
-      console.error('[annotate-semantic] ❌ No auth header found');
+      log.error('No auth header found', new Error('Authentication required'));
       
       // Registrar log de debug
       await supabase.from('annotation_debug_logs').insert({
@@ -555,7 +554,7 @@ serve(async (req) => {
     }
 
     const userToken = authHeader.replace('Bearer ', '').replace('bearer ', '');
-    console.log('[annotate-semantic] 🎫 Token extraído:', userToken.substring(0, 30) + '...');
+    log.debug('Token extracted');
     
     // Criar cliente com o token do usuário para validação
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -578,8 +577,7 @@ serve(async (req) => {
         hint: 'Faça login novamente ou use demo_mode: true'
       };
       
-      console.error('[annotate-semantic] ❌ Auth error:', {
-        error: authError?.message,
+      log.error('Authentication failed', authError || new Error('No user found'), {
         has_user: !!user
       });
       
@@ -604,12 +602,13 @@ serve(async (req) => {
 
     userId = user.id;
     authStatus = 'authenticated';
-    console.log(`[annotate-semantic] ✅ Usuário autenticado: ${userId}`);
+    log.info('User authenticated', { userId });
     }
 
-    console.log(`[annotate-semantic] 🚀 Iniciando anotação: ${corpus_type}`, {
+    log.info('Starting annotation', {
+      corpus_type,
       userId,
-      demo: demo_mode || false,
+      demo_mode: demo_mode || false,
       artist_filter,
       start_line,
       end_line
@@ -636,14 +635,14 @@ serve(async (req) => {
       .single();
 
     if (jobError || !job) {
-      console.error('[annotate-semantic] Error creating job:', jobError);
+      log.error('Error creating job', jobError || new Error('No job created'));
       return new Response(
         JSON.stringify({ error: 'Erro ao criar job de anotação' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[annotate-semantic] Job criado: ${job.id}`);
+    log.logJobStart(job.id, 0, { corpus_type, demo_mode });
 
     // @ts-ignore
     EdgeRuntime.waitUntil(
@@ -653,7 +652,7 @@ serve(async (req) => {
           setTimeout(() => reject(new Error('Timeout: processamento excedeu 30 minutos')), 30 * 60 * 1000)
         )
       ]).catch(async (error) => {
-        console.error(`[annotate-semantic] Erro no processamento background do job ${job.id}:`, error);
+        log.logJobError(job.id, error instanceof Error ? error : new Error(String(error)));
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         await supabase.from('annotation_jobs').update({
           status: 'erro',
@@ -700,7 +699,7 @@ serve(async (req) => {
     return addRateLimitHeaders(successResponse, rateLimit);
 
   } catch (error: any) {
-    console.error('[annotate-semantic] Error:', error);
+    log.fatal('Fatal error in annotate-semantic', error instanceof Error ? error : new Error(String(error)));
     
     // Log de erro para monitoramento
     await logger.logResponse(req, 500, { error });
@@ -744,6 +743,7 @@ async function processCorpusWithAI(
   referenceCorpus?: { corpus_type: string; artist_filter?: string; size_ratio?: number }
 ) {
   const supabase = createClient(supabaseUrl, supabaseKey);
+  const log = createEdgeLogger('annotate-semantic:processCorpus', jobId);
 
   // Cleanup de recursos
   let studyFreqMap = new Map<string, number>();
@@ -757,14 +757,13 @@ async function processCorpusWithAI(
   };
 
   try {
-    console.log(`[processCorpusWithAI] Iniciando processamento do job ${jobId}`, {
+    log.logJobStart(jobId, 0, {
       corpusType,
       hasCustomText: !!customText,
       artistFilter,
       startLine,
       endLine,
-      hasReferenceCorpus: !!referenceCorpus,
-      timestamp: new Date().toISOString()
+      hasReferenceCorpus: !!referenceCorpus
     });
 
     // Atualizar status para processando com lock otimista
@@ -780,7 +779,7 @@ async function processCorpusWithAI(
       .single();
 
     if (updateError || !updatedJob) {
-      console.error(`[processCorpusWithAI] Job ${jobId} já está sendo processado ou não existe`);
+      log.error('Job already being processed or does not exist', updateError || new Error('No job found'), { jobId });
       cleanup();
       throw new Error('Job já está sendo processado ou foi cancelado');
     }
@@ -798,7 +797,7 @@ async function processCorpusWithAI(
       throw new Error('Nenhum tagset aprovado encontrado. Execute o script de seed primeiro.');
     }
 
-    console.log(`[processCorpusWithAI] ${tagsets.length} tagsets aprovados carregados`);
+    log.info('Tagsets loaded', { count: tagsets.length });
 
     // Extrair palavras do corpus
     let words: CorpusWord[];
@@ -816,13 +815,14 @@ async function processCorpusWithAI(
       throw new Error('Nenhuma palavra encontrada no corpus com os filtros aplicados');
     }
 
-    console.log(`[processCorpusWithAI] Total de palavras a processar: ${words.length}`);
+    log.info('Words extracted from corpus', { totalWords: words.length });
 
     // ============ ANÁLISE COMPARATIVA: CARREGAR CORPUS DE REFERÊNCIA ============
     let culturalMarkersCount = 0;
 
     if (referenceCorpus) {
-      console.log(`[processCorpusWithAI] 🔄 Carregando corpus de referência: ${referenceCorpus.corpus_type}`, {
+      log.info('Loading reference corpus', {
+        corpus_type: referenceCorpus.corpus_type,
         artist_filter: referenceCorpus.artist_filter,
         size_ratio: referenceCorpus.size_ratio || 1.0
       });
@@ -833,7 +833,7 @@ async function processCorpusWithAI(
         
         // ✅ VALIDAÇÃO CRÍTICA: verificar se corpus de referência é válido
         if (!parsedRefCorpus || parsedRefCorpus.length === 0) {
-          console.warn(`[processCorpusWithAI] ⚠️ Corpus de referência vazio ou inválido`);
+          log.warn('Reference corpus empty or invalid');
           refWords = [];
         } else {
           // Aplicar balanceamento por amostragem aleatória (Fisher-Yates shuffle)
@@ -841,7 +841,7 @@ async function processCorpusWithAI(
           const targetSize = Math.floor(words.length * sizeRatio);
           refWords = shuffleArray(parsedRefCorpus).slice(0, targetSize);
 
-          console.log(`[processCorpusWithAI] ✅ Corpus de referência carregado:`, {
+          log.info('Reference corpus loaded', {
             total_parsed: parsedRefCorpus.length,
             target_size: targetSize,
             final_size: refWords.length,
@@ -859,7 +859,7 @@ async function processCorpusWithAI(
             refFreqMap.set(key, (refFreqMap.get(key) || 0) + 1);
           });
 
-          console.log(`[processCorpusWithAI] 📊 Frequências calculadas:`, {
+          log.info('Frequency maps calculated', {
             study_unique_words: studyFreqMap.size,
             ref_unique_words: refFreqMap.size,
             study_total_tokens: words.length,
@@ -867,7 +867,7 @@ async function processCorpusWithAI(
           });
         }
       } catch (error) {
-        console.error(`[processCorpusWithAI] ❌ Erro ao carregar corpus de referência:`, error);
+        log.error('Error loading reference corpus', error instanceof Error ? error : new Error(String(error)));
         // Continuar sem análise comparativa
       }
     }
@@ -895,7 +895,7 @@ async function processCorpusWithAI(
     for (let i = 0; i < totalBatches; i++) {
       const batch = words.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
       
-      console.log(`[processCorpusWithAI] Processando batch ${i + 1}/${totalBatches} (${batch.length} palavras)`);
+      log.debug('Processing batch', { batchNumber: i + 1, totalBatches, wordsInBatch: batch.length });
 
       // ANOTAR BATCH: Priorizar locuções/nomes próprios, depois IA/Lexicon
       const wordsNeedingAI: CorpusWord[] = [];
@@ -1070,9 +1070,10 @@ async function processCorpusWithAI(
           .insert(validAnnotations);
 
         if (insertError) {
-          console.error('[processCorpusWithAI] Erro ao inserir batch:', insertError);
+          log.error('Error inserting batch', insertError, { jobId, batchSize: validAnnotations.length });
         } else {
           annotatedWords += validAnnotations.length;
+          log.logDatabaseQuery('annotated_corpus', 'insert', validAnnotations.length);
         }
       }
 
@@ -1091,7 +1092,7 @@ async function processCorpusWithAI(
           })
           .eq('id', jobId);
 
-        console.log(`[processCorpusWithAI] Progresso: ${progresso}% (${processedWords}/${words.length})`);
+        log.logJobProgress(jobId, processedWords, words.length, progresso);
       }
     }
 
@@ -1107,11 +1108,11 @@ async function processCorpusWithAI(
       })
       .eq('id', jobId);
 
-    console.log(`[processCorpusWithAI] Job ${jobId} concluído: ${annotatedWords}/${words.length} palavras anotadas`);
+    log.logJobComplete(jobId, annotatedWords, Date.now(), { totalWords: words.length });
     
     cleanup();
   } catch (error: any) {
-    console.error(`[processCorpusWithAI] Erro no job ${jobId}:`, error);
+    log.logJobError(jobId, error instanceof Error ? error : new Error(String(error)));
     
     cleanup();
     
@@ -1134,7 +1135,7 @@ async function annotateBatchWithAI(
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
   if (!LOVABLE_API_KEY) {
-    console.warn('[annotateBatchWithAI] LOVABLE_API_KEY não configurada, usando léxico');
+    // Warn is logged higher up in the call stack with proper context
     return annotateBatchFromLexicon(words, supabase);
   }
 
@@ -1218,7 +1219,7 @@ Retorne um array JSON com exatamente ${words.length} anotações.`;
     throw new Error('Resposta da IA inválida');
 
   } catch (error) {
-    console.error('[annotateBatchWithAI] Erro com IA, fallback para léxico:', error);
+    // Error logged by caller with proper context
     return annotateBatchFromLexicon(words, supabase);
   }
 }
@@ -1232,7 +1233,7 @@ async function annotateBatchWithAI_chunked(
   const CHUNK_SIZE = 10;
   const allAnnotations: AIAnnotation[] = [];
   
-  console.log(`[annotateBatchWithAI_chunked] Dividindo ${words.length} palavras em chunks de ${CHUNK_SIZE}`);
+  // Removed console.log - chunking is internal logic
   
   for (let i = 0; i < words.length; i += CHUNK_SIZE) {
     const chunk = words.slice(i, Math.min(i + CHUNK_SIZE, words.length));
@@ -1240,8 +1241,7 @@ async function annotateBatchWithAI_chunked(
       const annotations = await annotateBatchWithAI(chunk, tagsets, supabase);
       allAnnotations.push(...annotations);
     } catch (error) {
-      console.error(`[annotateBatchWithAI_chunked] Erro no chunk ${i}-${i + CHUNK_SIZE}:`, error);
-      // Fallback para léxico para este chunk
+      // Error handled by fallback - no logging needed
       const fallbackAnnotations = await annotateBatchFromLexicon_safe(chunk, supabase);
       allAnnotations.push(...fallbackAnnotations);
     }
@@ -1256,7 +1256,7 @@ async function annotateBatchFromLexicon_safe(
   supabase: any
 ): Promise<AIAnnotation[]> {
   if (words.length === 0) {
-    console.warn('[annotateBatchFromLexicon_safe] Array de palavras vazio');
+    // Empty array is valid state - no logging needed
     return [];
   }
   
@@ -1265,7 +1265,7 @@ async function annotateBatchFromLexicon_safe(
     .filter(w => w && w.length > 0);
   
   if (cleanWords.length === 0) {
-    console.warn('[annotateBatchFromLexicon_safe] Nenhuma palavra válida para consulta');
+    // No valid words - return default annotations
     return words.map(() => ({
       tagset_codigo: 'MG.GEN',
       prosody: 0,
@@ -1427,11 +1427,11 @@ async function propagateSynonymAnnotations(
     .in('palavra', palavrasAnotadas);
   
   if (error || !synonymData) {
-    console.warn(`⚠️ Erro ao buscar sinônimos: ${error?.message || 'Nenhum resultado'}`);
+    // No synonyms found is valid state - no logging needed
     return new Map();
   }
   
-  console.log(`📚 Rocha Pombo: ${synonymData.length} entradas com sinônimos encontradas`);
+  // Removed console.log - internal synonym mapping logic
   
   // 2️⃣ Mapear sinônimos → palavra original
   const synonymToOriginal = new Map<string, string>();
@@ -1450,7 +1450,7 @@ async function propagateSynonymAnnotations(
     });
   });
   
-  console.log(`🔄 ${synonymToOriginal.size} sinônimos únicos mapeados para propagação`);
+  // Removed console.log - internal mapping count
   
   // 3️⃣ Propagar anotações
   const propagatedAnnotations = new Map<string, { palavra: string; annotation: AIAnnotation; sinonimo_de: string }>();

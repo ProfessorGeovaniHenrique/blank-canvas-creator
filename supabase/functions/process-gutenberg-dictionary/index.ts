@@ -5,6 +5,7 @@ import { validateGutenbergFile, logValidationResult } from "../_shared/validatio
 import { logJobStart, logJobProgress, logJobComplete, logJobError } from "../_shared/logging.ts";
 import { withInstrumentation } from "../_shared/instrumentation.ts";
 import { createHealthCheck } from "../_shared/health-check.ts";
+import { createEdgeLogger } from "../_shared/unified-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -179,7 +180,7 @@ function parseGutenbergBlock(block: string): VerbeteGutenberg | null {
       entry_type
     };
   } catch (error) {
-    console.error("❌ Erro no parser de bloco:", error);
+    // Parser errors handled by caller with proper statistics
     return null;
   }
 }
@@ -187,7 +188,7 @@ function parseGutenbergBlock(block: string): VerbeteGutenberg | null {
 /**
  * ✅ FASE 1: Detectar cancelamento de job
  */
-async function checkCancellation(jobId: string, supabaseClient: any) {
+async function checkCancellation(jobId: string, supabaseClient: any, log: ReturnType<typeof createEdgeLogger>) {
   const { data: job } = await supabaseClient
     .from('dictionary_import_jobs')
     .select('is_cancelling')
@@ -195,7 +196,7 @@ async function checkCancellation(jobId: string, supabaseClient: any) {
     .single();
 
   if (job?.is_cancelling) {
-    console.log('🛑 Cancelamento detectado! Interrompendo processamento...');
+    log.warn('Cancellation detected', { jobId });
     
     await supabaseClient
       .from('dictionary_import_jobs')
@@ -217,13 +218,12 @@ async function processInBackground(jobId: string, blocks: string[]) {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
+  const log = createEdgeLogger('process-gutenberg:background', jobId);
   const startTime = Date.now();
   const totalBlocks = blocks.length;
   
-  logJobStart({
+  log.logJobStart(jobId, totalBlocks, {
     fonte: 'Gutenberg',
-    jobId,
-    totalEntries: totalBlocks,
     batchSize: BATCH_SIZE,
     timeoutMs: TIMEOUT_MS,
     maxRetries: 3
@@ -253,7 +253,7 @@ async function processInBackground(jobId: string, blocks: string[]) {
     for (let i = 0; i < totalBlocks; i += BATCH_SIZE) {
       // Verificar timeout
       if (Date.now() - startTime > TIMEOUT_MS) {
-        console.log(`[JOB ${jobId}] ⏱️ Timeout. Pausando em ${processados}/${totalBlocks}`);
+        log.warn('Timeout reached, pausing', { processados, totalBlocks });
         await supabase
           .from('dictionary_import_jobs')
           .update({
@@ -338,7 +338,7 @@ async function processInBackground(jobId: string, blocks: string[]) {
 
       // Atualizar progresso a cada 5 batches
       if (batchCount % UPDATE_FREQUENCY === 0 || processados >= totalBlocks) {
-        await checkCancellation(jobId, supabase);
+        await checkCancellation(jobId, supabase, log);
         
         const progressPercent = Math.round((processados / totalBlocks) * 100);
         
@@ -358,14 +358,7 @@ async function processInBackground(jobId: string, blocks: string[]) {
           if (error) throw error;
         }, 2, 1000, 1);
 
-        logJobProgress({
-          jobId,
-          processed: processados,
-          totalEntries: totalBlocks,
-          inserted: inseridos,
-          errors: erros,
-          startTime
-        });
+        log.logJobProgress(jobId, processados, totalBlocks, progressPercent);
       }
     }
 
@@ -386,43 +379,22 @@ async function processInBackground(jobId: string, blocks: string[]) {
       })
       .eq('id', jobId);
 
-    // 📊 LOGS DIAGNÓSTICOS FINAIS - Parsing
-    console.log(`\n📊 [Gutenberg] ESTATÍSTICAS DE PARSING:\n` +
-      `   - Blocos processados: ${processados}\n` +
-      `   - Verbetes inseridos: ${inseridos}\n` +
-      `   - Falhas de parsing: ${blocosInvalidos}\n` +
-      `   - Definições vazias: ${definicoesVazias}\n` +
-      `   - Taxa de sucesso: ${((inseridos / processados) * 100).toFixed(1)}%\n` +
-      `   - Taxa de falha: ${((blocosInvalidos / processados) * 100).toFixed(1)}%\n` +
-      `   - Taxa de definições vazias: ${((definicoesVazias / processados) * 100).toFixed(1)}%\n`);
-    
-    if (parsingErrors.length > 0) {
-      console.log(`\n📊 [Gutenberg] AMOSTRAGEM DE ERROS DE PARSING (até 5):`);
-      parsingErrors.forEach((err, idx) => {
-        console.log(`   ${idx + 1}. Tipo: ${err.type}\n      Sample: "${err.sample}..."\n`);
-      });
-    }
-    
-    logJobComplete({
+    // Final statistics
+    log.logJobComplete(jobId, inseridos, totalTime, {
       fonte: 'Gutenberg',
-      jobId,
-      processed: processados,
-      totalEntries: totalBlocks,
-      inserted: inseridos,
-      errors: erros,
-      totalTime
+      blocosProcessados: processados,
+      blocosInvalidos,
+      definicoesVazias,
+      successRate: ((inseridos / processados) * 100).toFixed(1) + '%',
+      failureRate: ((blocosInvalidos / processados) * 100).toFixed(1) + '%'
     });
 
   } catch (error: any) {
-    console.error(`[JOB ${jobId}] ❌ Erro fatal:`, error);
+    log.logJobError(jobId, error instanceof Error ? error : new Error(String(error)));
     
     // Não cancelar se for erro de cancelamento intencional
     if (error.message === 'JOB_CANCELLED') {
       return;
-    }
-    
-    if (error instanceof Error) {
-      logJobError({ fonte: 'Gutenberg', jobId, error });
     }
     
     await supabase
@@ -437,6 +409,9 @@ async function processInBackground(jobId: string, blocks: string[]) {
 }
 
 serve(withInstrumentation('process-gutenberg-dictionary', async (req) => {
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('process-gutenberg-dictionary', requestId);
+
   // Health check endpoint
   if (req.method === 'GET' && new URL(req.url).pathname.endsWith('/health')) {
     const health = await createHealthCheck('process-gutenberg-dictionary', '2.0.0');
@@ -459,25 +434,7 @@ serve(withInstrumentation('process-gutenberg-dictionary', async (req) => {
     const rawBody = await req.json();
     const { jobId, fileContent } = validateRequest(rawBody);
     
-    console.log(`[process-gutenberg] Iniciando processamento para job ${jobId}`);
-    
-    // 🔍 DEBUG URGENTE - CONTEÚDO BRUTO DO ARQUIVO
-    console.log("\n🔍 DEBUG - Início do arquivo (primeiros 500 chars):");
-    console.log("---INÍCIO---");
-    console.log(fileContent.substring(0, 500));
-    console.log("---FIM DOS 500 CHARS---\n");
-    
-    // 📊 LOGS DIAGNÓSTICOS - Arquivo Recebido
-    const fileStats = {
-      tamanho: fileContent.length,
-      linhas: fileContent.split('\n').length,
-      linhaSeparadora: '\\n\\n (duas quebras consecutivas)'
-    };
-    
-    console.log(`\n📊 [Gutenberg] ARQUIVO RECEBIDO:\n` +
-      `   - Tamanho: ${(fileStats.tamanho / 1024 / 1024).toFixed(2)}MB\n` +
-      `   - Total de linhas: ${fileStats.linhas.toLocaleString()}\n` +
-      `   - Separador de blocos: ${fileStats.linhaSeparadora}\n`);
+    log.info('Starting processing', { jobId, fileSize: fileContent.length });
     
     // ✅ NOVO SPLIT: Usar regex com lookahead para identificar início de verbete
     // Padrão descoberto: Cada verbete começa com *palavra*, (asteriscos + vírgula)
@@ -488,20 +445,11 @@ serve(withInstrumentation('process-gutenberg-dictionary', async (req) => {
       .map(b => b.trim())
       .filter(b => b.length > 0);
     
-    // 🔍 DEBUG URGENTE - RESULTADO DO SPLIT
-    console.log(`\n🔍 DEBUG - Total de blocos após split: ${blocks.length}`);
-    console.log("\n🔍 DEBUG - Primeiros 3 blocos para inspeção:\n");
-    blocks.slice(0, 3).forEach((bloco, i) => {
-      console.log(`--- BLOCO ${i} (primeiros 150 chars) ---`);
-      console.log(bloco.substring(0, 150));
-      console.log(`--- FIM BLOCO ${i} ---\n`);
+    // Log split results
+    log.info('File split completed', {
+      totalBlocks: blocks.length,
+      pattern: 'asterisk-based'
     });
-    
-    // 📊 LOGS DIAGNÓSTICOS - Split
-    console.log(`\n📊 [Gutenberg] SPLIT POR REGEX (asteriscos):\n` +
-      `   - Regex pattern: /(?=\\n\\*[A-Z...]+\\*,)/\n` +
-      `   - Padrão: Verbetes começam com *palavra*,\n` +
-      `   - Blocos detectados: ${blocks.length.toLocaleString()}\n`);
     
     // Filtrar blocos muito pequenos ou muito grandes (rejeitados)
     const MIN_BLOCK_SIZE = 20;   // Verbete + definição mínima
@@ -541,32 +489,15 @@ serve(withInstrumentation('process-gutenberg-dictionary', async (req) => {
     
     blocks = validBlocks;
     
-    // 📊 LOGS DIAGNÓSTICOS - Rejeição
-    console.log(`\n📊 [Gutenberg] REJEIÇÃO DE BLOCOS:\n` +
-      `   - Rejeitados muito curtos: ${tooShortCount}\n` +
-      `   - Rejeitados muito longos: ${tooLongCount}\n` +
-      `   - Total rejeitado: ${tooShortCount + tooLongCount}\n` +
-      `   - Blocos válidos aceitos: ${blocks.length.toLocaleString()}\n` +
-      `   - Taxa de aceitação: ${((blocks.length / (blocks.length + tooShortCount + tooLongCount)) * 100).toFixed(1)}%\n`);
-    
-    // 📊 VALIDAÇÃO DE FORMATO: Verificar se blocos têm o padrão de asterisco
-    const blocksWithPattern = validBlocks.filter(b => 
-      b.match(/^\*[A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑa-záàãâéêíóôõúçñ\s-]+\*,/)
-    ).length;
-    
-    console.log(`\n📊 [Gutenberg] VALIDAÇÃO DE FORMATO:\n` +
-      `   - Blocos com padrão *palavra*,: ${blocksWithPattern}\n` +
-      `   - Taxa de conformidade: ${((blocksWithPattern / validBlocks.length) * 100).toFixed(1)}%\n`);
-    
-    // 📊 Amostragem de rejeições
-    if (rejectedBlocks.length > 0) {
-      console.log(`\n📊 [Gutenberg] AMOSTRAGEM DE REJEIÇÕES (até 3):`);
-      rejectedBlocks.forEach((rej, idx) => {
-        console.log(`   ${idx + 1}. Razão: ${rej.reason}\n      Sample: "${rej.sample}"\n`);
-      });
-    }
-    
-    console.log(`\n[process-gutenberg] ✅ ${blocks.length} blocos válidos para processamento`);
+    // Log rejection statistics
+    log.info('Block filtering completed', {
+      tooShortCount,
+      tooLongCount,
+      totalRejected: tooShortCount + tooLongCount,
+      validBlocks: blocks.length,
+      acceptanceRate: ((blocks.length / (blocks.length + tooShortCount + tooLongCount)) * 100).toFixed(1) + '%',
+      blocksWithPattern: validBlocks.filter(b => b.match(/^\*[A-ZÁÀÃÂÉÊÍÓÔÕÚÇÑa-záàãâéêíóôõúçñ\s-]+\*,/)).length
+    });
 
     // Atualizar job com total de blocos
     await supabase
@@ -593,7 +524,7 @@ serve(withInstrumentation('process-gutenberg-dictionary', async (req) => {
       }
     );
   } catch (error: any) {
-    console.error('[process-gutenberg] ❌ Erro:', error);
+    log.fatal('Fatal error in process-gutenberg-dictionary', error instanceof Error ? error : new Error(String(error)));
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : String(error),

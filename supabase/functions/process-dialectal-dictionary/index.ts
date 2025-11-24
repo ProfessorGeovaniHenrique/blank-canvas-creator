@@ -6,6 +6,7 @@ import { validateDialectalFile, logValidationResult } from "../_shared/validatio
 import { logJobStart, logJobProgress, logJobComplete, logJobError } from "../_shared/logging.ts";
 import { withInstrumentation } from "../_shared/instrumentation.ts";
 import { createHealthCheck } from "../_shared/health-check.ts";
+import { createEdgeLogger } from "../_shared/unified-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -343,6 +344,8 @@ async function processInBackground(jobId: string, verbetes: string[], volumeNum:
     setTimeout(() => reject(new Error('Timeout: 30 minutos excedidos')), MAX_PROCESSING_TIME)
   );
 
+  const log = createEdgeLogger('process-dialectal:background', jobId);
+
   try {
     await Promise.race([
       processVerbetesInternal(jobId, verbetes, volumeNum, tipoDicionario, offsetInicial),
@@ -369,7 +372,7 @@ async function processInBackground(jobId: string, verbetes: string[], volumeNum:
 /**
  * ✅ FASE 3 - BLOCO 1: Detectar cancelamento de job
  */
-async function checkCancellation(jobId: string, supabaseClient: any) {
+async function checkCancellation(jobId: string, supabaseClient: any, log: ReturnType<typeof createEdgeLogger>) {
   const { data: job } = await supabaseClient
     .from('dictionary_import_jobs')
     .select('is_cancelling')
@@ -377,7 +380,7 @@ async function checkCancellation(jobId: string, supabaseClient: any) {
     .single();
 
   if (job?.is_cancelling) {
-    console.log('🛑 Cancelamento detectado! Interrompendo processamento...');
+    log.warn('Cancellation detected', { jobId });
     
     await supabaseClient
       .from('dictionary_import_jobs')
@@ -399,16 +402,15 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
+  const log = createEdgeLogger('process-dialectal:internal', jobId);
   const startTime = Date.now();
   let processados = offsetInicial;
   let inseridos = 0;
   let erros = 0;
   let batchCount = 0;
 
-  logJobStart({
+  log.logJobStart(jobId, verbetes.length, {
     fonte: `Dialectal Vol.${volumeNum}`,
-    jobId,
-    totalEntries: verbetes.length,
     batchSize: BATCH_SIZE,
     timeoutMs: TIMEOUT_MS,
     maxRetries: 3
@@ -437,18 +439,12 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
         else if (verbeteRaw.includes('\u0000')) parseErrors.null_bytes++;
         else parseErrors.regex_failed++;
         
-        // Log de amostra (primeiros 10 ou 5% dos erros)
-        if (parseErrors.total <= 10 || Math.random() < 0.05) {
-          console.error(`❌ Parse falhou (amostra): "${verbeteRaw.substring(0, 80)}..."`);
-        }
+        // Removed verbose error sampling - errors counted and reported at batch level
         
         continue;
       }
       
-      // ✅ Verbete parseado com sucesso - apenas log periódico
-      if (parsedBatch.length % 100 === 0 && parsedBatch.length > 0) {
-        console.log(`✅ ${parsedBatch.length} verbetes parseados no batch atual`);
-      }
+      // Verbete parseado com sucesso - no verbose logging
       
       
       // ✅ VALIDATION: Double-check volume_fonte e tipo_dicionario
@@ -503,11 +499,9 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
     processados += batch.length;
     batchCount++;
 
-    // ✅ FASE 3 - BLOCO 1: Verificar cancelamento a cada 5 batches
-    // ✅ OTIMIZADO: Atualizar progresso a cada 5 batches (reduz escritas)
+    // Verificar cancelamento a cada 5 batches
     if (batchCount % 5 === 0 || processados >= verbetes.length) {
-      // Checar se job foi cancelado
-      await checkCancellation(jobId, supabase);
+      await checkCancellation(jobId, supabase, log);
       
       const progressPercent = Math.round((processados / verbetes.length) * 100);
       
@@ -526,14 +520,7 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
         if (error) throw error;
       }, 2, 1000, 1);
 
-      logJobProgress({
-        jobId,
-        processed: processados,
-        totalEntries: verbetes.length,
-        inserted: inseridos,
-        errors: erros,
-        startTime
-      });
+      log.logJobProgress(jobId, processados, verbetes.length, progressPercent);
     }
   }
 
@@ -551,18 +538,18 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
     })
     .eq('id', jobId);
 
-  logJobComplete({
+  log.logJobComplete(jobId, inseridos, totalTime, {
     fonte: `Dialectal Vol.${volumeNum}`,
-    jobId,
     processed: processados,
     totalEntries: verbetes.length,
-    inserted: inseridos,
-    errors: erros,
-    totalTime
+    errors: erros
   });
 }
 
 serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('process-dialectal-dictionary', requestId);
+
   // Health check endpoint
   if (req.method === 'GET' && new URL(req.url).pathname.endsWith('/health')) {
     const health = await createHealthCheck('process-dialectal-dictionary', '1.0.0');
@@ -599,22 +586,14 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
       );
     }
 
-    // ✅ LOG CONSOLIDADO DE ARQUIVO
+    // Log file received
     const totalLinhas = (fileContent.match(/\n/g) || []).length + 1;
-    console.log(`📊 ARQUIVO RECEBIDO:`);
-    console.log(`   - Volume: ${volumeNum}`);
-    console.log(`   - Tamanho: ${fileContent.length.toLocaleString()} caracteres`);
-    console.log(`   - Linhas totais: ${totalLinhas.toLocaleString()}`);
-    console.log(`   - Offset inicial: ${offsetInicial}`);
-
-    // 🔍 DEBUG: Análise da estrutura do arquivo
-    console.log(`\n🔍 DEBUG - Primeiros 500 caracteres:`);
-    console.log(fileContent.substring(0, 500));
-    console.log(`🔍 DEBUG - Estrutura de quebras:`);
-    console.log(`   - Contém \\n\\n: ${fileContent.includes('\n\n')}`);
-    console.log(`   - Contém \\r\\n: ${fileContent.includes('\r\n')}`);
-    console.log(`   - Total de \\n: ${(fileContent.match(/\n/g) || []).length}`);
-    console.log(`   - Total de caracteres: ${fileContent.length}`);
+    log.info('File received', {
+      volume: volumeNum,
+      sizeChars: fileContent.length,
+      totalLines: totalLinhas,
+      offsetInicial
+    });
 
     // ✅ ESTRATÉGIA CORRETA: Split com captura e reconstrução (port do Python)
     // Passo 1: Normalizar line breaks (Windows → Unix)
@@ -625,7 +604,7 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
     const verbeteDelimiter = /\n([A-ZÁÀÃÉÊÍÓÔÚÇ\-]{2,}\s+\((?:BRAS|PLAT|CAST|QUER|PORT|BRAS\/PLAT|PLAT\/CAST)\))/g;
     const parts = normalizedContent.split(verbeteDelimiter);
 
-    console.log(`🔍 Split resultou em ${parts.length} partes (esperado: ímpar)`);
+    log.debug('File split completed', { totalParts: parts.length });
 
     let allBlocks: string[] = [];
 
@@ -635,7 +614,7 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
       // Parte 0: conteúdo antes do primeiro verbete (introdução/lixo)
       const intro = parts[0].trim();
       if (intro.length > 100) {
-        console.log(`📝 Ignorando ${intro.length} caracteres de introdução`);
+        log.debug('Ignoring intro content', { introLength: intro.length });
       }
       
       // Partes ímpares: cabeçalhos de verbetes
@@ -656,35 +635,25 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
         }
       }
       
-      console.log(`✅ Split por padrão de verbete: ${allBlocks.length} blocos`);
+      log.info('Split by pattern successful', { totalBlocks: allBlocks.length });
     } else {
       // FALLBACK: Split não funcionou - tentar por parágrafos
-      console.warn(`⚠️ Split por padrão falhou (apenas ${parts.length} partes). Usando fallback por parágrafos.`);
+      log.warn('Split by pattern failed, using paragraph fallback', { partsFound: parts.length });
       allBlocks = normalizedContent.split(/\n{2,}/).map(v => v.trim()).filter(v => v.length > 0);
-      console.log(`⚠️ Fallback gerou ${allBlocks.length} blocos`);
+      log.info('Fallback split completed', { blocksGenerated: allBlocks.length });
     }
 
-    // ✅ ESTATÍSTICAS DE SPLIT
-    console.log(`\n📊 ESTATÍSTICAS DE SPLIT:`);
-    console.log(`   - Total de blocos brutos: ${allBlocks.length}`);
-    console.log(`   - Método usado: ${parts.length > 3 ? 'Regex de verbete' : 'Fallback por parágrafos'}`);
-    console.log(`   - Blocos com < 20 chars: ${allBlocks.filter(b => b.length < 20).length}`);
-    console.log(`   - Blocos com > 1000 chars: ${allBlocks.filter(b => b.length > 1000).length}`);
-
-    // Log dos primeiros 3 blocos para validação manual
-    console.log(`📋 Primeiros 3 blocos após split:`);
-    allBlocks.slice(0, 3).forEach((bloco, i) => {
-      const primeiraLinha = bloco.split('\n')[0];
-      console.log(`   ${i + 1}. ${primeiraLinha.substring(0, 80)}...`);
+    // Split statistics
+    log.info('Split statistics', {
+      totalBlocks: allBlocks.length,
+      method: parts.length > 3 ? 'regex' : 'fallback',
+      tooShort: allBlocks.filter(b => b.length < 20).length,
+      tooLong: allBlocks.filter(b => b.length > 1000).length
     });
 
-    // ✅ LOGS DE REJEIÇÃO AMOSTRADOS COM ESTATÍSTICAS COMPLETAS
-    const rejeitados: { 
-      index: number; 
-      razao: string; 
-      preview: string;
-      posicaoRelativa: 'inicio' | 'meio' | 'fim';
-    }[] = [];
+    // Track rejections for statistics
+    let rejectedCount = 0;
+    const rejectionReasons = new Map<string, number>();
 
     const verbetes = allBlocks.filter((v, index) => {
       const posicaoRelativa = 
@@ -693,72 +662,37 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
         
       // Filtro 1: Muito curto
       if (v.length < 20) {
-        // Amostragem: primeiros 10 ou 5% de chance
-        if (rejeitados.length < 10 || Math.random() < 0.05) {
-          rejeitados.push({ index, razao: 'muito curto', preview: v, posicaoRelativa });
-        }
+        rejectedCount++;
+        rejectionReasons.set('muito curto', (rejectionReasons.get('muito curto') || 0) + 1);
         return false;
       }
       
       // Filtro 2: Padrão não encontrado
       const verbetePattern = /^[A-ZÁÀÃÉÊÍÓÔÚÇ\-]{2,}\s+\((?:BRAS|PLAT|CAST|QUER|PORT|BRAS\/PLAT|PLAT\/CAST)\)/;
       if (!verbetePattern.test(v)) {
-        if (rejeitados.length < 10 || Math.random() < 0.05) {
-          rejeitados.push({ index, razao: 'padrão não encontrado', preview: v.substring(0, 60), posicaoRelativa });
-        }
+        rejectedCount++;
+        rejectionReasons.set('padrão não encontrado', (rejectionReasons.get('padrão não encontrado') || 0) + 1);
         return false;
       }
       
       // Filtro 3: Seções introdutórias
       if (/^(Prefácio|Metodologia|Introdução|PATROCÍNIO|PRODUÇÃO|FINANCIAMENTO|SUMÁRIO|ÍNDICE)/i.test(v)) {
-        if (rejeitados.length < 10 || Math.random() < 0.05) {
-          rejeitados.push({ index, razao: 'seção introdutória', preview: v.substring(0, 60), posicaoRelativa });
-        }
+        rejectedCount++;
+        rejectionReasons.set('seção introdutória', (rejectionReasons.get('seção introdutória') || 0) + 1);
         return false;
       }
       
       return true;
     });
 
-    // Estatísticas agregadas de rejeições
-    const rejeicoesPorRazao = rejeitados.reduce((acc, r) => {
-      acc[r.razao] = (acc[r.razao] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    console.log(`\n📊 ESTATÍSTICAS DE REJEIÇÃO:`);
-    console.log(`   - Total de blocos: ${allBlocks.length}`);
-    console.log(`   - Verbetes aceitos: ${verbetes.length} (${((verbetes.length / allBlocks.length) * 100).toFixed(1)}%)`);
-    console.log(`   - Blocos rejeitados: ${allBlocks.length - verbetes.length}`);
-    console.log(`\n   Rejeições por razão:`);
-    Object.entries(rejeicoesPorRazao).forEach(([razao, count]) => {
-      console.log(`     - ${razao}: ${count}`);
+    // Log rejection statistics
+    log.info('Pre-processing statistics', {
+      totalBlocks: allBlocks.length,
+      validVerbetes: verbetes.length,
+      blocksRejected: rejectedCount,
+      acceptanceRate: ((verbetes.length / allBlocks.length) * 100).toFixed(1) + '%',
+      rejectionReasons: Object.fromEntries(rejectionReasons)
     });
-
-    // Amostra de rejeitados por posição no arquivo
-    console.log(`\n❌ AMOSTRA DE BLOCOS REJEITADOS (máx 20):`);
-    const amostrasRejeitados = rejeitados.slice(0, 20);
-    amostrasRejeitados.forEach(({ index, razao, preview, posicaoRelativa }) => {
-      console.log(`   [${posicaoRelativa.toUpperCase()}] Bloco ${index}: [${razao}]`);
-      console.log(`      "${preview}..."`);
-    });
-
-    // Log dos aceitos
-    console.log(`\n✅ Primeiros 5 verbetes ACEITOS:`);
-    verbetes.slice(0, 5).forEach((v, i) => {
-      const primeiraLinha = v.split('\n')[0];
-      console.log(`   ${i + 1}. ${primeiraLinha}`);
-    });
-
-    // ✅ FASE 3: Estatísticas de pré-processamento
-    const filteredOut = allBlocks.length - verbetes.length;
-    const filterRate = ((filteredOut / allBlocks.length) * 100).toFixed(1);
-    
-    console.log(`📊 Estatísticas de pré-processamento:`);
-    console.log(`  - Total de blocos: ${allBlocks.length}`);
-    console.log(`  - Verbetes válidos: ${verbetes.length}`);
-    console.log(`  - Blocos filtrados: ${filteredOut}`);
-    console.log(`  - Taxa de filtro: ${filterRate}%`);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -781,7 +715,7 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
       
       jobData = existingJob;
       
-      console.log(`[JOB ${jobId}] Usando job existente - tipo: ${existingJob.tipo_dicionario}`);
+      log.info('Using existing job', { jobId, tipo: existingJob.tipo_dicionario });
       
       // Atualizar job com informações corretas
       const { error: updateError } = await supabase
@@ -802,11 +736,11 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
         .eq('id', jobId);
       
       if (updateError) {
-        console.error(`❌ Erro ao atualizar job: ${updateError.message}`);
+        log.error('Error updating job', updateError, { jobId });
         throw updateError;
       }
       
-      console.log(`[JOB ${jobId}] Atualizado com tipo_dicionario: ${tipoDicionario}`);
+      log.info('Job updated with correct tipo_dicionario', { jobId, tipoDicionario });
     } else {
       // ✅ Apenas criar novo job se jobId NÃO foi passado
       const { data: newJob, error: jobError } = await supabase
@@ -826,7 +760,7 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
       if (jobError) throw jobError;
       
       jobData = newJob;
-      console.log(`[JOB ${newJob.id}] Criado novo job - tipo: ${tipoDicionario}`);
+      log.info('New job created', { jobId: newJob.id, tipoDicionario });
     }
 
     processInBackground(jobData.id, verbetes, volumeNum, tipoDicionario, offsetInicial);
@@ -842,7 +776,7 @@ serve(withInstrumentation('process-dialectal-dictionary', async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Erro ao processar requisição:', error);
+    log.fatal('Error processing request', error instanceof Error ? error : new Error(String(error)));
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
