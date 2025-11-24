@@ -80,9 +80,9 @@ log.logUserInteraction('click', 'enrich-button', { songId: '123' });
 ```
 
 ### Phase 3: Backend Edge Functions (~33 functions)
-**Status:** 🟢 SPRINT 3.1 COMPLETO  
-**Tempo Investido:** 2.5 horas  
-**Progresso:** 15% (6/39 functions)
+**Status:** 🟢 SPRINT 3.2 COMPLETO  
+**Tempo Investido:** 5.2 horas  
+**Progresso:** 23% (9/39 functions)
 
 **SPRINT 3.1 - Job Processing ✅ COMPLETO**
 - ✅ logging.ts migrado (propaga para 10+ funções)
@@ -91,6 +91,11 @@ log.logUserInteraction('click', 'enrich-button', { songId: '123' });
 - ✅ annotate-semantic (logs críticos)
 - ✅ process-dialectal-dictionary (via logging.ts)
 - ✅ process-gutenberg-dictionary (via logging.ts)
+
+**SPRINT 3.2 - Enrichment & External APIs ✅ COMPLETO**
+- ✅ enrich-music-data (index.ts, modes.ts, helpers.ts)
+- ✅ generate-artist-bio
+- ✅ extract-music-titles
 
 #### **Em uma Página**
 ```typescript

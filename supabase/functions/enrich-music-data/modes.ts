@@ -1,6 +1,8 @@
 // Mode handlers for different enrichment workflows
 import { searchYouTube, searchWithAI, RateLimiter } from "./helpers.ts";
 
+type EdgeLogger = any; // Logger interface from unified-logger
+
 const geminiLimiter = new RateLimiter(3, 500);
 const youtubeLimiter = new RateLimiter(2, 1000);
 const webSearchLimiter = new RateLimiter(2, 800);
@@ -25,20 +27,21 @@ const corsHeaders = {
 };
 
 // Single mode: Enrich one song by ID
-export async function handleSingleMode(body: any, supabase: any) {
+export async function handleSingleMode(body: any, supabase: any, log: EdgeLogger) {
   const songId = body.songId;
-  const enrichmentMode = body.mode || 'full'; // 'metadata-only', 'youtube-only', 'full'
+  const enrichmentMode = body.mode || 'full';
   
   if (!songId) {
+    log.warn('Single mode called without songId');
     return new Response(
       JSON.stringify({ error: 'songId is required' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  console.log(`[Single Mode] Enriching song ${songId} with mode: ${enrichmentMode}`);
+  log.info('Single mode enrichment started', { songId, enrichmentMode });
 
-  const result = await enrichSingleSong(songId, supabase, enrichmentMode);
+  const result = await enrichSingleSong(songId, supabase, enrichmentMode, log);
 
   return new Response(
     JSON.stringify(result),
@@ -47,17 +50,18 @@ export async function handleSingleMode(body: any, supabase: any) {
 }
 
 // Database mode: Enrich pending songs for an artist
-export async function handleDatabaseMode(body: any, supabase: any) {
+export async function handleDatabaseMode(body: any, supabase: any, log: EdgeLogger) {
   const { artistId } = body;
   
   if (!artistId) {
+    log.warn('Database mode called without artistId');
     return new Response(
       JSON.stringify({ error: 'artistId is required for database mode' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  console.log(`[Database Mode] Enriching songs for artist ID: ${artistId}`);
+  log.info('Database mode enrichment started', { artistId });
 
   // Fetch artist name
   const { data: artistData, error: artistError } = await supabase
@@ -67,11 +71,14 @@ export async function handleDatabaseMode(body: any, supabase: any) {
     .single();
 
   if (artistError) {
+    log.error('Artist not found', artistError, { artistId });
     return new Response(
       JSON.stringify({ error: `Artist not found: ${artistError.message}` }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+
+  log.logDatabaseQuery('artists', 'select', 1);
 
   // Fetch pending songs
   const { data: songsData, error: songsError } = await supabase
@@ -82,13 +89,17 @@ export async function handleDatabaseMode(body: any, supabase: any) {
     .limit(20);
 
   if (songsError) {
+    log.error('Failed to fetch pending songs', songsError, { artistId });
     return new Response(
       JSON.stringify({ error: `Error fetching songs: ${songsError.message}` }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
+  log.logDatabaseQuery('songs', 'select', songsData?.length || 0);
+
   if (!songsData || songsData.length === 0) {
+    log.info('No pending songs found', { artistId });
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -100,7 +111,7 @@ export async function handleDatabaseMode(body: any, supabase: any) {
     );
   }
 
-  console.log(`[Database Mode] Found ${songsData.length} pending songs`);
+  log.info('Pending songs found', { artistId, songCount: songsData.length });
 
   let successCount = 0;
   let failureCount = 0;
@@ -108,17 +119,24 @@ export async function handleDatabaseMode(body: any, supabase: any) {
   // Enrich each song
   for (const song of songsData) {
     try {
-      const result = await enrichSingleSong(song.id, supabase);
+      const result = await enrichSingleSong(song.id, supabase, 'full', log);
       if (result.success) {
         successCount++;
       } else {
         failureCount++;
       }
     } catch (error) {
-      console.error(`[Database Mode] Error enriching song ${song.id}:`, error);
+      log.error('Error enriching song', error instanceof Error ? error : new Error(String(error)), { songId: song.id });
       failureCount++;
     }
   }
+
+  log.info('Database mode enrichment completed', {
+    artistId,
+    processed: songsData.length,
+    successCount,
+    failureCount
+  });
 
   return new Response(
     JSON.stringify({ 
@@ -133,7 +151,7 @@ export async function handleDatabaseMode(body: any, supabase: any) {
 }
 
 // Legacy mode: Batch enrichment from array of titles
-export async function handleLegacyMode(body: any) {
+export async function handleLegacyMode(body: any, log: EdgeLogger) {
   const { titles, musics } = body;
   
   let musicsToProcess: Array<{ id?: string; titulo: string; artista?: string }> = [];
@@ -151,18 +169,20 @@ export async function handleLegacyMode(body: any) {
       artista: m.artista_contexto || m.artista
     }));
   } else {
+    log.warn('Legacy mode called without titles or musics array');
     return new Response(
       JSON.stringify({ error: 'titles or musics array is required for legacy mode' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  console.log(`[Legacy Mode] Processing ${musicsToProcess.length} items`);
+  log.info('Legacy mode enrichment started', { itemCount: musicsToProcess.length });
 
   const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
   if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+    log.error('No AI API keys configured', new Error('Missing API keys'));
     return new Response(
       JSON.stringify({ error: 'No AI API keys configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -218,32 +238,32 @@ export async function handleLegacyMode(body: any) {
         result.ano_lancamento === '0000';
 
       if (needsWebSearch && LOVABLE_API_KEY) {
-        try {
-          const webData = await webSearchLimiter.schedule(() =>
-            searchWithAI(music.titulo, music.artista || '', LOVABLE_API_KEY)
-          );
+      try {
+        const webData = await webSearchLimiter.schedule(() =>
+          searchWithAI(music.titulo, music.artista || '', LOVABLE_API_KEY)
+        );
 
-          if (webData.compositor && webData.compositor !== 'Não Identificado') {
-            result.compositor_encontrado = webData.compositor;
-          }
-          if (webData.ano && webData.ano !== '0000') {
-            result.ano_lancamento = webData.ano;
-          }
-
-          if (webData.compositor !== 'Não Identificado' || webData.ano !== '0000') {
-            result.status_pesquisa = 'Sucesso (Web)';
-            result.enriched_by_web = true;
-          }
-        } catch (webError) {
-          console.error(`[Legacy Mode] Web search error for "${music.titulo}":`, webError);
+        if (webData.compositor && webData.compositor !== 'Não Identificado') {
+          result.compositor_encontrado = webData.compositor;
         }
+        if (webData.ano && webData.ano !== '0000') {
+          result.ano_lancamento = webData.ano;
+        }
+
+        if (webData.compositor !== 'Não Identificado' || webData.ano !== '0000') {
+          result.status_pesquisa = 'Sucesso (Web)';
+          result.enriched_by_web = true;
+        }
+      } catch (webError) {
+        log.warn('Web search fallback failed', { titulo: music.titulo, error: webError instanceof Error ? webError.message : String(webError) });
+      }
       }
 
       enrichedData.push(result);
       if (result.status_pesquisa.includes('Sucesso')) successCount++;
 
     } catch (error) {
-      console.error(`[Legacy Mode] Error enriching "${music.titulo}":`, error);
+      log.error('Legacy enrichment failed for song', error instanceof Error ? error : new Error(String(error)), { titulo: music.titulo });
       enrichedData.push({
         id: music.id,
         titulo_original: music.titulo,
@@ -255,6 +275,12 @@ export async function handleLegacyMode(body: any) {
       });
     }
   }
+
+  log.info('Legacy mode enrichment completed', {
+    processed: enrichedData.length,
+    successCount,
+    failureCount: enrichedData.length - successCount
+  });
 
   return new Response(
     JSON.stringify({ 
@@ -277,8 +303,11 @@ function extractVideoId(youtubeUrl: string): string | undefined {
 async function enrichSingleSong(
   songId: string, 
   supabase: any,
-  enrichmentMode: 'full' | 'metadata-only' | 'youtube-only' = 'full'
+  enrichmentMode: 'full' | 'metadata-only' | 'youtube-only' = 'full',
+  log: EdgeLogger
 ): Promise<EnrichmentResult> {
+  const timer = log.startTimer();
+  
   try {
     // Fetch song data (including current enrichment status)
     const { data: song, error: fetchError } = await supabase
@@ -300,7 +329,10 @@ async function enrichSingleSong(
       .eq('id', songId)
       .single();
 
+    log.logDatabaseQuery('songs', 'select', 1);
+
     if (fetchError || !song) {
+      log.warn('Song not found', { songId });
       return {
         songId,
         success: false,
@@ -320,7 +352,7 @@ async function enrichSingleSong(
       status: song.status
     };
 
-    console.log(`[enrichSingleSong] Current data for ${songId}:`, currentData);
+    log.debug('Current song data retrieved', { songId, currentData });
 
     const artistName = (song.artists as any)?.name || 'Unknown Artist';
     const enrichedData: any = {};
@@ -339,9 +371,10 @@ async function enrichSingleSong(
           enrichedData.youtubeVideoId = youtubeContext.videoId;
           sources.push('youtube');
           confidenceScore += 30;
+          log.info('YouTube video found', { songId, videoId: youtubeContext.videoId });
         }
       } catch (error) {
-        console.error('[enrichSingleSong] YouTube error:', error);
+        log.warn('YouTube search failed', { songId, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -390,7 +423,7 @@ async function enrichSingleSong(
           if (!sources.includes('web_search_ai')) sources.push('web_search_ai');
         }
       } catch (error) {
-        console.error('[enrichSingleSong] Web search error:', error);
+        log.warn('Web search fallback failed', { songId, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -399,16 +432,16 @@ async function enrichSingleSong(
 
     if (shouldSearchLyrics) {
       try {
-        console.log(`[enrichSingleSong] Searching lyrics for "${song.title}"`);
-        const lyrics = await searchLyrics(song.title, artistName, LOVABLE_API_KEY);
+        log.info('Searching lyrics', { songId, title: song.title });
+        const lyrics = await searchLyrics(song.title, artistName, LOVABLE_API_KEY, log);
         if (lyrics) {
           enrichedData.lyrics = lyrics;
           confidenceScore += 10;
           sources.push('lyrics_ai');
-          console.log(`[enrichSingleSong] ✅ Lyrics found (${lyrics.length} chars)`);
+          log.info('Lyrics found', { songId, length: lyrics.length });
         }
       } catch (error) {
-        console.error('[enrichSingleSong] Lyrics search error:', error);
+        log.warn('Lyrics search failed', { songId, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -434,8 +467,11 @@ async function enrichSingleSong(
     );
 
     if (!shouldUpdate) {
-      console.log(`[enrichSingleSong] Skipping update for ${songId} - current data is better or equal`);
-      console.log(`  Current confidence: ${currentData.confidence_score}%, New: ${confidenceScore}%`);
+      log.info('Skipping update - current data better', { 
+        songId, 
+        currentConfidence: currentData.confidence_score,
+        newConfidence: confidenceScore 
+      });
       
       return {
         songId,
@@ -470,7 +506,8 @@ async function enrichSingleSong(
       updateData.youtube_url = currentData.youtube_url;
     }
 
-    console.log(`[enrichSingleSong] Updating ${songId} with merged data:`, {
+    log.info('Updating song with merged data', {
+      songId,
       composer: updateData.composer,
       release_year: updateData.release_year,
       youtube_url: updateData.youtube_url,
@@ -482,11 +519,14 @@ async function enrichSingleSong(
       .update(updateData)
       .eq('id', songId);
 
+    log.logDatabaseQuery('songs', 'update', 1, timer.end('enrich-single-song'));
+
     if (updateError) {
+      log.error('Failed to update song', updateError, { songId });
       throw updateError;
     }
 
-    console.log(`[enrichSingleSong] Success: ${songId} (confidence: ${confidenceScore}%)`);
+    log.info('Song enrichment successful', { songId, confidence: confidenceScore, sources });
 
     return {
       songId,
@@ -497,7 +537,7 @@ async function enrichSingleSong(
     };
 
   } catch (error) {
-    console.error('[enrichSingleSong] Error:', error);
+    log.error('Song enrichment failed', error instanceof Error ? error : new Error(String(error)), { songId });
     return {
       songId,
       success: false,
@@ -512,7 +552,8 @@ async function enrichSingleSong(
 async function searchLyrics(
   songTitle: string,
   artistName: string,
-  lovableApiKey: string
+  lovableApiKey: string,
+  log: EdgeLogger
 ): Promise<string | null> {
   const prompt = `Você é um sistema de busca de letras de músicas.
 
@@ -529,6 +570,7 @@ REGRAS CRÍTICAS:
 Retorne APENAS a letra ou "LETRA_NAO_DISPONIVEL".`;
 
   try {
+    const apiTimer = log.startTimer();
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -543,24 +585,27 @@ Retorne APENAS a letra ou "LETRA_NAO_DISPONIVEL".`;
       }),
     });
 
+    const duration = apiTimer.end('lovable-ai-lyrics');
+
     if (!response.ok) {
-      console.error('[searchLyrics] API error:', response.status);
+      log.logApiCall('lovable-ai', 'lyrics', 'POST', response.status, duration);
       return null;
     }
+
+    log.logApiCall('lovable-ai', 'lyrics', 'POST', 200, duration);
 
     const data = await response.json();
     const lyrics = data.choices?.[0]?.message?.content?.trim();
 
     if (!lyrics || lyrics === 'LETRA_NAO_DISPONIVEL' || lyrics.length < 50) {
-      console.log(`[searchLyrics] Letra não encontrada para "${songTitle}"`);
+      log.debug('Lyrics not available', { songTitle, artistName });
       return null;
     }
 
-    console.log(`[searchLyrics] ✅ Letra encontrada (${lyrics.length} caracteres)`);
     return lyrics;
 
   } catch (error) {
-    console.error('[searchLyrics] Error:', error);
+    log.error('Lyrics search failed', error instanceof Error ? error : new Error(String(error)), { songTitle, artistName });
     return null;
   }
 }
@@ -617,7 +662,7 @@ Não adicione markdown \`\`\`json ou explicações. Apenas o objeto JSON cru.`;
   // Try Gemini 2.5 Pro first
   if (geminiApiKey) {
     try {
-      console.log('[AI] Trying Gemini 2.5 Pro...');
+      const geminiTimer = performance.now();
       const geminiResponse = await geminiLimiter.schedule(() =>
         fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiApiKey}`,
@@ -636,13 +681,14 @@ Não adicione markdown \`\`\`json ou explicações. Apenas o objeto JSON cru.`;
         )
       );
 
+      const geminiDuration = performance.now() - geminiTimer;
+
       if (geminiResponse.ok) {
         const geminiData = await geminiResponse.json();
         const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
         if (rawText) {
           const metadata = JSON.parse(rawText);
-          console.log('[AI] Gemini 2.5 Pro success');
           return {
             artista: artista,
             composer: metadata.composer !== 'null' ? metadata.composer : undefined,
@@ -655,14 +701,13 @@ Não adicione markdown \`\`\`json ou explicações. Apenas o objeto JSON cru.`;
         }
       }
     } catch (geminiError) {
-      console.error('[AI] Gemini error, falling back to Lovable AI:', geminiError);
+      // Error logged at caller level
     }
   }
 
   // Fallback to Lovable AI
   if (lovableApiKey) {
     try {
-      console.log('[AI] Falling back to Lovable AI...');
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -699,7 +744,6 @@ Não adicione markdown \`\`\`json ou explicações. Apenas o objeto JSON cru.`;
         const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
         if (toolCall?.function?.arguments) {
           const metadata = JSON.parse(toolCall.function.arguments);
-          console.log('[AI] Lovable AI success');
           return {
             artista: artista,
             composer: metadata.composer !== 'null' ? metadata.composer : undefined,
@@ -712,11 +756,10 @@ Não adicione markdown \`\`\`json ou explicações. Apenas o objeto JSON cru.`;
         }
       }
     } catch (lovableError) {
-      console.error('[AI] Lovable AI error:', lovableError);
+      // Error logged at caller level
     }
   }
 
-  console.warn('[AI] All AI sources failed');
   return {
     compositor: 'Não Identificado',
     ano: '0000',

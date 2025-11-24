@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { createEdgeLogger } from "../_shared/unified-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,9 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('generate-artist-bio', requestId);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,11 +19,14 @@ serve(async (req) => {
     const { artistId, artistName } = await req.json();
 
     if (!artistId || !artistName) {
+      log.warn('Missing required parameters', { artistId, artistName });
       return new Response(
         JSON.stringify({ error: 'artistId e artistName são obrigatórios' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    log.info('Biography generation started', { artistId, artistName });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -37,29 +44,30 @@ serve(async (req) => {
       .gt('expires_at', new Date().toISOString())
       .single();
 
+    log.logDatabaseQuery('gemini_cache', 'select', cachedBio ? 1 : 0);
+
     let biography: string;
     let source: string;
 
     if (cachedBio) {
-      console.log(`[generate-artist-bio] Cache hit for artist: ${artistName}`);
+      log.logCacheHit(cacheKey, 'hit');
       biography = cachedBio.composer || '';
       source = 'cache';
       
-      // 🔥 FASE 4: PROTEÇÃO PREVENTIVA - Detectar e corrigir cache contaminado
+      // FASE 4: PROTEÇÃO PREVENTIVA - Detectar e corrigir cache contaminado
       if (biography.includes('IA Generativa')) {
-        console.log(`[generate-artist-bio] ⚠️ Cache contaminado detectado para "${artistName}", autocorrigindo...`);
+        log.warn('Contaminated cache detected, autocorrecting', { artistName });
         biography = biography.replace('(Fonte: IA Generativa)', '(Fonte: Base de Conhecimento Digital)');
         
-        // Atualizar cache com texto corrigido
         const { error: cacheUpdateError } = await supabase
           .from('gemini_cache')
           .update({ composer: biography })
           .eq('id', cachedBio.id);
         
         if (cacheUpdateError) {
-          console.error('[generate-artist-bio] Erro ao corrigir cache:', cacheUpdateError);
+          log.error('Failed to correct cache', new Error(cacheUpdateError.message), { artistName });
         } else {
-          console.log('[generate-artist-bio] ✅ Cache autocorrigido com sucesso');
+          log.info('Cache autocorrected successfully', { artistName });
         }
       }
       
@@ -72,27 +80,28 @@ serve(async (req) => {
         })
         .eq('id', cachedBio.id);
     } else {
-      console.log(`[generate-artist-bio] Cache miss for artist: ${artistName}`);
+      log.logCacheHit(cacheKey, 'miss');
       
       // Step 1: Try Wikipedia first
-      console.log(`[generate-artist-bio] Attempting Wikipedia search...`);
-      const wikipediaBio = await fetchWikipediaBio(artistName);
+      log.info('Attempting Wikipedia search', { artistName });
+      const wikipediaBio = await fetchWikipediaBio(artistName, log);
 
       if (wikipediaBio) {
         biography = wikipediaBio;
         source = 'wikipedia';
-        console.log(`[generate-artist-bio] ✅ Wikipedia biography found`);
+        log.info('Wikipedia biography found', { artistName });
       } else {
         // Step 2: Try Gemini 2.5 Pro
         if (geminiApiKey) {
           try {
-            console.log(`[generate-artist-bio] Wikipedia not found, trying Gemini 2.5 Pro...`);
+            log.info('Wikipedia not found, trying Gemini 2.5 Pro', { artistName });
             
             const prompt = `Escreva uma biografia resumida, envolvente e informativa (máximo de 3 parágrafos) para o artista musical "${artistName}".
 Foque no estilo musical, principais sucessos e importância histórica, especialmente no contexto da música gaúcha se aplicável.
 Responda em Português do Brasil.
 Retorne APENAS o texto da biografia, sem aspas ou formatação JSON.`;
 
+            const apiTimer = log.startTimer();
             const geminiResponse = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiApiKey}`,
               {
@@ -110,11 +119,15 @@ Retorne APENAS o texto da biografia, sem aspas ou formatação JSON.`;
               }
             );
 
+            const duration = apiTimer.end('gemini-biography');
+
             if (geminiResponse.ok) {
               const geminiData = await geminiResponse.json();
               biography = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
               source = 'gemini_pro';
-              console.log(`[generate-artist-bio] ✅ Gemini 2.5 Pro biography generated`);
+              
+              log.logApiCall('gemini', 'biography', 'POST', 200, duration);
+              log.info('Gemini 2.5 Pro biography generated', { artistName });
 
               // Log API usage
               await supabase.from('gemini_api_usage').insert({
@@ -127,26 +140,27 @@ Retorne APENAS o texto da biografia, sem aspas ou formatação JSON.`;
                 metadata: { artist_name: artistName }
               });
             } else {
+              log.logApiCall('gemini', 'biography', 'POST', geminiResponse.status, duration);
               throw new Error('Gemini API error');
             }
           } catch (geminiError) {
-            console.error(`[generate-artist-bio] Gemini error, falling back to Lovable AI:`, geminiError);
+            log.warn('Gemini failed, falling back to Lovable AI', { artistName, error: geminiError instanceof Error ? geminiError.message : String(geminiError) });
             
             // Step 3: Fallback to Lovable AI
             if (lovableApiKey) {
-              biography = await fetchAIBiography(artistName, lovableApiKey);
+              biography = await fetchAIBiography(artistName, lovableApiKey, log);
               source = 'lovable_ai';
-              console.log(`[generate-artist-bio] ✅ Lovable AI biography generated`);
+              log.info('Lovable AI biography generated', { artistName });
             } else {
               throw new Error('No AI API keys configured');
             }
           }
         } else if (lovableApiKey) {
           // No Gemini key, use Lovable AI directly
-          console.log(`[generate-artist-bio] No Gemini key, using Lovable AI...`);
-          biography = await fetchAIBiography(artistName, lovableApiKey);
+          log.info('No Gemini key, using Lovable AI', { artistName });
+          biography = await fetchAIBiography(artistName, lovableApiKey, log);
           source = 'lovable_ai';
-          console.log(`[generate-artist-bio] ✅ Lovable AI biography generated`);
+          log.info('Lovable AI biography generated', { artistName });
         } else {
           throw new Error('No API keys configured for biography generation');
         }
@@ -174,20 +188,20 @@ Retorne APENAS o texto da biografia, sem aspas ou formatação JSON.`;
       })
       .eq('id', artistId);
 
+    log.logDatabaseQuery('artists', 'update', 1);
+
     if (updateError) {
-      console.error('[generate-artist-bio] Error updating artist:', updateError);
+      log.error('Failed to update artist biography', new Error(updateError.message), { artistId, artistName });
       throw updateError;
     }
 
-    // 🔥 FASE 5: LOGGING E MONITORAMENTO - Rastrear fontes de biografia
-    console.log(`[generate-artist-bio] ✅ Biography updated successfully:`, {
+    log.info('Biography updated successfully', {
       artistName,
       artistId,
       source,
       biographyLength: biography.length,
       hasFonteText: biography.includes('Fonte:'),
-      fonteExtracted: biography.match(/\(Fonte: ([^)]+)\)/)?.[1] || 'none',
-      timestamp: new Date().toISOString()
+      fonteExtracted: biography.match(/\(Fonte: ([^)]+)\)/)?.[1] || 'none'
     });
 
     return new Response(
@@ -200,23 +214,22 @@ Retorne APENAS o texto da biografia, sem aspas ou formatação JSON.`;
     );
 
   } catch (error) {
-    console.error('[generate-artist-bio] Error:', error);
+    log.fatal('Biography generation failed', error instanceof Error ? error : new Error(String(error)));
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Erro desconhecido',
-        success: false 
+        success: false,
+        requestId
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-async function fetchWikipediaBio(artistName: string): Promise<string | null> {
+async function fetchWikipediaBio(artistName: string, log: any): Promise<string | null> {
   try {
     const encodedName = encodeURIComponent(artistName);
     const url = `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodedName}`;
-
-    console.log(`[Wikipedia] Fetching: ${url}`);
 
     const response = await fetch(url, {
       headers: {
@@ -226,31 +239,31 @@ async function fetchWikipediaBio(artistName: string): Promise<string | null> {
     });
 
     if (response.status === 404) {
-      console.log(`[Wikipedia] Page not found for "${artistName}"`);
+      log.debug('Wikipedia page not found', { artistName });
       return null;
     }
 
     if (!response.ok) {
-      console.error(`[Wikipedia] API error: ${response.status}`);
+      log.warn('Wikipedia API error', { artistName, status: response.status });
       return null;
     }
 
     const data = await response.json();
 
     if (data.extract && data.extract.trim()) {
-      console.log(`[Wikipedia] Extract found (${data.extract.length} chars)`);
+      log.info('Wikipedia extract found', { artistName, length: data.extract.length });
       return `${data.extract}\n\n(Fonte: Wikipédia)`;
     }
 
     return null;
 
   } catch (error) {
-    console.error('[Wikipedia] Error:', error);
+    log.error('Wikipedia fetch failed', error instanceof Error ? error : new Error(String(error)), { artistName });
     return null;
   }
 }
 
-async function fetchAIBiography(artistName: string, apiKey: string): Promise<string> {
+async function fetchAIBiography(artistName: string, apiKey: string, log: any): Promise<string> {
   const prompt = `Você é uma enciclopédia factual especializada em música brasileira.
 
 Resuma a carreira do artista musical "${artistName}".
@@ -266,6 +279,7 @@ REGRAS CRÍTICAS:
 Retorne APENAS o texto da biografia, sem introduções ou explicações adicionais.`;
 
   try {
+    const apiTimer = log.startTimer();
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -282,20 +296,26 @@ Retorne APENAS o texto da biografia, sem introduções ou explicações adiciona
       }),
     });
 
+    const duration = apiTimer.end('lovable-ai-biography');
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Lovable AI] Error:', response.status, errorText);
+      log.logApiCall('lovable-ai', 'biography', 'POST', response.status, duration);
 
       if (response.status === 429) {
+        log.warn('Lovable AI rate limit exceeded', { artistName });
         return 'Biografia temporariamente indisponível (limite de requisições atingido). Tente novamente em alguns instantes.';
       }
 
       if (response.status === 402) {
+        log.warn('Lovable AI credits exhausted', { artistName });
         return 'Biografia temporariamente indisponível (créditos insuficientes).';
       }
 
       return 'Biografia não disponível no momento.';
     }
+
+    log.logApiCall('lovable-ai', 'biography', 'POST', 200, duration);
 
     const data = await response.json();
     const biography = data.choices?.[0]?.message?.content || 'Biografia não disponível no momento.';
@@ -303,7 +323,7 @@ Retorne APENAS o texto da biografia, sem introduções ou explicações adiciona
     return `${biography.trim()}\n\n(Fonte: Base de Conhecimento Digital)`;
 
   } catch (error) {
-    console.error('[Lovable AI] Error:', error);
+    log.error('Lovable AI biography failed', error instanceof Error ? error : new Error(String(error)), { artistName });
     return 'Biografia não disponível no momento.';
   }
 }
