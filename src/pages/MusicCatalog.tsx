@@ -493,7 +493,9 @@ export default function MusicCatalog() {
   // Handler para quando a biografia for enriquecida
   const handleBioEnriched = async (artistId: string) => {
     try {
-      // Recarrega apenas o artista específico
+      console.log('[handleBioEnriched] Recarregando artista após enriquecimento de biografia:', artistId);
+      
+      // Query completa do artista com biografia atualizada
       const { data: artistData, error } = await supabase
         .from('artists')
         .select(`
@@ -507,14 +509,48 @@ export default function MusicCatalog() {
         .eq('id', artistId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('[handleBioEnriched] Erro ao buscar artista:', error);
+        throw error;
+      }
       
       if (artistData) {
-        // Trigger reload do hook para atualizar stats
-        reload();
+        console.log('[handleBioEnriched] Artista recarregado com biografia:', {
+          id: artistData.id,
+          name: artistData.name,
+          hasBiography: !!artistData.biography,
+          biographyLength: artistData.biography?.length || 0,
+          source: artistData.biography_source
+        });
+        
+        // ✅ Atualizar o array de artistas localmente sem reload completo
+        setArtists(prevArtists => 
+          prevArtists.map(artist => 
+            artist.id === artistId 
+              ? {
+                  ...artist,
+                  biography: artistData.biography,
+                  biography_source: artistData.biography_source,
+                  biography_updated_at: artistData.biography_updated_at
+                }
+              : artist
+          )
+        );
+        
+        console.log('[handleBioEnriched] ✅ Estado local do artista atualizado com biografia');
+        
+        toast({
+          title: "Biografia atualizada",
+          description: "A biografia do artista foi carregada com sucesso."
+        });
       }
     } catch (error) {
-      console.error('Erro ao recarregar artista:', error);
+      console.error('[handleBioEnriched] Erro ao recarregar artista:', error);
+      toast({
+        title: "Erro ao atualizar biografia",
+        description: "Tente fechar e reabrir o painel do artista.",
+        variant: "destructive"
+      });
     }
   };
 
