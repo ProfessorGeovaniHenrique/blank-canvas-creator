@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 import { handleSingleMode, handleDatabaseMode, handleLegacyMode } from "./modes.ts";
+import { createEdgeLogger } from "../_shared/unified-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,46 +9,44 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log(`[enrich-music-data] 🚀 REQUEST RECEIVED - Method: ${req.method}`);
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('enrich-music-data', requestId);
+  
+  log.info('Request received', { method: req.method });
   
   if (req.method === 'OPTIONS') {
-    console.log(`[enrich-music-data] ✅ CORS preflight handled`);
+    log.debug('CORS preflight handled');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log(`[enrich-music-data] 🔧 Initializing Supabase client...`);
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-    console.log(`[enrich-music-data] ✅ Supabase client initialized`);
+    log.debug('Supabase client initialized');
 
-    console.log(`[enrich-music-data] 📦 Parsing request body...`);
     const body = await req.json();
+    const mode = body.mode || 'single';
     
-    // Determine operation mode
-    const mode = body.mode || 'single'; // 'single', 'database', 'legacy', 'metadata-only', 'youtube-only'
-    console.log(`[enrich-music-data] Mode: ${mode}`);
+    log.info('Enrichment mode determined', { mode, songId: body.songId, artistId: body.artistId });
     
     if (mode === 'database') {
-      // Database mode: enrich pending songs for an artist
-      return await handleDatabaseMode(body, supabase);
+      return await handleDatabaseMode(body, supabase, log);
     } else if (mode === 'legacy') {
-      // Legacy mode: batch enrichment from array of titles
-      return await handleLegacyMode(body);
+      return await handleLegacyMode(body, log);
     } else {
-      // Single mode: enrich one song by ID (supports metadata-only, youtube-only, full)
-      return await handleSingleMode(body, supabase);
+      return await handleSingleMode(body, supabase, log);
     }
 
   } catch (error) {
-    console.error('[enrich-music-data] Error:', error);
+    log.fatal('Enrichment request failed', error instanceof Error ? error : new Error(String(error)));
     
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : String(error),
+        requestId,
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

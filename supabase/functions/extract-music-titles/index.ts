@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
+import { createEdgeLogger } from "../_shared/unified-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,9 @@ interface DeduplicationResult {
 }
 
 serve(async (req) => {
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('extract-music-titles', requestId);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -38,13 +42,14 @@ serve(async (req) => {
     const { songs, uploadId, corpusId } = await req.json();
     
     if (!songs || !Array.isArray(songs) || songs.length === 0) {
+      log.warn('Invalid request - empty songs array');
       return new Response(
         JSON.stringify({ error: 'Songs array is required and must not be empty' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[extract-music-titles] Processing ${songs.length} songs`);
+    log.info('Extraction started', { songCount: songs.length, uploadId, corpusId });
 
     // Validar corpus_id se fornecido
     if (corpusId) {
@@ -54,7 +59,10 @@ serve(async (req) => {
         .eq('id', corpusId)
         .single();
 
+      log.logDatabaseQuery('corpora', 'select', corpus ? 1 : 0);
+
       if (corpusError || !corpus) {
+        log.error('Invalid corpus', corpusError, { corpusId });
         return new Response(
           JSON.stringify({ error: 'Corpus inválido' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -82,9 +90,9 @@ serve(async (req) => {
       }
     });
 
-    console.log(`[extract-music-titles] Found ${uniqueArtists.size} unique artists`);
+    log.info('Unique artists identified', { uniqueCount: uniqueArtists.size });
 
-    // ✅ OTIMIZAÇÃO: Batch upsert para artistas
+    // OTIMIZAÇÃO: Batch upsert para artistas
     const artistsToInsert = Array.from(uniqueArtists.entries()).map(([normalized, original]) => ({
       name: original,
       normalized_name: normalized,
@@ -99,8 +107,10 @@ serve(async (req) => {
       })
       .select('id, name, normalized_name');
 
+    log.logDatabaseQuery('artists', 'insert', artistsToInsert.length);
+
     if (artistError) {
-      console.error('[extract-music-titles] CRITICAL: Failed to upsert artists:', artistError);
+      log.error('Failed to upsert artists', artistError);
       throw new Error(`Falha ao criar artistas: ${artistError.message}`);
     }
 
@@ -111,12 +121,12 @@ serve(async (req) => {
     });
 
     const artistsCreated = artistsToInsert.length - uniqueArtists.size;
-    console.log(`[extract-music-titles] Upserted ${upsertedArtists?.length || 0} artists (batch operation)`);
+    log.info('Artists upserted', { upserted: upsertedArtists?.length || 0 });
 
-    // ✅ VALIDAÇÃO: Verificar integridade dos artist_ids
+    // VALIDAÇÃO: Verificar integridade dos artist_ids
     const missingArtists = songs.filter(song => song.artista && !artistIds[song.artista]);
     if (missingArtists.length > 0) {
-      console.error(`[extract-music-titles] CRITICAL: ${missingArtists.length} músicas com artistas faltantes`);
+      log.error('Artist mapping failed', new Error('Missing artists'), { missingCount: missingArtists.length });
       throw new Error(`Falha ao mapear ${missingArtists.length} artistas necessários`);
     }
 
@@ -131,7 +141,7 @@ serve(async (req) => {
       const batch = songs.slice(i, i + BATCH_SIZE);
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
       
-      console.log(`[extract-music-titles] Processing batch ${batchNumber}/${totalBatches} (${batch.length} songs)`);
+      log.info('Processing batch', { batchNumber, totalBatches, batchSize: batch.length });
 
       // Preparar músicas do batch
       const batchSongs = batch
@@ -184,8 +194,10 @@ serve(async (req) => {
           .insert(newSongs)
           .select('id');
 
+        log.logDatabaseQuery('songs', 'insert', newSongs.length);
+
         if (insertError) {
-          console.error(`[extract-music-titles] Error in batch ${batchNumber}:`, insertError);
+          log.error('Batch insert failed', insertError, { batchNumber });
           throw insertError;
         }
 
@@ -193,10 +205,10 @@ serve(async (req) => {
         songIds.push(...inserted.map(s => s.id));
       }
 
-      console.log(`[extract-music-titles] Batch ${batchNumber}: ${newSongs.length} new, ${skippedInBatch} duplicates`);
+      log.info('Batch completed', { batchNumber, newSongs: newSongs.length, duplicates: skippedInBatch });
     }
 
-    console.log(`[extract-music-titles] Total: ${songsCreated} created, ${duplicatesSkipped} duplicates`);
+    log.info('Extraction completed', { songsCreated, duplicatesSkipped });
 
     // Update upload status if provided
     if (uploadId) {
@@ -224,9 +236,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[extract-music-titles] Error:', error);
+    log.fatal('Extraction failed', error instanceof Error ? error : new Error(String(error)));
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : String(error),
+        requestId
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
