@@ -12,6 +12,7 @@ import { withSupabaseRetry } from "../_shared/retry.ts";
 import { withTimeout, Timeouts } from "../_shared/timeout.ts";
 import { withInstrumentation } from "../_shared/instrumentation.ts";
 import { createHealthCheck } from "../_shared/health-check.ts";
+import { createEdgeLogger } from "../_shared/unified-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,10 @@ const corsHeaders = {
 };
 
 serve(withInstrumentation('cancel-dictionary-job', async (req) => {
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('cancel-dictionary-job', requestId);
+  let user: any = null;
+  
   // Health check endpoint
   if (req.method === 'GET' && new URL(req.url).pathname.endsWith('/health')) {
     const health = await createHealthCheck('cancel-dictionary-job', '1.0.0');
@@ -34,6 +39,7 @@ serve(withInstrumentation('cancel-dictionary-job', async (req) => {
   }
 
   try {
+    log.info('Cancel dictionary job request received');
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -46,11 +52,13 @@ serve(withInstrumentation('cancel-dictionary-job', async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token);
 
-    if (authError || !user) {
+    if (authError || !authUser) {
       throw new Error("Não autenticado");
     }
+    
+    user = authUser;
 
     // 🔒 Rate Limiting (5 cancelamentos por minuto por usuário)
     const rateLimitResult = await checkRateLimit(
@@ -127,7 +135,11 @@ serve(withInstrumentation('cancel-dictionary-job', async (req) => {
       throw new Error(result.message || 'Falha ao cancelar job');
     }
 
-    // Job cancelled successfully
+    log.info('Job cancelled successfully', { 
+      jobId, 
+      jobStatus: result.job_status,
+      forced: result.forced 
+    });
 
     return new Response(
       JSON.stringify({ 
@@ -147,7 +159,9 @@ serve(withInstrumentation('cancel-dictionary-job', async (req) => {
     );
 
   } catch (error: any) {
-    // Error cancelling job
+    log.error('Failed to cancel job', error instanceof Error ? error : new Error(String(error)), {
+      userId: user?.id
+    });
 
     return new Response(
       JSON.stringify({ error: error.message }),

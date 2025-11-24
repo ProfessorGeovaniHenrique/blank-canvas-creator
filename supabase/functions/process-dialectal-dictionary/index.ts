@@ -34,12 +34,10 @@ function sanitizeText(text: string | null | undefined): string | null {
   // ✅ Log DETALHADO com índice do caractere problemático
   if (original !== sanitized) {
     const nullByteIndex = original.indexOf('\u0000');
-    console.warn(`⚠️ Caracteres removidos no índice ${nullByteIndex}:`, {
-      before: original.substring(0, 100),
-      after: sanitized.substring(0, 100),
-      length_before: original.length,
-      length_after: sanitized.length
-    });
+    // Log sanitization (reduced verbosity)
+    if (nullByteIndex >= 0) {
+      console.debug(`Sanitized text at index ${nullByteIndex}`);
+    }
   }
   
   return sanitized;
@@ -156,7 +154,7 @@ function parseVerbete(verbeteRaw: string, volumeNum: string, tipoDicionario: str
       // Os outros serão processados como blocos separados pelo split principal
       const firstSubEnd = subVerbetes[1].index!;
       const cleanedText = cleanText.substring(0, firstSubEnd).trim();
-      console.log(`⚠️ Sub-verbetes detectados: ${subVerbetes.length}. Processando apenas primeiro verbete.`);
+      // Sub-verbetes detected, process only first
       const normalizedText = cleanedText.replace(/\s+/g, ' ').replace(/[-–—]/g, '-');
       return parseVerbeteSingle(normalizedText, volumeNum, tipoDicionario);
     }
@@ -164,7 +162,7 @@ function parseVerbete(verbeteRaw: string, volumeNum: string, tipoDicionario: str
     const normalizedText = cleanText.replace(/\s+/g, ' ').replace(/[-–—]/g, '-');
     return parseVerbeteSingle(normalizedText, volumeNum, tipoDicionario);
   } catch (error: any) {
-    console.error(`❌ Erro no parseVerbete:`, error.message);
+    // Parse error logged at batch level
     return null;
   }
 }
@@ -340,15 +338,17 @@ function parseVerbeteSingle(normalizedText: string, volumeNum: string, tipoDicio
 }
 
 async function processInBackground(jobId: string, verbetes: string[], volumeNum: string, tipoDicionario: string, offsetInicial: number) {
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('process-dialectal-dictionary', requestId);
+  
   const MAX_PROCESSING_TIME = 30 * 60 * 1000;
-  const log = createEdgeLogger('process-dialectal-dictionary', jobId);
   const timeoutPromise = new Promise((_, reject) => 
     setTimeout(() => reject(new Error('Timeout: 30 minutos excedidos')), MAX_PROCESSING_TIME)
   );
 
   try {
     await Promise.race([
-      processVerbetesInternal(jobId, verbetes, volumeNum, tipoDicionario, offsetInicial),
+      processVerbetesInternal(jobId, verbetes, volumeNum, tipoDicionario, offsetInicial, log),
       timeoutPromise
     ]);
   } catch (error: any) {
@@ -378,7 +378,7 @@ async function processInBackground(jobId: string, verbetes: string[], volumeNum:
 /**
  * ✅ FASE 3 - BLOCO 1: Detectar cancelamento de job
  */
-async function checkCancellation(jobId: string, supabaseClient: any) {
+async function checkCancellation(jobId: string, supabaseClient: any, log: ReturnType<typeof createEdgeLogger>) {
   const { data: job } = await supabaseClient
     .from('dictionary_import_jobs')
     .select('is_cancelling')
@@ -386,7 +386,7 @@ async function checkCancellation(jobId: string, supabaseClient: any) {
     .single();
 
   if (job?.is_cancelling) {
-    console.log('🛑 Cancelamento detectado! Interrompendo processamento...');
+    log.info('Job cancellation detected', { jobId });
     
     await supabaseClient
       .from('dictionary_import_jobs')
@@ -402,7 +402,8 @@ async function checkCancellation(jobId: string, supabaseClient: any) {
   }
 }
 
-async function processVerbetesInternal(jobId: string, verbetes: string[], volumeNum: string, tipoDicionario: string, offsetInicial: number) {
+async function processVerbetesInternal(jobId: string, verbetes: string[], volumeNum: string, tipoDicionario: string, offsetInicial: number, log: ReturnType<typeof createEdgeLogger>) {
+  
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -414,10 +415,8 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
   let erros = 0;
   let batchCount = 0;
 
-  logJobStart({
+  log.logJobStart(jobId, verbetes.length, {
     fonte: `Dialectal Vol.${volumeNum}`,
-    jobId,
-    totalEntries: verbetes.length,
     batchSize: BATCH_SIZE,
     timeoutMs: TIMEOUT_MS,
     maxRetries: 3
@@ -516,7 +515,7 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
     // ✅ OTIMIZADO: Atualizar progresso a cada 5 batches (reduz escritas)
     if (batchCount % 5 === 0 || processados >= verbetes.length) {
       // Checar se job foi cancelado
-      await checkCancellation(jobId, supabase);
+      await checkCancellation(jobId, supabase, log);
       
       const progressPercent = Math.round((processados / verbetes.length) * 100);
       
@@ -559,15 +558,11 @@ async function processVerbetesInternal(jobId: string, verbetes: string[], volume
       tempo_fim: new Date().toISOString()
     })
     .eq('id', jobId);
-
-  logJobComplete({
-    fonte: `Dialectal Vol.${volumeNum}`,
-    jobId,
-    processed: processados,
+  
+  log.logJobComplete(jobId, processados, totalTime, {
     totalEntries: verbetes.length,
     inserted: inseridos,
-    errors: erros,
-    totalTime
+    errors: erros
   });
 }
 

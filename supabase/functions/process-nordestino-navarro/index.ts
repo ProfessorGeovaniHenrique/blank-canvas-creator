@@ -216,12 +216,17 @@ function parseNordestinoEntry(line: string): ParsedEntry | null {
 }
 
 async function processInBackground(supabase: any, jobId: string, lines: string[], offsetInicial: number) {
+  const requestId = crypto.randomUUID();
+  const log = createEdgeLogger('process-nordestino-navarro', requestId);
+  
   const BATCH_SIZE = 100;
   let processados = offsetInicial;
   let inseridos = 0;
   let erros = 0;
 
   try {
+    log.logJobStart(jobId, lines.length, { offsetInicial });
+    
     await supabase
       .from('dictionary_import_jobs')
       .update({ 
@@ -251,12 +256,15 @@ async function processInBackground(supabase: any, jobId: string, lines: string[]
             verbetes.push(parsedEntry);
             // Log de amostra para debug (apenas primeiros 5 verbetes)
             if (verbetes.length <= 5) {
-              console.log(`✅ Verbete: ${parsedEntry.verbete} | Def: ${parsedEntry.definicoes[0]?.substring(0, 80)}...`);
+              log.debug('Verbete parsed', { 
+                verbete: parsedEntry.verbete, 
+                definition: parsedEntry.definicoes[0]?.substring(0, 80) 
+              });
             }
           }
         }
       } catch (parseError) {
-        console.error(`Erro ao parsear linha ${i}:`, line, parseError);
+        log.warn('Failed to parse line', { line: line.substring(0, 100), error: parseError });
         erros++;
       }
 
@@ -270,7 +278,7 @@ async function processInBackground(supabase: any, jobId: string, lines: string[]
           });
 
         if (insertError) {
-          console.error('Erro ao inserir lote:', insertError);
+          log.error('Failed to insert batch', insertError as Error, { batchSize: verbetes.length });
           erros += verbetes.length;
         } else {
           inseridos += verbetes.length;
@@ -325,10 +333,18 @@ async function processInBackground(supabase: any, jobId: string, lines: string[]
       })
       .eq('id', jobId);
 
-    console.log(`✅ Importação concluída: ${inseridos} verbetes inseridos, ${erros} erros`);
+    log.logJobComplete(jobId, lines.length, Date.now() - Date.now(), {
+      inserted: inseridos,
+      errors: erros
+    });
 
   } catch (error: any) {
-    console.error('❌ Erro no processamento:', error);
+    log.error('Fatal error in processing', error instanceof Error ? error : new Error(String(error)), {
+      jobId,
+      processados,
+      inseridos,
+      erros
+    });
     
     await supabase
       .from('dictionary_import_jobs')
