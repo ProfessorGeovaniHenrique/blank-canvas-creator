@@ -28,6 +28,9 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { createLogger } from '@/lib/loggerFactory';
+
+const log = createLogger('AdminDictionaryImport');
 
 export default function AdminDictionaryImport() {
   const navigate = useNavigate();
@@ -810,7 +813,10 @@ export default function AdminDictionaryImport() {
               {activeJobs.map((job) => {
                 const config = getDictionaryConfig(job.tipo_dicionario);
                 if (!config) {
-                  console.error(`Config não encontrado para: ${job.tipo_dicionario}`);
+                  log.error('Config não encontrado para dicionário', undefined, { 
+                    tipoDicionario: job.tipo_dicionario,
+                    jobId: job.id 
+                  });
                   return null;
                 }
                 return (
@@ -876,7 +882,10 @@ export default function AdminDictionaryImport() {
               {recentJobs.map((job) => {
                 const config = getDictionaryConfig(job.tipo_dicionario);
                 if (!config) {
-                  console.error(`Config não encontrado para: ${job.tipo_dicionario}`);
+                  log.error('Config não encontrado para dicionário recente', undefined, { 
+                    tipoDicionario: job.tipo_dicionario,
+                    jobId: job.id 
+                  });
                   return null;
                 }
                 return (
