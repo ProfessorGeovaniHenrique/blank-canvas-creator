@@ -116,6 +116,7 @@ export default function MusicCatalog() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isClearingCatalog, setIsClearingCatalog] = useState(false);
   const [enrichingByLetter, setEnrichingByLetter] = useState(false);
+  const [updatedArtists, setUpdatedArtists] = useState<Map<string, any>>(new Map());
   const { toast } = useToast();
 
   // 🔍 Função helper para converter SongWithRelations → Song com type safety
@@ -523,21 +524,14 @@ export default function MusicCatalog() {
           source: artistData.biography_source
         });
         
-        // ✅ Atualizar o array de artistas localmente sem reload completo
-        setArtists(prevArtists => 
-          prevArtists.map(artist => 
-            artist.id === artistId 
-              ? {
-                  ...artist,
-                  biography: artistData.biography,
-                  biography_source: artistData.biography_source,
-                  biography_updated_at: artistData.biography_updated_at
-                }
-              : artist
-          )
-        );
+        // ✅ Atualizar o mapa de artistas atualizados
+        setUpdatedArtists(prev => {
+          const newMap = new Map(prev);
+          newMap.set(artistId, artistData);
+          return newMap;
+        });
         
-        console.log('[handleBioEnriched] ✅ Estado local do artista atualizado com biografia');
+        console.log('[handleBioEnriched] ✅ Artista atualizado no cache local');
         
         toast({
           title: "Biografia atualizada",
