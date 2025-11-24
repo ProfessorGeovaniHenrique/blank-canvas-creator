@@ -44,6 +44,9 @@ import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { createLogger } from "@/lib/loggerFactory";
+
+const log = createLogger('AdminDashboard');
 
 type InviteKey = Database["public"]["Tables"]["invite_keys"]["Row"];
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -93,7 +96,7 @@ export default function AdminDashboard() {
       setInvites(invitesWithUsers);
     } catch (error: any) {
       toast.error("Erro ao carregar convites");
-      console.error(error);
+      log.error('Erro ao carregar convites', error);
     } finally {
       setLoading(false);
     }
@@ -128,7 +131,7 @@ export default function AdminDashboard() {
       fetchInvites();
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar convite");
-      console.error(error);
+      log.error('Erro ao criar convite', error);
     } finally {
       setCreatingInvite(false);
     }

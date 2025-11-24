@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Mail, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { createLogger } from "@/lib/loggerFactory";
+
+const log = createLogger('AdminAccessRequests');
 
 interface AccessRequest {
   id: string;
@@ -38,8 +41,8 @@ export default function AdminAccessRequests() {
       
       if (error) throw error;
       setRequests(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar solicitações:', error);
+    } catch (error: any) {
+      log.error('Erro ao buscar solicitações', error);
       toast.error('Erro ao carregar solicitações');
     } finally {
       setLoading(false);
@@ -88,7 +91,7 @@ export default function AdminAccessRequests() {
       toast.success('Convite enviado com sucesso!');
       fetchRequests();
     } catch (error: any) {
-      console.error('Erro ao aprovar:', error);
+      log.error('Erro ao aprovar solicitação', error);
       toast.error('Erro ao enviar convite: ' + error.message);
     } finally {
       setProcessing(null);
@@ -107,8 +110,8 @@ export default function AdminAccessRequests() {
       
       toast.success('Solicitação rejeitada');
       fetchRequests();
-    } catch (error) {
-      console.error('Erro ao rejeitar:', error);
+    } catch (error: any) {
+      log.error('Erro ao rejeitar solicitação', error);
       toast.error('Erro ao rejeitar solicitação');
     } finally {
       setProcessing(null);
