@@ -15,6 +15,7 @@ import {
   AnnotationDebugPanel,
   SubcorpusDebugPanel
 } from '@/components/devlogs';
+import { SentrySmokeTest } from '@/components/SentrySmokeTest';
 import { projectStats } from "@/data/developer-logs/construction-log";
 
 export default function DeveloperLogs() {
@@ -179,6 +180,21 @@ export default function DeveloperLogs() {
           {/* TAB CODE SCANNER: Real-time Code Scanner */}
           <TabsContent value="code-scanner">
             <CodeScannerInterface />
+          </TabsContent>
+
+          {/* TAB SENTRY TESTS: Smoke Tests para Sentry */}
+          <TabsContent value="sentry-tests">
+            <Card>
+              <CardHeader>
+                <CardTitle>Testes de Integração Sentry</CardTitle>
+                <CardDescription>
+                  Ferramentas para testar a captura de erros frontend e backend pelo Sentry
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SentrySmokeTest />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* TAB CONSTRUCTION MANAGER: Construction Log Manager */}

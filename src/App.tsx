@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CorpusProvider } from "@/contexts/CorpusContext";
 import { useCorpusPreload } from "@/hooks/useCorpusPreload";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { SentrySmokeTest } from "@/components/SentrySmokeTest";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -389,7 +388,6 @@ const AppContent = () => {
 
 const App = () => (
   <ErrorBoundary>
-    <SentrySmokeTest />
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
