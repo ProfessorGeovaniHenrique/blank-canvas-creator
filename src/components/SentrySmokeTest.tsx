@@ -9,8 +9,6 @@ import { toast } from "@/hooks/use-toast";
  * Provides buttons to force frontend and backend errors
  */
 export const SentrySmokeTest = () => {
-  if (import.meta.env.PROD) return null;
-
   const testFrontendError = () => {
     try {
       // Create deliberate error
@@ -58,36 +56,34 @@ export const SentrySmokeTest = () => {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 p-4 bg-destructive/10 border border-destructive/30 rounded-lg backdrop-blur-sm">
-      <div className="flex items-center gap-2 mb-2">
-        <AlertTriangle className="h-4 w-4 text-destructive" />
-        <span className="text-xs font-mono text-destructive">DEV MODE - Sentry Tests</span>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className="h-5 w-5 text-destructive" />
+        <h3 className="text-lg font-semibold">Testes de Integração Sentry</h3>
       </div>
       
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <Button
-          size="sm"
           variant="destructive"
           onClick={testFrontendError}
-          className="text-xs"
+          className="flex-1"
         >
-          <Bug className="h-3 w-3 mr-1" />
-          Force Frontend Error
+          <Bug className="h-4 w-4 mr-2" />
+          Testar Erro Frontend
         </Button>
         
         <Button
-          size="sm"
           variant="outline"
           onClick={testBackendError}
-          className="text-xs"
+          className="flex-1"
         >
-          <Bug className="h-3 w-3 mr-1" />
-          Force Backend Error
+          <Bug className="h-4 w-4 mr-2" />
+          Testar Erro Backend
         </Button>
       </div>
       
-      <p className="text-xs text-muted-foreground mt-2">
-        Check Sentry dashboard after clicking
+      <p className="text-sm text-muted-foreground mt-3">
+        Após clicar, verifique o dashboard do Sentry para confirmar que os erros foram capturados corretamente.
       </p>
     </div>
   );
