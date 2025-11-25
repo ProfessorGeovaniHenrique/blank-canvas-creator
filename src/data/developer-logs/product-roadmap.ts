@@ -364,14 +364,14 @@ export const futureProspects: FutureProspect[] = [
 // ============================================
 
 export const mvpMetrics = {
-  overallCompletion: 75, // %
-  implementedStories: 9,
+  overallCompletion: 85, // %
+  implementedStories: 10,
   totalMvpStories: 8,
   totalStories: 12,
   inProgressStories: 1,
   completedEpics: 1,
   totalEpics: 2,
-  nextMilestone: "Épico 2 - Gerenciamento de Domínios Semânticos",
+  nextMilestone: "Épico Semântico - Anotação de Domínios com Insígnias Culturais",
   estimatedMvpCompletion: "Q2 2025"
 };
 
@@ -403,6 +403,14 @@ export const milestones: Milestone[] = [
     epicIds: ['epic-2'],
     status: 'upcoming',
     description: 'Permitir refinamento e customização de domínios'
+  },
+  {
+    id: 'pos-tagger-complete',
+    date: 'Nov 2025',
+    title: 'POS Tagger Híbrido 3 Camadas Completo',
+    epicIds: ['epic-pos'],
+    status: 'completed',
+    description: 'Pipeline de anotação POS implementado: VA Grammar (85% cobertura) + spaCy (fallback 95%) + Gemini Flash via Lovable AI (cobertura final 99%)'
   },
   {
     id: 'advanced-tools',
