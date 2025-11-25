@@ -1,5 +1,5 @@
 // Deno Edge Runtime - HYBRID POS TAGGING (3-Layer System)
-// Layer 1: VA Grammar (priority, zero cost)
+// Layer 1: VA Grammar (priority, zero cost) ✅ IMPLEMENTED
 // Layer 2: spaCy fallback (TODO)
 // Layer 3: Gemini AI fallback (TODO)
 
@@ -7,6 +7,8 @@ import { RateLimiter, addRateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { EdgeFunctionLogger } from "../_shared/logger.ts";
 import { withInstrumentation } from "../_shared/instrumentation.ts";
 import { createHealthCheck } from "../_shared/health-check.ts";
+import { annotateWithVAGrammar, calculateVAGrammarCoverage } from "../_shared/hybrid-pos-annotator.ts";
+import { getCacheStatistics } from "../_shared/pos-annotation-cache.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -143,12 +145,21 @@ const ADVERBS = new Set(['não', 'sim', 'nunca', 'sempre', 'talvez', 'aqui', 'al
 // ============= SERVER =============
 
 Deno.serve(withInstrumentation('annotate-pos', async (req) => {
-  // Health check endpoint - verifica query parameter
   const url = new URL(req.url);
+  
+  // Health check endpoint
   if (req.method === 'GET' && url.searchParams.get('health') === 'true') {
     const health = await createHealthCheck('annotate-pos', '1.0.0');
     return new Response(JSON.stringify(health), {
       status: health.status === 'healthy' ? 200 : 503,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Stats endpoint - cache statistics
+  if (req.method === 'GET' && url.pathname.endsWith('/stats')) {
+    const stats = getCacheStatistics();
+    return new Response(JSON.stringify(stats), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -225,19 +236,30 @@ Deno.serve(withInstrumentation('annotate-pos', async (req) => {
 }));
 
 async function processText(texto: string): Promise<POSToken[]> {
-  const words = texto.toLowerCase().replace(/[^\w\sáàâãéêíóôõúç\-]/g, ' ').split(/\s+/).filter(w => w.length > 0);
-  const tokens: POSToken[] = [];
+  // Layer 1: VA Grammar (prioridade)
+  const vaAnnotated = await annotateWithVAGrammar(texto);
   
-  for (let i = 0; i < words.length; i++) {
-    const palavra = words[i];
-    const contexto = { anterior: i > 0 ? words[i - 1] : null, proximo: i < words.length - 1 ? words[i + 1] : null };
-    const pos = inferPOS(palavra, contexto);
-    const lema = lemmatize(palavra, pos);
-    const features = inferFeatures(palavra, pos);
-    tokens.push({ palavra, lema, pos, posDetalhada: pos, features, posicao: i });
+  // Calcular estatísticas de cobertura
+  const coverage = calculateVAGrammarCoverage(vaAnnotated);
+  
+  console.log(`✅ Layer 1 (VA Grammar): ${coverage.coveredByVA}/${coverage.totalTokens} tokens (${coverage.coverageRate.toFixed(1)}% cobertura)`);
+  console.log(`📊 Source distribution:`, coverage.sourceDistribution);
+  
+  if (coverage.unknownWords.length > 0) {
+    console.log(`⚠️ Unknown words (${coverage.unknownWords.length}):`, coverage.unknownWords.slice(0, 10));
   }
   
-  return tokens;
+  // TODO Sprint 2: Processar unknownTokens com Layer 2 (spaCy) ou Layer 3 (Gemini)
+  // Por enquanto, retornar apenas Layer 1
+  
+  return vaAnnotated.map(t => ({
+    palavra: t.palavra,
+    lema: t.lema,
+    pos: t.pos,
+    posDetalhada: t.posDetalhada,
+    features: t.features,
+    posicao: t.posicao,
+  }));
 }
 
 function inferPOS(palavra: string, ctx: { anterior: string | null; proximo: string | null }): string {
