@@ -14,6 +14,11 @@ interface SemanticAnnotationJob {
   processed_words: number;
   cached_words: number;
   new_words: number;
+  current_song_index: number;
+  current_word_index: number;
+  chunk_size: number;
+  chunks_processed: number;
+  last_chunk_at: string | null;
   tempo_inicio: string;
   tempo_fim: string | null;
   erro_mensagem: string | null;
@@ -25,12 +30,14 @@ interface UseSemanticAnnotationJobResult {
   isProcessing: boolean;
   error: string | null;
   progress: number;
+  eta: string | null;
+  wordsPerSecond: number | null;
   startJob: (artistName: string) => Promise<string | null>;
   cancelPolling: () => void;
 }
 
 /**
- * Hook para gerenciar jobs de anotação semântica com polling
+ * Hook para gerenciar jobs de anotação semântica com polling e ETA
  */
 export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
   const [job, setJob] = useState<SemanticAnnotationJob | null>(null);
@@ -42,6 +49,36 @@ export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
   const progress = job && job.total_words > 0 
     ? (job.processed_words / job.total_words) * 100 
     : 0;
+
+  // Calcular velocidade e ETA
+  const calculateETA = useCallback((): { eta: string | null; wordsPerSecond: number | null } => {
+    if (!job || !isProcessing) return { eta: null, wordsPerSecond: null };
+
+    const startTime = new Date(job.tempo_inicio).getTime();
+    const now = Date.now();
+    const elapsedSeconds = (now - startTime) / 1000;
+
+    if (elapsedSeconds < 1 || job.processed_words === 0) {
+      return { eta: null, wordsPerSecond: null };
+    }
+
+    const wordsPerSecond = job.processed_words / elapsedSeconds;
+    const remainingWords = job.total_words - job.processed_words;
+    const etaSeconds = remainingWords / wordsPerSecond;
+
+    // Formatar ETA
+    if (etaSeconds < 60) {
+      return { eta: `~${Math.round(etaSeconds)}s`, wordsPerSecond };
+    } else if (etaSeconds < 3600) {
+      return { eta: `~${Math.round(etaSeconds / 60)}min`, wordsPerSecond };
+    } else {
+      const hours = Math.floor(etaSeconds / 3600);
+      const mins = Math.round((etaSeconds % 3600) / 60);
+      return { eta: `~${hours}h ${mins}min`, wordsPerSecond };
+    }
+  }, [job, isProcessing]);
+
+  const { eta, wordsPerSecond } = calculateETA();
 
   /**
    * Iniciar novo job de anotação
@@ -162,6 +199,8 @@ export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
     isProcessing,
     error,
     progress,
+    eta,
+    wordsPerSecond,
     startJob,
     cancelPolling,
   };
