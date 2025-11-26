@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Download, Info, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { LexicalProfile } from "@/data/types/stylistic-analysis.types";
-import { dominiosSeparated } from "@/data/mockup";
+import { DominioSemantico } from "@/data/types/corpus.types";
 import { 
   calculateLexicalProfile, 
   compareProfiles, 
@@ -22,6 +22,11 @@ import { SignificanceIndicator } from "@/components/visualization/SignificanceIn
 import { ProportionalSampleInfo } from "@/components/visualization/ProportionalSampleInfo";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useSubcorpus } from "@/contexts/SubcorpusContext";
+import { getSemanticDomainsFromAnnotatedCorpus } from "@/services/semanticDomainsService";
+import { toast } from "sonner";
+import { createLogger } from "@/lib/loggerFactory";
+
+const log = createLogger('TabLexicalProfile');
 
 export function TabLexicalProfile() {
   const subcorpusContext = useSubcorpus();
@@ -29,40 +34,76 @@ export function TabLexicalProfile() {
   const [studyProfile, setStudyProfile] = useState<LexicalProfile | null>(null);
   const [referenceProfile, setReferenceProfile] = useState<LexicalProfile | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [studyDominios, setStudyDominios] = useState<DominioSemantico[]>([]);
+  const [referenceDominios, setReferenceDominios] = useState<DominioSemantico[]>([]);
 
   const { corpus: gauchoCorpus, isLoading: loadingGaucho } = useFullTextCorpus('gaucho');
   const { corpus: nordestinoCorpus, isLoading: loadingNordestino } = useFullTextCorpus('nordestino');
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!crossSelection) return;
 
     setIsAnalyzing(true);
     
-    // Analyze study corpus
-    const studyCorpusData = crossSelection.study.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
-    if (studyCorpusData) {
-      const studyProfile = calculateLexicalProfile(studyCorpusData, dominiosSeparated);
-      setStudyProfile(studyProfile);
-    }
-
-    // Analyze reference corpus if comparative mode
-    if (crossSelection.isComparative) {
-      let refCorpusData = crossSelection.reference.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
+    try {
+      // Buscar domínios semânticos reais do corpus de estudo
+      const studyArtistFilter = crossSelection.study.mode === 'artist' 
+        ? crossSelection.study.artist 
+        : undefined;
       
-      if (refCorpusData && crossSelection.reference.mode === 'proportional-sample') {
-        refCorpusData = sampleProportionalCorpus(
-          refCorpusData, 
-          crossSelection.reference.targetSize
+      const studyDominiosData = await getSemanticDomainsFromAnnotatedCorpus(
+        crossSelection.study.corpusType,
+        studyArtistFilter
+      );
+      
+      setStudyDominios(studyDominiosData);
+
+      // Analyze study corpus
+      const studyCorpusData = crossSelection.study.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
+      if (studyCorpusData && studyDominiosData.length > 0) {
+        const studyProfile = calculateLexicalProfile(studyCorpusData, studyDominiosData);
+        setStudyProfile(studyProfile);
+      } else if (studyDominiosData.length === 0) {
+        toast.error('Nenhum domínio semântico encontrado para o corpus de estudo. Execute a anotação semântica primeiro.');
+      }
+
+      // Analyze reference corpus if comparative mode
+      if (crossSelection.isComparative) {
+        const refArtistFilter = crossSelection.reference.mode === 'proportional-sample'
+          ? undefined
+          : undefined; // Referência sempre usa corpus completo
+
+        const refDominiosData = await getSemanticDomainsFromAnnotatedCorpus(
+          crossSelection.reference.corpusType,
+          refArtistFilter
         );
-      }
-      
-      if (refCorpusData) {
-        const refProfile = calculateLexicalProfile(refCorpusData, dominiosSeparated);
-        setReferenceProfile(refProfile);
-      }
-    }
 
-    setIsAnalyzing(false);
+        setReferenceDominios(refDominiosData);
+
+        let refCorpusData = crossSelection.reference.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
+        
+        if (refCorpusData && crossSelection.reference.mode === 'proportional-sample') {
+          refCorpusData = sampleProportionalCorpus(
+            refCorpusData, 
+            crossSelection.reference.targetSize
+          );
+        }
+        
+        if (refCorpusData && refDominiosData.length > 0) {
+          const refProfile = calculateLexicalProfile(refCorpusData, refDominiosData);
+          setReferenceProfile(refProfile);
+        } else if (refDominiosData.length === 0) {
+          toast.warning('Nenhum domínio semântico encontrado para o corpus de referência.');
+        }
+      }
+
+      toast.success('Análise léxica concluída com dados reais do banco!');
+    } catch (error) {
+      log.error('Error analyzing corpus', error as Error);
+      toast.error('Erro ao analisar corpus. Verifique se há dados anotados.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleExport = () => {
