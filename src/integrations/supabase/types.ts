@@ -1779,9 +1779,14 @@ export type Database = {
           artist_id: string
           artist_name: string
           cached_words: number
+          chunk_size: number | null
+          chunks_processed: number | null
           created_at: string
+          current_song_index: number | null
+          current_word_index: number | null
           erro_mensagem: string | null
           id: string
+          last_chunk_at: string | null
           metadata: Json | null
           new_words: number
           processed_words: number
@@ -1796,9 +1801,14 @@ export type Database = {
           artist_id: string
           artist_name: string
           cached_words?: number
+          chunk_size?: number | null
+          chunks_processed?: number | null
           created_at?: string
+          current_song_index?: number | null
+          current_word_index?: number | null
           erro_mensagem?: string | null
           id?: string
+          last_chunk_at?: string | null
           metadata?: Json | null
           new_words?: number
           processed_words?: number
@@ -1813,9 +1823,14 @@ export type Database = {
           artist_id?: string
           artist_name?: string
           cached_words?: number
+          chunk_size?: number | null
+          chunks_processed?: number | null
           created_at?: string
+          current_song_index?: number | null
+          current_word_index?: number | null
           erro_mensagem?: string | null
           id?: string
+          last_chunk_at?: string | null
           metadata?: Json | null
           new_words?: number
           processed_words?: number

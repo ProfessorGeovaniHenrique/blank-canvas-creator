@@ -10,15 +10,15 @@ const corsHeaders = {
 interface AnnotateArtistRequest {
   artistId?: string;
   artistName?: string;
+  jobId?: string;
+  continueFrom?: {
+    songIndex: number;
+    wordIndex: number;
+  };
 }
 
-interface ProcessingProgress {
-  totalWords: number;
-  processedWords: number;
-  cachedWords: number;
-  newWords: number;
-  songs: number;
-}
+const CHUNK_SIZE = 150; // Palavras por chunk
+const CHUNK_TIMEOUT_MS = 4 * 60 * 1000; // 4 minutos
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -35,13 +35,25 @@ serve(async (req) => {
     );
 
     const requestBody: AnnotateArtistRequest = await req.json();
-    const { artistId, artistName } = requestBody;
+    const { artistId, artistName, jobId, continueFrom } = requestBody;
 
+    // MODO 1: Continuar job existente
+    if (jobId && continueFrom) {
+      logger.info('Continuando job existente', { jobId, continueFrom });
+      await processChunk(supabaseClient, jobId, continueFrom, logger);
+      
+      return new Response(
+        JSON.stringify({ success: true, message: 'Chunk processado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // MODO 2: Criar novo job
     if (!artistId && !artistName) {
       throw new Error('artistId ou artistName obrigatório');
     }
 
-    // 1️⃣ Buscar artista
+    // Buscar artista
     let artist;
     if (artistId) {
       const { data, error } = await supabaseClient
@@ -66,7 +78,7 @@ serve(async (req) => {
 
     logger.info('Artista identificado', { artistId: artist.id, artistName: artist.name });
 
-    // 2️⃣ Buscar músicas com letra do artista
+    // Buscar músicas com letra
     const { data: songs, error: songsError } = await supabaseClient
       .from('songs')
       .select('id, title, lyrics')
@@ -94,52 +106,56 @@ serve(async (req) => {
 
     logger.info('Músicas carregadas', { count: songs.length, totalWords });
 
-    // 3️⃣ Criar job na tabela
-    const { data: job, error: jobError } = await supabaseClient
+    // Criar job
+    const { data: newJob, error: jobError } = await supabaseClient
       .from('semantic_annotation_jobs')
       .insert({
         artist_id: artist.id,
         artist_name: artist.name,
-        status: 'iniciado',
+        status: 'processando',
         total_songs: songs.length,
         total_words: totalWords,
         processed_words: 0,
         cached_words: 0,
         new_words: 0,
+        current_song_index: 0,
+        current_word_index: 0,
+        chunk_size: CHUNK_SIZE,
+        chunks_processed: 0,
+        last_chunk_at: new Date().toISOString(),
       })
       .select()
       .single();
 
-    if (jobError || !job) {
+    if (jobError || !newJob) {
       throw new Error('Erro ao criar job: ' + jobError?.message);
     }
 
-    logger.info('Job criado', { jobId: job.id });
+    logger.info('Job criado', { jobId: newJob.id });
 
-    // 4️⃣ Retornar job_id imediatamente
+    // Retornar job_id imediatamente
     const response = new Response(
       JSON.stringify({
         success: true,
-        jobId: job.id,
+        jobId: newJob.id,
         artistId: artist.id,
         artistName: artist.name,
         totalSongs: songs.length,
         totalWords,
-        message: 'Processamento iniciado em background'
+        message: 'Processamento iniciado em chunks'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-    // 5️⃣ Processar em background (não aguardar)
-    processAnnotationJob(supabaseClient, job.id, artist, songs, logger).catch(err => {
-      logger.error('Background processing failed', err);
-    });
+    // Iniciar primeiro chunk assincronamente
+    processChunk(supabaseClient, newJob.id, { songIndex: 0, wordIndex: 0 }, logger)
+      .catch(err => logger.error('First chunk failed', err));
 
     return response;
 
   } catch (error) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
-    logger.error('Erro ao iniciar job de anotação', errorObj);
+    logger.error('Erro ao processar request', errorObj);
 
     return new Response(
       JSON.stringify({
@@ -152,49 +168,100 @@ serve(async (req) => {
 });
 
 /**
- * Processar anotação em background
+ * Processar um chunk de palavras
  */
-async function processAnnotationJob(
+async function processChunk(
   supabase: any,
   jobId: string,
-  artist: { id: string; name: string },
-  songs: any[],
+  continueFrom: { songIndex: number; wordIndex: number },
   logger: any
 ) {
   const startTime = Date.now();
   
   try {
-    // Atualizar status para 'processando'
-    await supabase
+    // Proteção anti-duplicação: verificar se outro chunk está rodando
+    const { data: lockCheck } = await supabase
       .from('semantic_annotation_jobs')
-      .update({ status: 'processando' })
-      .eq('id', jobId);
+      .update({ last_chunk_at: new Date().toISOString() })
+      .eq('id', jobId)
+      .gte('last_chunk_at', new Date(Date.now() - 30000).toISOString())
+      .select('id')
+      .single();
 
-    logger.info('Iniciando processamento de job', { jobId, artistName: artist.name });
+    if (!lockCheck) {
+      logger.warn('Outro chunk já está processando, abortando', { jobId });
+      return;
+    }
 
-    const progress: ProcessingProgress = {
-      totalWords: 0,
-      processedWords: 0,
-      cachedWords: 0,
-      newWords: 0,
-      songs: songs.length,
-    };
+    // Buscar job
+    const { data: job, error: jobError } = await supabase
+      .from('semantic_annotation_jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single();
 
-    for (const song of songs) {
+    if (jobError || !job) {
+      throw new Error('Job não encontrado');
+    }
+
+    // Buscar artista e músicas
+    const { data: artist } = await supabase
+      .from('artists')
+      .select('id, name')
+      .eq('id', job.artist_id)
+      .single();
+
+    const { data: songs } = await supabase
+      .from('songs')
+      .select('id, title, lyrics')
+      .eq('artist_id', job.artist_id)
+      .not('lyrics', 'is', null)
+      .neq('lyrics', '');
+
+    if (!songs || songs.length === 0) {
+      throw new Error('Nenhuma música encontrada');
+    }
+
+    logger.info('Processando chunk', { 
+      jobId, 
+      songIndex: continueFrom.songIndex, 
+      wordIndex: continueFrom.wordIndex,
+      totalSongs: songs.length 
+    });
+
+    let processedInChunk = 0;
+    let cachedInChunk = 0;
+    let newInChunk = 0;
+    let currentSongIndex = continueFrom.songIndex;
+    let currentWordIndex = continueFrom.wordIndex;
+
+    // Processar até CHUNK_SIZE palavras ou timeout
+    outer: for (let s = currentSongIndex; s < songs.length; s++) {
+      const song = songs[s];
       const words = tokenizeLyrics(song.lyrics);
-      progress.totalWords += words.length;
 
-      for (let i = 0; i < words.length; i++) {
-        const palavra = words[i];
-        const contextoEsquerdo = words.slice(Math.max(0, i - 5), i).join(' ');
-        const contextoDireito = words.slice(i + 1, Math.min(words.length, i + 6)).join(' ');
+      for (let w = (s === currentSongIndex ? currentWordIndex : 0); w < words.length; w++) {
+        // Timeout check
+        if (Date.now() - startTime > CHUNK_TIMEOUT_MS) {
+          logger.warn('Chunk timeout, salvando progresso', { processedInChunk });
+          break outer;
+        }
+
+        // Chunk size check
+        if (processedInChunk >= CHUNK_SIZE) {
+          break outer;
+        }
+
+        const palavra = words[w];
+        const contextoEsquerdo = words.slice(Math.max(0, w - 5), w).join(' ');
+        const contextoDireito = words.slice(w + 1, Math.min(words.length, w + 6)).join(' ');
 
         const contextoHash = await hashContext(contextoEsquerdo, contextoDireito);
         const cached = await checkCache(supabase, palavra, contextoHash);
 
         if (cached) {
-          progress.cachedWords++;
-          progress.processedWords++;
+          cachedInChunk++;
+          processedInChunk++;
         } else {
           try {
             const annotationResult = await callSemanticAnnotator(
@@ -216,51 +283,92 @@ async function processAnnotationJob(
                 song.id
               );
 
-              progress.newWords++;
-              progress.processedWords++;
+              newInChunk++;
+              processedInChunk++;
             }
           } catch (error) {
             logger.warn('Erro ao anotar palavra', { 
               palavra, 
               error: error instanceof Error ? error.message : String(error) 
             });
-            progress.processedWords++;
+            processedInChunk++;
           }
         }
 
-        // Atualizar progresso a cada 50 palavras
-        if (progress.processedWords % 50 === 0) {
-          await supabase
-            .from('semantic_annotation_jobs')
-            .update({
-              processed_words: progress.processedWords,
-              cached_words: progress.cachedWords,
-              new_words: progress.newWords,
-            })
-            .eq('id', jobId);
-        }
+        currentSongIndex = s;
+        currentWordIndex = w + 1;
+      }
+
+      // Se terminou a música, avançar para próxima
+      if (currentWordIndex >= words.length) {
+        currentSongIndex = s + 1;
+        currentWordIndex = 0;
       }
     }
 
-    // Job concluído
-    const processingTime = Date.now() - startTime;
+    // Atualizar progresso no job
+    const totalProcessed = job.processed_words + processedInChunk;
+    const totalCached = job.cached_words + cachedInChunk;
+    const totalNew = job.new_words + newInChunk;
+    const chunksProcessed = job.chunks_processed + 1;
+
+    const isCompleted = totalProcessed >= job.total_words;
+
     await supabase
       .from('semantic_annotation_jobs')
       .update({
-        status: 'concluido',
-        processed_words: progress.processedWords,
-        cached_words: progress.cachedWords,
-        new_words: progress.newWords,
-        tempo_fim: new Date().toISOString(),
-        metadata: { processingTime }
+        status: isCompleted ? 'concluido' : 'processando',
+        processed_words: totalProcessed,
+        cached_words: totalCached,
+        new_words: totalNew,
+        current_song_index: currentSongIndex,
+        current_word_index: currentWordIndex,
+        chunks_processed: chunksProcessed,
+        last_chunk_at: new Date().toISOString(),
+        tempo_fim: isCompleted ? new Date().toISOString() : null,
       })
       .eq('id', jobId);
 
-    logger.info('Job concluído', { jobId, progress, processingTime });
+    logger.info('Chunk concluído', { 
+      jobId, 
+      processedInChunk, 
+      totalProcessed, 
+      isCompleted,
+      chunksProcessed 
+    });
+
+    // Se não terminou, auto-invocar para próximo chunk
+    if (!isCompleted) {
+      const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+      fetch(`${SUPABASE_URL}/functions/v1/annotate-artist-songs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobId: jobId,
+          continueFrom: {
+            songIndex: currentSongIndex,
+            wordIndex: currentWordIndex,
+          }
+        }),
+      }).catch(err => {
+        logger.error('Auto-invoke failed', err);
+        // Marcar job como pausado se auto-invocação falhar
+        supabase
+          .from('semantic_annotation_jobs')
+          .update({ status: 'pausado' })
+          .eq('id', jobId)
+          .then(() => logger.warn('Job marcado como pausado', { jobId }));
+      });
+    }
 
   } catch (error) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
-    logger.error('Erro no processamento do job', errorObj, { jobId });
+    logger.error('Erro no processamento do chunk', errorObj, { jobId });
 
     await supabase
       .from('semantic_annotation_jobs')
@@ -273,20 +381,14 @@ async function processAnnotationJob(
   }
 }
 
-/**
- * Tokenizar letra em palavras
- */
 function tokenizeLyrics(lyrics: string): string[] {
   return lyrics
     .toLowerCase()
     .split(/\s+/)
     .map(w => w.replace(/[^\wáàâãéèêíïóôõöúçñ]/gi, ''))
-    .filter(w => w.length > 1); // Palavras com 2+ caracteres
+    .filter(w => w.length > 1);
 }
 
-/**
- * Hash simples do contexto
- */
 async function hashContext(left: string, right: string): Promise<string> {
   const combined = `${left}|${right}`.toLowerCase();
   const msgUint8 = new TextEncoder().encode(combined);
@@ -295,9 +397,6 @@ async function hashContext(left: string, right: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
 }
 
-/**
- * Verificar cache
- */
 async function checkCache(supabase: any, palavra: string, contextoHash: string) {
   const { data, error } = await supabase
     .from('semantic_disambiguation_cache')
@@ -310,9 +409,6 @@ async function checkCache(supabase: any, palavra: string, contextoHash: string) 
   return data;
 }
 
-/**
- * Chamar edge function annotate-semantic-domain
- */
 async function callSemanticAnnotator(
   palavra: string,
   contextoEsquerdo: string,
@@ -342,9 +438,6 @@ async function callSemanticAnnotator(
   return await response.json();
 }
 
-/**
- * Salvar no cache com artist_id e song_id
- */
 async function saveWithArtistSong(
   supabase: any,
   palavra: string,

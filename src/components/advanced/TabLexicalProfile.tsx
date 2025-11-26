@@ -32,7 +32,7 @@ const log = createLogger('TabLexicalProfile');
 
 export function TabLexicalProfile() {
   const subcorpusContext = useSubcorpus();
-  const { job, isProcessing, progress, startJob } = useSemanticAnnotationJob();
+  const { job, isProcessing, progress, eta, wordsPerSecond, startJob } = useSemanticAnnotationJob();
   const [crossSelection, setCrossSelection] = useState<CrossCorpusSelection | null>(null);
   const [studyProfile, setStudyProfile] = useState<LexicalProfile | null>(null);
   const [referenceProfile, setReferenceProfile] = useState<LexicalProfile | null>(null);
@@ -226,20 +226,38 @@ export function TabLexicalProfile() {
               <div className="flex-1">
                 <CardTitle className="text-lg">Processando Anotação Semântica</CardTitle>
                 <CardDescription className="mt-1">
-                  {job.artist_name} - {job.status === 'iniciado' ? 'Iniciando...' : 'Processando...'}
+                  {job.artist_name} - Chunk {job.chunks_processed} • {job.status === 'iniciado' ? 'Iniciando...' : 'Processando em auto-invocação'}
                 </CardDescription>
               </div>
               <Badge variant="outline">
-                {job.processed_words} / {job.total_words} palavras
+                {job.processed_words.toLocaleString()} / {job.total_words.toLocaleString()}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Progress value={progress} className="h-2" />
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{job.new_words} novas | {job.cached_words} em cache</span>
-                <span>{progress.toFixed(1)}%</span>
+                <div className="flex items-center gap-4">
+                  <span>{job.new_words.toLocaleString()} novas</span>
+                  <span className="text-muted-foreground/60">•</span>
+                  <span>{job.cached_words.toLocaleString()} em cache</span>
+                  {wordsPerSecond && (
+                    <>
+                      <span className="text-muted-foreground/60">•</span>
+                      <span>{wordsPerSecond.toFixed(1)} palavras/s</span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span>{progress.toFixed(1)}%</span>
+                  {eta && (
+                    <>
+                      <span className="text-muted-foreground/60">•</span>
+                      <span className="text-primary font-medium">ETA: {eta}</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
