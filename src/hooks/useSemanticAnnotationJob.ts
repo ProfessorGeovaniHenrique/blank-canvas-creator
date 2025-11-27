@@ -34,6 +34,9 @@ interface UseSemanticAnnotationJobResult {
   wordsPerSecond: number | null;
   startJob: (artistName: string) => Promise<string | null>;
   cancelPolling: () => void;
+  resumeJob: (jobId: string) => Promise<void>;
+  cancelJob: (jobId: string) => Promise<void>;
+  checkExistingJob: (artistName: string) => Promise<SemanticAnnotationJob | null>;
 }
 
 /**
@@ -183,6 +186,92 @@ export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
       log.info('Polling cancelled');
     }
   }, [pollingIntervalId]);
+  
+  /**
+   * Verificar se há job existente para o artista
+   */
+  const checkExistingJob = useCallback(async (artistName: string): Promise<SemanticAnnotationJob | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('semantic_annotation_jobs')
+        .select('*')
+        .eq('artist_name', artistName)
+        .in('status', ['processando', 'pausado'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+        throw error;
+      }
+      
+      return data || null;
+    } catch (err) {
+      log.error('Error checking existing job', err as Error);
+      return null;
+    }
+  }, []);
+  
+  /**
+   * Retomar job pausado
+   */
+  const resumeJob = useCallback(async (jobId: string): Promise<void> => {
+    try {
+      log.info('Resuming job', { jobId });
+      
+      // Buscar job para obter posição atual
+      const { data: job, error: fetchError } = await supabase
+        .from('semantic_annotation_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
+      
+      if (fetchError || !job) {
+        throw new Error('Job não encontrado');
+      }
+      
+      // Atualizar status para processando
+      await supabase
+        .from('semantic_annotation_jobs')
+        .update({ status: 'processando', last_chunk_at: new Date().toISOString() })
+        .eq('id', jobId);
+      
+      setJob(job);
+      
+      // Iniciar polling
+      startPolling(jobId);
+      
+      log.info('Job resumed', { jobId });
+    } catch (err) {
+      log.error('Error resuming job', err as Error);
+      setError(err instanceof Error ? err.message : 'Erro ao retomar job');
+    }
+  }, [startPolling]);
+  
+  /**
+   * Cancelar job
+   */
+  const cancelJob = useCallback(async (jobId: string): Promise<void> => {
+    try {
+      log.info('Cancelling job', { jobId });
+      
+      await supabase
+        .from('semantic_annotation_jobs')
+        .update({ 
+          status: 'cancelado',
+          tempo_fim: new Date().toISOString()
+        })
+        .eq('id', jobId);
+      
+      cancelPolling();
+      setJob(null);
+      
+      log.info('Job cancelled', { jobId });
+    } catch (err) {
+      log.error('Error cancelling job', err as Error);
+      setError(err instanceof Error ? err.message : 'Erro ao cancelar job');
+    }
+  }, [cancelPolling]);
 
   // Cleanup ao desmontar
   useEffect(() => {
@@ -203,5 +292,8 @@ export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
     wordsPerSecond,
     startJob,
     cancelPolling,
+    resumeJob,
+    cancelJob,
+    checkExistingJob,
   };
 }

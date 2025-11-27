@@ -34,6 +34,7 @@ interface CrossCorpusSelectorWithRatioProps {
   ratioPresets?: number[];
   onSelectionChange: (selection: CrossCorpusSelection) => void;
   availableArtists?: string[];
+  initialSelection?: CrossCorpusSelection | null;
 }
 
 export function CrossCorpusSelectorWithRatio({
@@ -41,17 +42,31 @@ export function CrossCorpusSelectorWithRatio({
   showRatioControl = true,
   ratioPresets = [1, 3, 5, 10],
   onSelectionChange,
-  availableArtists = []
+  availableArtists = [],
+  initialSelection = null
 }: CrossCorpusSelectorWithRatioProps) {
-  const [studyCorpus, setStudyCorpus] = useState<CorpusType>('gaucho');
-  const [studyMode, setStudyMode] = useState<'complete' | 'artist' | 'song'>('complete');
-  const [studyArtist, setStudyArtist] = useState<string>('');
-  const [studyEstimatedSize, setStudyEstimatedSize] = useState(0);
+  const [studyCorpus, setStudyCorpus] = useState<CorpusType>(initialSelection?.study.corpusType || 'gaucho');
+  const [studyMode, setStudyMode] = useState<'complete' | 'artist' | 'song'>(initialSelection?.study.mode || 'complete');
+  const [studyArtist, setStudyArtist] = useState<string>(initialSelection?.study.artist || '');
+  const [studyEstimatedSize, setStudyEstimatedSize] = useState(initialSelection?.study.estimatedSize || 0);
 
-  const [referenceCorpus, setReferenceCorpus] = useState<CorpusType>('nordestino');
-  const [referenceMode, setReferenceMode] = useState<'complete' | 'proportional-sample'>('proportional-sample');
-  const [sizeRatio, setSizeRatio] = useState(5);
+  const [referenceCorpus, setReferenceCorpus] = useState<CorpusType>(initialSelection?.reference.corpusType || 'nordestino');
+  const [referenceMode, setReferenceMode] = useState<'complete' | 'proportional-sample'>(initialSelection?.reference.mode || 'proportional-sample');
+  const [sizeRatio, setSizeRatio] = useState(initialSelection?.reference.sizeRatio || 5);
   const [customRatio, setCustomRatio] = useState('');
+  
+  // Restaurar valores iniciais quando initialSelection mudar
+  useEffect(() => {
+    if (initialSelection) {
+      setStudyCorpus(initialSelection.study.corpusType);
+      setStudyMode(initialSelection.study.mode);
+      setStudyArtist(initialSelection.study.artist || '');
+      setStudyEstimatedSize(initialSelection.study.estimatedSize);
+      setReferenceCorpus(initialSelection.reference.corpusType);
+      setReferenceMode(initialSelection.reference.mode);
+      setSizeRatio(initialSelection.reference.sizeRatio);
+    }
+  }, [initialSelection]);
 
   const isComparative = mode === 'cross-corpus';
 

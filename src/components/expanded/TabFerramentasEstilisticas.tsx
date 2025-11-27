@@ -8,10 +8,27 @@ import { SpeechThoughtPresentationTool } from "./SpeechThoughtPresentationTool";
 import { MindStyleAnalyzerTool } from "./MindStyleAnalyzerTool";
 import { ForegroundingDetectorTool } from "./ForegroundingDetectorTool";
 import { TabLexicalProfile } from "@/components/advanced/TabLexicalProfile";
+import { CrossCorpusSelectorWithRatio } from "@/components/corpus/CrossCorpusSelectorWithRatio";
+import { useSubcorpus } from "@/contexts/SubcorpusContext";
 
 export function TabFerramentasEstilisticas() {
+  const { stylisticSelection, setStylisticSelection, availableArtists } = useSubcorpus();
+  
   return (
     <div className="space-y-6">
+      {/* Seletor compartilhado no topo, fora das abas */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardContent className="pt-4">
+          <CrossCorpusSelectorWithRatio
+            mode="study-only"
+            showRatioControl={false}
+            onSelectionChange={setStylisticSelection}
+            availableArtists={availableArtists}
+            initialSelection={stylisticSelection}
+          />
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
