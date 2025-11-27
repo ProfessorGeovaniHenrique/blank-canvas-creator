@@ -17,7 +17,7 @@ interface AnnotateArtistRequest {
   };
 }
 
-const CHUNK_SIZE = 150; // Palavras por chunk
+const CHUNK_SIZE = 50; // Palavras por chunk (reduzido para garantir conclusão em 4min)
 const CHUNK_TIMEOUT_MS = 4 * 60 * 1000; // 4 minutos
 
 serve(async (req) => {
@@ -184,7 +184,7 @@ async function processChunk(
       .from('semantic_annotation_jobs')
       .update({ last_chunk_at: new Date().toISOString() })
       .eq('id', jobId)
-      .gte('last_chunk_at', new Date(Date.now() - 30000).toISOString())
+      .lte('last_chunk_at', new Date(Date.now() - 30000).toISOString()) // CORRIGIDO: lte = "último chunk há mais de 30s"
       .select('id')
       .single();
 
@@ -202,6 +202,12 @@ async function processChunk(
 
     if (jobError || !job) {
       throw new Error('Job não encontrado');
+    }
+
+    // Verificar se job foi cancelado
+    if (job.status === 'cancelado') {
+      logger.info('Job foi cancelado, abortando chunk', { jobId });
+      return;
     }
 
     // Buscar artista e músicas
@@ -314,6 +320,16 @@ async function processChunk(
 
     const isCompleted = totalProcessed >= job.total_words;
 
+    logger.info('Salvando progresso', { 
+      jobId, 
+      processedInChunk, 
+      totalProcessed, 
+      cachedInChunk, 
+      newInChunk,
+      currentSongIndex,
+      currentWordIndex
+    });
+
     await supabase
       .from('semantic_annotation_jobs')
       .update({
@@ -337,33 +353,60 @@ async function processChunk(
       chunksProcessed 
     });
 
-    // Se não terminou, auto-invocar para próximo chunk
+    // Se não terminou, auto-invocar para próximo chunk com retry
     if (!isCompleted) {
       const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-      fetch(`${SUPABASE_URL}/functions/v1/annotate-artist-songs`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobId: jobId,
-          continueFrom: {
-            songIndex: currentSongIndex,
-            wordIndex: currentWordIndex,
+      const invokeNextChunk = async (retries = 3) => {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+          try {
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/annotate-artist-songs`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                jobId: jobId,
+                continueFrom: {
+                  songIndex: currentSongIndex,
+                  wordIndex: currentWordIndex,
+                }
+              }),
+            });
+            
+            if (response.ok) {
+              logger.info('Auto-invocação bem-sucedida', { jobId, attempt });
+              return;
+            }
+            
+            logger.warn('Auto-invocação falhou, tentando novamente', { 
+              jobId, attempt, status: response.status 
+            });
+          } catch (err) {
+            logger.warn('Erro na auto-invocação', { 
+              jobId, 
+              attempt, 
+              error: err instanceof Error ? err.message : String(err) 
+            });
           }
-        }),
-      }).catch(err => {
-        logger.error('Auto-invoke failed', err);
-        // Marcar job como pausado se auto-invocação falhar
-        supabase
+          
+          // Aguardar antes de retry (backoff exponencial)
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+          }
+        }
+        
+        // Todos os retries falharam, marcar como pausado
+        logger.error('Auto-invocação falhou após todos os retries', { jobId });
+        await supabase
           .from('semantic_annotation_jobs')
           .update({ status: 'pausado' })
-          .eq('id', jobId)
-          .then(() => logger.warn('Job marcado como pausado', { jobId }));
-      });
+          .eq('id', jobId);
+      };
+
+      invokeNextChunk().catch(err => logger.error('invokeNextChunk error', err));
     }
 
   } catch (error) {

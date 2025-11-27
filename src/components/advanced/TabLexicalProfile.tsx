@@ -32,7 +32,7 @@ const log = createLogger('TabLexicalProfile');
 
 export function TabLexicalProfile() {
   const subcorpusContext = useSubcorpus();
-  const { job, isProcessing, progress, eta, wordsPerSecond, startJob, resumeJob, cancelJob, checkExistingJob } = useSemanticAnnotationJob();
+  const { job, isProcessing, progress, eta, wordsPerSecond, startJob, resumeJob, cancelJob, checkExistingJob, isResuming } = useSemanticAnnotationJob();
   const { stylisticSelection, setStylisticSelection, activeAnnotationJobId, setActiveAnnotationJobId } = useSubcorpus();
   const [existingJob, setExistingJob] = useState<any | null>(null);
   const [studyProfile, setStudyProfile] = useState<LexicalProfile | null>(null);
@@ -44,19 +44,27 @@ export function TabLexicalProfile() {
   const { corpus: gauchoCorpus, isLoading: loadingGaucho } = useFullTextCorpus('gaucho');
   const { corpus: nordestinoCorpus, isLoading: loadingNordestino } = useFullTextCorpus('nordestino');
   
+  // Sincronizar existingJob com job do hook
+  useEffect(() => {
+    if (job) {
+      setExistingJob(job);
+    }
+  }, [job]);
+
   // Detectar job existente ao montar ou quando seleção mudar
   useEffect(() => {
-    if (stylisticSelection?.study.mode === 'artist' && stylisticSelection?.study.artist) {
-      checkExistingJob(stylisticSelection.study.artist).then(job => {
-        if (job) {
-          setExistingJob(job);
-          log.info('Existing job detected', { jobId: job.id, status: job.status });
+    if (stylisticSelection?.study.mode === 'artist' && stylisticSelection?.study.artist && !job) {
+      checkExistingJob(stylisticSelection.study.artist).then(existingJobData => {
+        if (existingJobData) {
+          setExistingJob(existingJobData);
+          setActiveAnnotationJobId(existingJobData.id);
+          log.info('Existing job detected', { jobId: existingJobData.id, status: existingJobData.status });
         } else {
           setExistingJob(null);
         }
       });
     }
-  }, [stylisticSelection?.study.artist, checkExistingJob]);
+  }, [stylisticSelection?.study.artist, job, checkExistingJob, setActiveAnnotationJobId]);
 
   const handleAnalyze = async () => {
     if (!stylisticSelection) return;
@@ -231,10 +239,16 @@ export function TabLexicalProfile() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex gap-3">
-            <Button onClick={() => resumeJob(existingJob.id)} variant="default" size="sm">
-              ▶️ Retomar
+            <Button 
+              onClick={() => resumeJob(existingJob.id)} 
+              variant="default" 
+              size="sm"
+              disabled={isResuming}
+            >
+              {isResuming ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : '▶️'} 
+              {isResuming ? 'Retomando...' : 'Retomar'}
             </Button>
-            <Button onClick={() => cancelJob(existingJob.id)} variant="outline" size="sm">
+            <Button onClick={() => cancelJob(existingJob.id)} variant="outline" size="sm" disabled={isResuming}>
               ❌ Cancelar
             </Button>
             <Button 
@@ -247,6 +261,7 @@ export function TabLexicalProfile() {
               }} 
               variant="secondary" 
               size="sm"
+              disabled={isResuming}
             >
               🔄 Iniciar Novo
             </Button>

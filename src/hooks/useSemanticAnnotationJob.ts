@@ -37,6 +37,7 @@ interface UseSemanticAnnotationJobResult {
   resumeJob: (jobId: string) => Promise<void>;
   cancelJob: (jobId: string) => Promise<void>;
   checkExistingJob: (artistName: string) => Promise<SemanticAnnotationJob | null>;
+  isResuming: boolean;
 }
 
 /**
@@ -45,6 +46,7 @@ interface UseSemanticAnnotationJobResult {
 export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
   const [job, setJob] = useState<SemanticAnnotationJob | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pollingIntervalId, setPollingIntervalId] = useState<number | null>(null);
 
@@ -216,37 +218,66 @@ export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
    * Retomar job pausado
    */
   const resumeJob = useCallback(async (jobId: string): Promise<void> => {
+    if (isResuming) return; // Prevenir cliques múltiplos
+    setIsResuming(true);
+    
     try {
       log.info('Resuming job', { jobId });
       
       // Buscar job para obter posição atual
-      const { data: job, error: fetchError } = await supabase
+      const { data: jobData, error: fetchError } = await supabase
         .from('semantic_annotation_jobs')
         .select('*')
         .eq('id', jobId)
         .single();
       
-      if (fetchError || !job) {
+      if (fetchError || !jobData) {
         throw new Error('Job não encontrado');
       }
       
-      // Atualizar status para processando
+      // Definir last_chunk_at para 1 minuto atrás (para passar na validação anti-duplicação)
+      const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+      
       await supabase
         .from('semantic_annotation_jobs')
-        .update({ status: 'processando', last_chunk_at: new Date().toISOString() })
+        .update({ 
+          status: 'processando', 
+          last_chunk_at: oneMinuteAgo 
+        })
         .eq('id', jobId);
       
-      setJob(job);
+      setJob({ ...jobData, status: 'processando' });
+      
+      // CRÍTICO: Invocar Edge Function para continuar processamento
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        'annotate-artist-songs',
+        {
+          body: { 
+            jobId,
+            continueFrom: {
+              songIndex: jobData.current_song_index,
+              wordIndex: jobData.current_word_index,
+            }
+          }
+        }
+      );
+      
+      if (invokeError) {
+        log.warn('Erro ao invocar Edge Function', { error: invokeError.message });
+        // Não lançar erro - o polling vai detectar o status
+      }
       
       // Iniciar polling
       startPolling(jobId);
       
-      log.info('Job resumed', { jobId });
+      log.info('Job resumed and Edge Function invoked', { jobId });
     } catch (err) {
       log.error('Error resuming job', err as Error);
       setError(err instanceof Error ? err.message : 'Erro ao retomar job');
+    } finally {
+      setIsResuming(false);
     }
-  }, [startPolling]);
+  }, [isResuming, startPolling]);
   
   /**
    * Cancelar job
@@ -273,6 +304,20 @@ export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
     }
   }, [cancelPolling]);
 
+  // Auto-resume ao montar se há job ativo salvo
+  useEffect(() => {
+    const savedJobId = localStorage.getItem('active-annotation-job-id');
+    if (savedJobId && !job) {
+      log.info('Restaurando job salvo', { jobId: savedJobId });
+      fetchJob(savedJobId).then(() => {
+        const currentJob = job;
+        if (currentJob && (currentJob.status === 'processando' || currentJob.status === 'pausado')) {
+          startPolling(savedJobId);
+        }
+      });
+    }
+  }, []);
+
   // Cleanup ao desmontar
   useEffect(() => {
     return () => {
@@ -295,5 +340,6 @@ export function useSemanticAnnotationJob(): UseSemanticAnnotationJobResult {
     resumeJob,
     cancelJob,
     checkExistingJob,
+    isResuming,
   };
 }
