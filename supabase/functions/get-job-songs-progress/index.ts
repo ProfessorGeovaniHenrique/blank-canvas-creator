@@ -79,62 +79,69 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Para cada música, contar palavras processadas no cache
-    const songsProgress: SongProgress[] = await Promise.all(
-      songs.map(async (song, index) => {
-        // Garantir que lyrics não seja null
-        const lyrics = song.lyrics || '';
-        
-        // Se lyrics está vazio, retornar progresso zero
-        if (!lyrics.trim()) {
-          return {
-            id: song.id,
-            title: song.title,
-            totalWords: 0,
-            processedWords: 0,
-            status: 'pending' as const,
-          };
-        }
+    // OTIMIZAÇÃO CRÍTICA: Buscar todas as contagens de uma vez (1 query em vez de N)
+    const songIds = songs.map(s => s.id);
+    const { data: cacheEntries, error: cacheError } = await supabase
+      .from('semantic_disambiguation_cache')
+      .select('song_id')
+      .in('song_id', songIds);
 
-        const words = lyrics
-          .toLowerCase()
-          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-          .split(/\s+/)
-          .filter((w: string) => w.length > 0);
-        
-        const totalWords = words.length;
+    if (cacheError) {
+      log.error('Error fetching cache counts', cacheError);
+    }
 
-        // Contar palavras processadas no cache
-        const { count, error: countError } = await supabase
-          .from('semantic_disambiguation_cache')
-          .select('*', { count: 'exact', head: true })
-          .eq('song_id', song.id);
+    // Agregar contagens no JavaScript usando Map
+    const countMap = new Map<string, number>();
+    if (cacheEntries) {
+      cacheEntries.forEach(entry => {
+        const current = countMap.get(entry.song_id) || 0;
+        countMap.set(entry.song_id, current + 1);
+      });
+    }
 
-        if (countError) {
-          log.error('Error counting cache for song', countError);
-        }
-
-        const processedWords = countError ? 0 : (count || 0);
-
-        // Determinar status
-        let status: 'completed' | 'processing' | 'pending';
-        if (processedWords >= totalWords && totalWords > 0) {
-          status = 'completed';
-        } else if (index === job.current_song_index) {
-          status = 'processing';
-        } else {
-          status = 'pending';
-        }
-
+    // Mapear resultados de forma síncrona (sem await)
+    const songsProgress: SongProgress[] = songs.map((song, index) => {
+      // Garantir que lyrics não seja null
+      const lyrics = song.lyrics || '';
+      
+      // Se lyrics está vazio, retornar progresso zero
+      if (!lyrics.trim()) {
         return {
           id: song.id,
           title: song.title,
-          totalWords,
-          processedWords,
-          status,
+          totalWords: 0,
+          processedWords: 0,
+          status: 'pending' as const,
         };
-      })
-    );
+      }
+
+      const words = lyrics
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter((w: string) => w.length > 0);
+      
+      const totalWords = words.length;
+      const processedWords = countMap.get(song.id) || 0;
+
+      // Determinar status
+      let status: 'completed' | 'processing' | 'pending';
+      if (processedWords >= totalWords && totalWords > 0) {
+        status = 'completed';
+      } else if (index === job.current_song_index) {
+        status = 'processing';
+      } else {
+        status = 'pending';
+      }
+
+      return {
+        id: song.id,
+        title: song.title,
+        totalWords,
+        processedWords,
+        status,
+      };
+    });
 
     log.info('Songs progress fetched', { 
       jobId, 
