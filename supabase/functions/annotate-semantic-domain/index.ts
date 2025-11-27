@@ -459,7 +459,7 @@ async function batchClassifyWithGemini(
 - NA (Natureza): flora, fauna, elementos naturais
 - NC (Não Classificado): não se encaixa
 - OA (Objetos): ferramentas, utensílios, artefatos
-- SB (Saúde): corpo humano, doenças
+- SB (Saúde): corpo humano, doenças, tratamentos, bem-estar, saúde mental
 - SE (Sentimentos): amor, saudade, emoções
 - SH (Ser Humano): aspectos da humanidade
 - SP (Sociedade): relações sociais, política
@@ -478,6 +478,13 @@ async function batchClassifyWithGemini(
 - AB.LOG (Lógico/Matemático): lógica, razão, infinito, proporção
 - AP.TRA (Trabalho/Economia): plantar, colher, comprar, vender, médico, tropeiro
 - AP.ALI (Alimentação): cozinhar, churrasco, chimarrão, almoço
+- AP.VES (Vestuário): vestir, costurar, moda, estilo
+- AP.LAZ (Lazer/Esportes): festa, fandango, rodeio, futebol, pesca
+- AP.DES (Transporte): cavalgar, viajar, rota, destino
+- SB.DOE (Doença/Condições): gripe, diabetes, febre, dor, ferida
+- SB.TRA (Tratamentos/Cuidados): remédio, cirurgia, hospital, médico, vacina
+- SB.BEM (Bem-Estar/Estilo de Vida): dieta, exercício, higiene, descanso
+- SB.MEN (Saúde Mental): depressão, ansiedade, memória, personalidade
 - AP.VES (Vestuário): vestir, costurar, moda, estilo
 - AP.LAZ (Lazer/Esportes): festa, fandango, rodeio, futebol, pesca
 - AP.DES (Transporte): cavalgar, viajar, rota, destino

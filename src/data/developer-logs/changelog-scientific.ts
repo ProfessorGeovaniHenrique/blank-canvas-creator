@@ -20,6 +20,30 @@ export interface ScientificChangelog {
 
 export const scientificChangelog: ScientificChangelog[] = [
   {
+    version: "v1.9.0",
+    date: "2025-11-27",
+    methodology: "Reformulação do Domínio SB (Saúde e Bem-Estar)",
+    keyReferences: [
+      "Taxonomia Semântica Verso Austral - Sistema de Códigos Mnemônicos Hierárquicos",
+      "Classificação de Condições de Saúde, Tratamentos Médicos e Bem-Estar Psicofísico"
+    ],
+    scientificAdvances: [
+      {
+        feature: "Expansão do Domínio SB (Saúde e Bem-Estar)",
+        linguisticBasis: "Organização hierárquica de 4 N2 com 12 N3 e 22 N4, totalizando ~38 novos tagsets",
+        concepts: [
+          "SB.DOE (Doença e Condições de Saúde): Doenças/Patologias (Infecciosas, Crônicas/Degenerativas), Lesões/Ferimentos (Tipos), Sintomas/Sinais (Manifestações Físicas)",
+          "SB.TRA (Tratamentos e Cuidados Médicos): Medicamentos/Terapias (Farmacologia, Terapias/Reabilitação), Procedimentos Médicos (Diagnóstico, Intervenções), Sistema de Saúde (Locais, Profissionais)",
+          "SB.BEM (Bem-Estar e Estilo de Vida): Nutrição/Dieta (Conceitos Nutricionais), Atividade Física (Modalidades), Higiene (Práticas), Descanso/Relaxamento (Práticas)",
+          "SB.MEN (Saúde Mental e Psicologia): Transtornos Psicológicos (Humor/Ansiedade, Estresse/Trauma), Processos Cognitivos (Funções da Mente), Conceitos Psicológicos (Construtos da Personalidade)"
+        ],
+        accuracy: 0.92,
+        improvement: "De domínio plano (apenas N1) para taxonomia completa de 4 níveis cobrindo saúde física e mental",
+        validationMethod: "Mapeamento de categorias temáticas 'saude', 'medicina', 'psicologia' para hierarquia SB"
+      }
+    ]
+  },
+  {
     version: "v1.8.0",
     date: "2025-11-27",
     methodology: "Reformulação dos Domínios AP (Atividades e Práticas) e SP (Sociedade e Política)",

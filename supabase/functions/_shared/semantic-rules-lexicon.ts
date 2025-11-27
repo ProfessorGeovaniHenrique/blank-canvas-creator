@@ -62,6 +62,11 @@ const CATEGORY_TO_DOMAIN_MAP: Record<string, { codigo: string; nome: string }> =
   'social': { codigo: 'SP.EST', nome: 'Estrutura Social' },
   'governo': { codigo: 'SP.GOV', nome: 'Governo e Estado' },
   'familia': { codigo: 'SP.EST', nome: 'Estrutura Social' },
+  
+  // Saúde e Bem-Estar - NOVO
+  'saude': { codigo: 'SB', nome: 'Saúde e Bem-Estar' },
+  'medicina': { codigo: 'SB.TRA', nome: 'Tratamentos e Cuidados Médicos' },
+  'psicologia': { codigo: 'SB.MEN', nome: 'Saúde Mental e Psicologia' },
 };
 
 /**
