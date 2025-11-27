@@ -30,7 +30,11 @@ import { useSemanticAnnotationJob } from "@/hooks/useSemanticAnnotationJob";
 
 const log = createLogger('TabLexicalProfile');
 
-export function TabLexicalProfile() {
+interface TabLexicalProfileProps {
+  analyzeRef?: React.MutableRefObject<(() => void) | null>;
+}
+
+export function TabLexicalProfile({ analyzeRef }: TabLexicalProfileProps) {
   const subcorpusContext = useSubcorpus();
   const { job, isProcessing, progress, eta, wordsPerSecond, startJob, resumeJob, cancelJob, checkExistingJob, isResuming } = useSemanticAnnotationJob();
   const { stylisticSelection, setStylisticSelection, activeAnnotationJobId, setActiveAnnotationJobId } = useSubcorpus();
@@ -43,6 +47,13 @@ export function TabLexicalProfile() {
 
   const { corpus: gauchoCorpus, isLoading: loadingGaucho } = useFullTextCorpus('gaucho');
   const { corpus: nordestinoCorpus, isLoading: loadingNordestino } = useFullTextCorpus('nordestino');
+  
+  // Expor handleAnalyze via ref para uso externo
+  useEffect(() => {
+    if (analyzeRef) {
+      analyzeRef.current = handleAnalyze;
+    }
+  }, [analyzeRef, stylisticSelection, gauchoCorpus, nordestinoCorpus]);
   
   // Sincronizar existingJob com job do hook
   useEffect(() => {
@@ -214,9 +225,6 @@ export function TabLexicalProfile() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Button onClick={handleAnalyze} disabled={isAnalyzing || !stylisticSelection}>
-            Analisar
-          </Button>
           {studyProfile && (
             <Button onClick={handleExport} variant="outline" className="gap-2">
               <Download className="w-4 h-4" />
@@ -293,6 +301,13 @@ export function TabLexicalProfile() {
               <Badge variant="outline">
                 {job.processed_words.toLocaleString()} / {job.total_words.toLocaleString()}
               </Badge>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={() => cancelJob(job.id)}
+              >
+                ⏹️ Interromper
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
