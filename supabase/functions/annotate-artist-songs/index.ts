@@ -358,7 +358,7 @@ async function processChunk(
       const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-      // Aguardar 2 segundos antes de disparar (permitir timestamp "envelhecer")
+      // Aguardar 5 segundos antes de disparar (garantir margem de segurança para threshold de 5s)
       setTimeout(() => {
         fetch(`${SUPABASE_URL}/functions/v1/annotate-artist-songs`, {
           method: 'POST',
@@ -390,7 +390,7 @@ async function processChunk(
             .eq('id', jobId)
             .then(() => logger.warn('Job marcado como pausado', { jobId }));
         });
-      }, 2000); // 2 segundos de delay
+      }, 5000); // AJUSTADO: 5s delay garante margem (processamento ~3s + delay 5s > threshold 5s)
     }
 
   } catch (error) {
