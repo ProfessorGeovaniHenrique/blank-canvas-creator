@@ -32,8 +32,9 @@ const log = createLogger('TabLexicalProfile');
 
 export function TabLexicalProfile() {
   const subcorpusContext = useSubcorpus();
-  const { job, isProcessing, progress, eta, wordsPerSecond, startJob } = useSemanticAnnotationJob();
-  const [crossSelection, setCrossSelection] = useState<CrossCorpusSelection | null>(null);
+  const { job, isProcessing, progress, eta, wordsPerSecond, startJob, resumeJob, cancelJob, checkExistingJob } = useSemanticAnnotationJob();
+  const { stylisticSelection, setStylisticSelection, activeAnnotationJobId, setActiveAnnotationJobId } = useSubcorpus();
+  const [existingJob, setExistingJob] = useState<any | null>(null);
   const [studyProfile, setStudyProfile] = useState<LexicalProfile | null>(null);
   const [referenceProfile, setReferenceProfile] = useState<LexicalProfile | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -42,15 +43,29 @@ export function TabLexicalProfile() {
 
   const { corpus: gauchoCorpus, isLoading: loadingGaucho } = useFullTextCorpus('gaucho');
   const { corpus: nordestinoCorpus, isLoading: loadingNordestino } = useFullTextCorpus('nordestino');
+  
+  // Detectar job existente ao montar ou quando seleção mudar
+  useEffect(() => {
+    if (stylisticSelection?.study.mode === 'artist' && stylisticSelection?.study.artist) {
+      checkExistingJob(stylisticSelection.study.artist).then(job => {
+        if (job) {
+          setExistingJob(job);
+          log.info('Existing job detected', { jobId: job.id, status: job.status });
+        } else {
+          setExistingJob(null);
+        }
+      });
+    }
+  }, [stylisticSelection?.study.artist, checkExistingJob]);
 
   const handleAnalyze = async () => {
-    if (!crossSelection) return;
+    if (!stylisticSelection) return;
 
     setIsAnalyzing(true);
     
     try {
-      const studyArtistFilter = crossSelection.study.mode === 'artist' 
-        ? crossSelection.study.artist 
+      const studyArtistFilter = stylisticSelection.study.mode === 'artist' 
+        ? stylisticSelection.study.artist 
         : undefined;
 
       // Se selecionar artista, disparar job e aguardar conclusão via polling
@@ -69,14 +84,14 @@ export function TabLexicalProfile() {
       
       // Buscar domínios semânticos do cache
       const studyDominiosData = await getSemanticDomainsFromAnnotatedCorpus(
-        crossSelection.study.corpusType,
+        stylisticSelection.study.corpusType,
         studyArtistFilter
       );
       
       setStudyDominios(studyDominiosData);
 
       // Analyze study corpus
-      const studyCorpusData = crossSelection.study.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
+      const studyCorpusData = stylisticSelection.study.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
       if (studyCorpusData && studyDominiosData.length > 0) {
         const studyProfile = calculateLexicalProfile(studyCorpusData, studyDominiosData);
         setStudyProfile(studyProfile);
@@ -85,20 +100,20 @@ export function TabLexicalProfile() {
       }
 
       // Analyze reference corpus if comparative mode
-      if (crossSelection.isComparative) {
+      if (stylisticSelection.isComparative) {
         const refDominiosData = await getSemanticDomainsFromAnnotatedCorpus(
-          crossSelection.reference.corpusType,
+          stylisticSelection.reference.corpusType,
           undefined
         );
 
         setReferenceDominios(refDominiosData);
 
-        let refCorpusData = crossSelection.reference.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
+        let refCorpusData = stylisticSelection.reference.corpusType === 'gaucho' ? gauchoCorpus : nordestinoCorpus;
         
-        if (refCorpusData && crossSelection.reference.mode === 'proportional-sample') {
+        if (refCorpusData && stylisticSelection.reference.mode === 'proportional-sample') {
           refCorpusData = sampleProportionalCorpus(
             refCorpusData, 
-            crossSelection.reference.targetSize
+            stylisticSelection.reference.targetSize
           );
         }
         
@@ -121,7 +136,7 @@ export function TabLexicalProfile() {
 
   // Auto-analisar quando job concluir
   useEffect(() => {
-    if (job?.status === 'concluido' && crossSelection) {
+    if (job?.status === 'concluido' && stylisticSelection) {
       handleAnalyze();
     }
   }, [job?.status]);
@@ -148,12 +163,12 @@ export function TabLexicalProfile() {
   }
 
   const diversityMetrics = studyProfile ? calculateDiversityMetrics(studyProfile) : null;
-  const comparison = crossSelection?.isComparative && studyProfile && referenceProfile 
+  const comparison = stylisticSelection?.isComparative && studyProfile && referenceProfile 
     ? compareProfiles(studyProfile, referenceProfile) 
     : null;
 
-  const validation = crossSelection?.isComparative && crossSelection.study && crossSelection.reference
-    ? validateCorpusSizes(crossSelection.study.estimatedSize, crossSelection.reference.targetSize)
+  const validation = stylisticSelection?.isComparative && stylisticSelection.study && stylisticSelection.reference
+    ? validateCorpusSizes(stylisticSelection.study.estimatedSize, stylisticSelection.reference.targetSize)
     : null;
 
   const radarData = studyProfile ? [
@@ -191,7 +206,7 @@ export function TabLexicalProfile() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Button onClick={handleAnalyze} disabled={isAnalyzing || !crossSelection}>
+          <Button onClick={handleAnalyze} disabled={isAnalyzing || !stylisticSelection}>
             Analisar
           </Button>
           {studyProfile && (
@@ -202,6 +217,42 @@ export function TabLexicalProfile() {
           )}
         </div>
       </div>
+      
+      {/* UI de Job Existente */}
+      {existingJob && !isProcessing && (
+        <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Info className="w-5 h-5" />
+              Processamento em Andamento
+            </CardTitle>
+            <CardDescription>
+              {existingJob.artist_name} - {existingJob.status === 'pausado' ? 'Pausado' : 'Em progresso'} ({((existingJob.processed_words / existingJob.total_words) * 100).toFixed(1)}% completo)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex gap-3">
+            <Button onClick={() => resumeJob(existingJob.id)} variant="default" size="sm">
+              ▶️ Retomar
+            </Button>
+            <Button onClick={() => cancelJob(existingJob.id)} variant="outline" size="sm">
+              ❌ Cancelar
+            </Button>
+            <Button 
+              onClick={async () => {
+                await cancelJob(existingJob.id);
+                setExistingJob(null);
+                if (stylisticSelection?.study.artist) {
+                  await startJob(stylisticSelection.study.artist);
+                }
+              }} 
+              variant="secondary" 
+              size="sm"
+            >
+              🔄 Iniciar Novo
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Alert>
         <Info className="h-4 w-4" />
@@ -211,12 +262,7 @@ export function TabLexicalProfile() {
         </AlertDescription>
       </Alert>
 
-      <CrossCorpusSelectorWithRatio
-        mode="study-only"
-        showRatioControl={false}
-        onSelectionChange={setCrossSelection}
-        availableArtists={subcorpusContext.availableArtists}
-      />
+      {/* Seletor movido para TabFerramentasEstilisticas */}
 
       {isProcessing && job && (
         <Card className="border-primary/50 bg-primary/5">
@@ -264,13 +310,13 @@ export function TabLexicalProfile() {
         </Card>
       )}
 
-      {crossSelection?.isComparative && validation && validation.warnings.length > 0 && (
+      {stylisticSelection?.isComparative && validation && validation.warnings.length > 0 && (
         <ProportionalSampleInfo
-          studySize={crossSelection.study.estimatedSize}
-          referenceSize={crossSelection.reference.targetSize}
-          targetSize={crossSelection.reference.targetSize}
-          ratio={crossSelection.reference.sizeRatio}
-          samplingMethod={crossSelection.reference.mode}
+          studySize={stylisticSelection.study.estimatedSize}
+          referenceSize={stylisticSelection.reference.targetSize}
+          targetSize={stylisticSelection.reference.targetSize}
+          ratio={stylisticSelection.reference.sizeRatio}
+          samplingMethod={stylisticSelection.reference.mode}
           warnings={validation.warnings}
         />
       )}
@@ -367,7 +413,7 @@ export function TabLexicalProfile() {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="semantic">Campos Semânticos</TabsTrigger>
               <TabsTrigger value="frequencies">Frequências</TabsTrigger>
-              {crossSelection?.isComparative && <TabsTrigger value="comparison">Comparação</TabsTrigger>}
+              {stylisticSelection?.isComparative && <TabsTrigger value="comparison">Comparação</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="semantic" className="space-y-4">
@@ -432,7 +478,7 @@ export function TabLexicalProfile() {
               </Card>
             </TabsContent>
 
-            {crossSelection?.isComparative && comparison && referenceProfile && (
+            {stylisticSelection?.isComparative && comparison && referenceProfile && (
               <TabsContent value="comparison" className="space-y-4">
                 <ComparisonRadarChart
                   data={radarData}

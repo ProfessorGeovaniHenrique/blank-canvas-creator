@@ -35,6 +35,14 @@ interface SubcorpusContextType {
   subcorpora: SubcorpusMetadata[];
   
   isLoading: boolean;
+  
+  // NOVO: Seleção para Ferramentas Estilísticas
+  stylisticSelection: any | null;
+  setStylisticSelection: (selection: any | null) => void;
+  
+  // NOVO: Job de anotação ativo
+  activeAnnotationJobId: string | null;
+  setActiveAnnotationJobId: (jobId: string | null) => void;
 }
 
 const SubcorpusContext = createContext<SubcorpusContextType | undefined>(undefined);
@@ -105,6 +113,10 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
   // Estado de progresso para carregamento de corpus completo
   const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number; percentage: number }>({ loaded: 0, total: 0, percentage: 0 });
   
+  // NOVO: Seleção para ferramentas estilísticas (persistido em localStorage)
+  const [stylisticSelection, setStylisticSelectionState] = useState<any | null>(null);
+  const [activeAnnotationJobId, setActiveAnnotationJobIdState] = useState<string | null>(null);
+  
   // Salvar seleção no localStorage quando mudar
   const setSelection = useCallback((newSelection: SubcorpusSelection) => {
     setSelectionState(newSelection);
@@ -112,6 +124,34 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('subcorpus-selection', JSON.stringify(newSelection));
     } catch (error) {
       console.error('Erro ao salvar seleção:', error);
+    }
+  }, []);
+  
+  // NOVO: Salvar seleção estilística no localStorage
+  const setStylisticSelection = useCallback((newSelection: any | null) => {
+    setStylisticSelectionState(newSelection);
+    try {
+      if (newSelection) {
+        localStorage.setItem('stylistic-selection', JSON.stringify(newSelection));
+      } else {
+        localStorage.removeItem('stylistic-selection');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar seleção estilística:', error);
+    }
+  }, []);
+  
+  // NOVO: Salvar job ativo no localStorage
+  const setActiveAnnotationJobId = useCallback((jobId: string | null) => {
+    setActiveAnnotationJobIdState(jobId);
+    try {
+      if (jobId) {
+        localStorage.setItem('active-annotation-job-id', jobId);
+      } else {
+        localStorage.removeItem('active-annotation-job-id');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar job ativo:', error);
     }
   }, []);
   
@@ -133,6 +173,23 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
     };
     
     loadAvailableCorpora();
+    
+    // NOVO: Restaurar seleção estilística e job ativo do localStorage
+    try {
+      const savedStylistic = localStorage.getItem('stylistic-selection');
+      if (savedStylistic) {
+        setStylisticSelectionState(JSON.parse(savedStylistic));
+        log.info('Stylistic selection restored from localStorage');
+      }
+      
+      const savedJobId = localStorage.getItem('active-annotation-job-id');
+      if (savedJobId) {
+        setActiveAnnotationJobIdState(savedJobId);
+        log.info('Active annotation job restored', { jobId: savedJobId });
+      }
+    } catch (error) {
+      console.error('Erro ao restaurar estados:', error);
+    }
   }, []);
   
   // Carregar artistas quando corpus base mudar
@@ -317,7 +374,11 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
       currentMetadata,
       availableArtists,
       subcorpora,
-      isLoading
+      isLoading,
+      stylisticSelection,
+      setStylisticSelection,
+      activeAnnotationJobId,
+      setActiveAnnotationJobId
     }}>
       {children}
     </SubcorpusContext.Provider>

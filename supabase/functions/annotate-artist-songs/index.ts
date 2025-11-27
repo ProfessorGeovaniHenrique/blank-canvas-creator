@@ -449,7 +449,8 @@ async function saveWithArtistSong(
   artistId: string,
   songId: string
 ): Promise<void> {
-  await supabase.from('semantic_disambiguation_cache').insert({
+  // UPSERT: se já existe (palavra + contexto_hash), atualiza com artist_id/song_id
+  await supabase.from('semantic_disambiguation_cache').upsert({
     palavra: palavra.toLowerCase(),
     contexto_hash: contextoHash,
     tagset_codigo: tagsetCodigo,
@@ -458,5 +459,8 @@ async function saveWithArtistSong(
     justificativa,
     artist_id: artistId,
     song_id: songId,
+  }, {
+    onConflict: 'palavra,contexto_hash',
+    ignoreDuplicates: false // false = UPDATE em caso de conflito
   });
 }
