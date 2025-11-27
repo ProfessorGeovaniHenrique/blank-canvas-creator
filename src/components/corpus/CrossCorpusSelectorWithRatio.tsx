@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Music, Library, Users, Percent, Info } from 'lucide-react';
+import { Music, Library, Users, Percent, Info, BarChart3, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CorpusType } from '@/data/types/corpus-tools.types';
 import { estimateCorpusSize } from '@/services/proportionalSamplingService';
@@ -35,6 +35,9 @@ interface CrossCorpusSelectorWithRatioProps {
   onSelectionChange: (selection: CrossCorpusSelection) => void;
   availableArtists?: string[];
   initialSelection?: CrossCorpusSelection | null;
+  onAnalyze?: () => void;
+  isAnalyzing?: boolean;
+  canAnalyze?: boolean;
 }
 
 export function CrossCorpusSelectorWithRatio({
@@ -43,7 +46,10 @@ export function CrossCorpusSelectorWithRatio({
   ratioPresets = [1, 3, 5, 10],
   onSelectionChange,
   availableArtists = [],
-  initialSelection = null
+  initialSelection = null,
+  onAnalyze,
+  isAnalyzing = false,
+  canAnalyze = true
 }: CrossCorpusSelectorWithRatioProps) {
   const [studyCorpus, setStudyCorpus] = useState<CorpusType>(initialSelection?.study.corpusType || 'gaucho');
   const [studyMode, setStudyMode] = useState<'complete' | 'artist' | 'song'>(initialSelection?.study.mode || 'complete');
@@ -185,6 +191,28 @@ export function CrossCorpusSelectorWithRatio({
             <Info className="h-3 w-3" />
             Tamanho estimado: {studyEstimatedSize.toLocaleString()} palavras
           </Badge>
+
+          {onAnalyze && (
+            <div className="pt-3 border-t mt-3">
+              <Button 
+                onClick={onAnalyze} 
+                disabled={isAnalyzing || !canAnalyze}
+                className="w-full"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Analisar Corpus
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Corpus de Referência (apenas em modo cross-corpus) */}
