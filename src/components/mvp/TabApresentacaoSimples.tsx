@@ -35,10 +35,6 @@ function TabApresentacaoSimplesContent() {
     return saved ? JSON.parse(saved) : ['introducao'];
   });
   const [showCongratulations, setShowCongratulations] = useState(false);
-  const [hasVisitedAnalysis, setHasVisitedAnalysis] = useState(() => {
-    const saved = localStorage.getItem('has-visited-analysis');
-    return saved === 'true';
-  });
   const handleTabChange = (value: string) => {
     const currentIndex = TAB_ORDER.indexOf(value);
     const nextTab = TAB_ORDER[currentIndex + 1];
@@ -146,8 +142,6 @@ function TabApresentacaoSimplesContent() {
     setIsTransitioning(true);
   };
   const handleTransitionComplete = () => {
-    localStorage.setItem('has-visited-analysis', 'true');
-    setHasVisitedAnalysis(true);
     navigate('/dashboard-analise');
   };
 
@@ -162,7 +156,7 @@ function TabApresentacaoSimplesContent() {
         
         <Button
           onClick={handleGoToAnalysis}
-          disabled={!hasPassedQuiz || !hasVisitedAnalysis}
+          disabled={!unlockedTabs.includes('quiz-final') || !hasPassedQuiz}
           variant="outline"
           size="sm"
           className="gap-2"
