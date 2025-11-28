@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDashboardAnaliseContext } from '@/contexts/DashboardAnaliseContext';
 import { Network, Cloud, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 
 export function TabVisualizacoes() {
   const { processamentoData } = useDashboardAnaliseContext();
@@ -48,20 +49,44 @@ export function TabVisualizacoes() {
         <CardContent>
           <div className="flex flex-wrap gap-4 justify-center items-center min-h-[400px] p-8">
             {cloudData.map((item, idx) => {
-              const fontSize = Math.max(14, Math.min(48, item.size));
+              // Tamanho baseado no peso textual (avgScore): 14px + (avgScore * 1.5)
+              const fontSize = Math.max(14, Math.min(64, 14 + (item.avgScore * 1.5)));
               return (
-                <div
-                  key={idx}
-                  className="transition-transform hover:scale-110 cursor-pointer"
-                  style={{
-                    fontSize: `${fontSize}px`,
-                    color: item.color,
-                    fontWeight: 'bold',
-                  }}
-                  title={`${item.nome} - ${item.wordCount} palavras`}
-                >
-                  {item.codigo}
-                </div>
+                <HoverCard key={idx} openDelay={200}>
+                  <HoverCardTrigger asChild>
+                    <div
+                      className="transition-transform hover:scale-110 cursor-pointer"
+                      style={{
+                        fontSize: `${fontSize}px`,
+                        color: item.color,
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      {item.nome}
+                    </div>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-72">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <h4 className="font-semibold text-base">{item.nome}</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Peso Textual:</span>
+                          <p className="font-semibold">{item.avgScore.toFixed(1)}%</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Palavras:</span>
+                          <p className="font-semibold">{item.wordCount}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
               );
             })}
           </div>
@@ -82,21 +107,51 @@ export function TabVisualizacoes() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {cloudData.slice(0, 8).map((item, idx) => (
-              <div
-                key={idx}
-                className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:border-primary transition-colors"
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: item.color }}
-                >
-                  {item.codigo}
-                </div>
-                <div className="text-xs text-center font-medium">{item.nome}</div>
-                <Badge variant="secondary" className="text-xs">
-                  {item.wordCount} palavras
-                </Badge>
-              </div>
+              <HoverCard key={idx} openDelay={200}>
+                <HoverCardTrigger asChild>
+                  <div className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:border-primary transition-colors cursor-pointer">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                      style={{ backgroundColor: item.color }}
+                    >
+                      {item.codigo}
+                    </div>
+                    <div className="text-xs text-center font-medium">{item.nome}</div>
+                    <Badge variant="secondary" className="text-xs">
+                      {item.wordCount} palavras
+                    </Badge>
+                  </div>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-80">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <h4 className="font-semibold text-base">{item.nome}</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Código:</span>
+                        <p className="font-semibold">{item.codigo}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Peso:</span>
+                        <p className="font-semibold">{item.avgScore.toFixed(1)}%</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Palavras:</span>
+                        <p className="font-semibold">{item.wordCount}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Riqueza:</span>
+                        <p className="font-semibold">{item.wordCount} lemas</p>
+                      </div>
+                    </div>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             ))}
           </div>
         </CardContent>
