@@ -25,8 +25,8 @@ export default function AuthCallback() {
         // Verify invite using SECURITY DEFINER function (bypasses RLS)
         const { data: inviteData, error: inviteError } = await supabase
           .rpc('verify_invite_token', {
-            p_token: String(token),      // Ensure string type
-            p_invite_code: String(inviteCode)  // Ensure string type
+            p_token: String(token),
+            p_invite_code: String(inviteCode)
           })
           .maybeSingle();
 
@@ -70,62 +70,24 @@ export default function AuthCallback() {
           return;
         }
 
-        // Create account with auto-confirmation (requires auth.auto_confirm_email = true)
-        setMessage("Criando sua conta...");
+        // Store invite data in sessionStorage and redirect to set-password
+        console.log("Armazenando dados do convite e redirecionando...");
         
-        // Generate a secure temporary password
-        const tempPassword = crypto.randomUUID();
-        
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: invite.recipient_email,
-          password: tempPassword,
-          options: {
-            data: {
-              invite_code: inviteCode,
-              full_name: invite.recipient_name || invite.recipient_email.split('@')[0],
-            },
-            emailRedirectTo: `${window.location.origin}/onboarding`,
-          },
-        });
-
-        if (authError) {
-          console.error("Auth error:", authError);
-          setStatus("error");
-          setMessage(authError.message || "Erro ao criar conta. Tente novamente.");
-          setTimeout(() => navigate("/auth"), 3000);
-          return;
-        }
-
-        if (!authData.user) {
-          setStatus("error");
-          setMessage("Erro ao criar usuário.");
-          setTimeout(() => navigate("/auth"), 3000);
-          return;
-        }
-
-        // Mark invite as used using SECURITY DEFINER function
-        const { data: markResult, error: markError } = await supabase
-          .rpc('mark_invite_as_used', {
-            p_invite_id: invite.id,
-            p_user_id: authData.user.id
-          });
-
-        if (markError) {
-          console.error("Error marking invite as used:", markError);
-          // Continue anyway, user was created successfully
-        }
-
-        if (!markResult) {
-          console.warn("Invite may have already been used");
-        }
+        sessionStorage.setItem(
+          "invite_data",
+          JSON.stringify({
+            token,
+            invite_code: inviteCode,
+            recipient_email: invite.recipient_email,
+            recipient_name: invite.recipient_name || invite.recipient_email.split('@')[0],
+            role: invite.role,
+            invite_id: invite.id,
+          })
+        );
 
         setStatus("success");
-        setMessage("Conta criada com sucesso! Redirecionando...");
-        
-        // Redirect to onboarding or dashboard
-        setTimeout(() => {
-          navigate("/onboarding");
-        }, 2000);
+        setMessage("Convite validado! Redirecionando para definir sua senha...");
+        setTimeout(() => navigate("/set-password"), 1000);
 
       } catch (error: any) {
         console.error("Callback error:", error);
