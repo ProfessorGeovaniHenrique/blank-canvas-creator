@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -19,6 +20,7 @@ import {
   Calendar,
   Sparkles,
   RefreshCw,
+  Search,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SongCard, Song } from './SongCard';
@@ -67,6 +69,7 @@ export function ArtistDetailsSheet({
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   const [isEnrichingBio, setIsEnrichingBio] = useState(false);
   const [recentlyEnrichedIds, setRecentlyEnrichedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
   // 🔍 FASE 3: Log detalhado das props recebidas
@@ -89,6 +92,17 @@ export function ArtistDetailsSheet({
   }
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
+  // Filtrar músicas pela busca
+  const filteredSongs = useMemo(() => {
+    if (!searchQuery.trim()) return songs;
+    
+    const query = searchQuery.toLowerCase();
+    return songs.filter(song => 
+      song.title.toLowerCase().includes(query) ||
+      song.composer?.toLowerCase().includes(query)
+    );
+  }, [songs, searchQuery]);
+
   const handleEnrichBio = async () => {
     if (!artistId || !artist) return;
 
@@ -108,15 +122,22 @@ export function ArtistDetailsSheet({
 
       if (error) throw error;
 
+      // ✅ Atualizar dados do artista imediatamente após sucesso
+      const { data: updatedArtist } = await supabase
+        .from('artists')
+        .select('biography, biography_source, biography_updated_at')
+        .eq('id', artist.id)
+        .single();
+
+      if (updatedArtist && onBioEnriched) {
+        // Notifica o componente pai para recarregar dados
+        onBioEnriched(artist.id);
+      }
+
       toast({
         title: "Biografia carregada!",
         description: "A biografia foi atualizada com sucesso.",
       });
-
-      // Notifica o componente pai para recarregar os dados do artista
-      if (onBioEnriched) {
-        onBioEnriched(artist.id);
-      }
     } catch (error) {
       console.error('Error enriching bio:', error);
       toast({
@@ -148,7 +169,7 @@ export function ArtistDetailsSheet({
     const grouped: Record<string, Song[]> = {};
     const unknown: Song[] = [];
 
-    songs.forEach(song => {
+    filteredSongs.forEach(song => {
       const year = song.release_year;
 
       if (!year || year === '0000' || year.trim() === '') {
@@ -168,7 +189,7 @@ export function ArtistDetailsSheet({
       years: sortedYears.map(year => ({ year, songs: grouped[year] })),
       unknown
     };
-  }, [songs]);
+  }, [filteredSongs]);
 
   if (!artist) return null;
 
@@ -179,6 +200,7 @@ export function ArtistDetailsSheet({
           <SheetTitle className="text-2xl">{artist.name}</SheetTitle>
           <SheetDescription>
             {songs.length} {songs.length === 1 ? 'música' : 'músicas'} no catálogo
+            {searchQuery && ` • ${filteredSongs.length} encontrada(s)`}
           </SheetDescription>
         </SheetHeader>
 
@@ -190,7 +212,7 @@ export function ArtistDetailsSheet({
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-primary" />
                   <h3 className="font-semibold text-lg">Biografia</h3>
-                  {artist.biography_source === 'gemini' && (
+                  {artist.biography_source === 'gemini_pro' && (
                     <Badge variant="secondary" className="text-xs gap-1">
                       <Sparkles className="h-3 w-3" />
                       Enriquecida
@@ -271,6 +293,17 @@ export function ArtistDetailsSheet({
             </CardContent>
           </Card>
 
+          {/* Barra de Busca */}
+          <div className="relative flex-shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome da música ou compositor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
           {/* Tabs: Lista vs Linha do Tempo */}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'timeline')} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
@@ -287,87 +320,103 @@ export function ArtistDetailsSheet({
             {/* Tab: Lista */}
             <TabsContent value="list" className="space-y-2 mt-4 flex-1 overflow-hidden">
               <ScrollArea className="h-full pr-4">
-                {songs.map((song) => (
-                  <SongCard
-                    key={song.id}
-                    song={song}
-                    variant="compact"
-                    isEnriching={recentlyEnrichedIds.has(song.id)}
-                    isAnnotatingSemantic={annotatingSongIds?.has(song.id)}
-                    onEdit={onEditSong}
-                    onReEnrich={onReEnrichSong}
-                    onMarkReviewed={onMarkReviewed}
-                    onDelete={onDeleteSong}
-                    onAnnotateSemantic={onAnnotateSong}
-                  />
-                ))}
+                {filteredSongs.length > 0 ? (
+                  filteredSongs.map((song) => (
+                    <SongCard
+                      key={song.id}
+                      song={song}
+                      variant="compact"
+                      isEnriching={recentlyEnrichedIds.has(song.id)}
+                      isAnnotatingSemantic={annotatingSongIds?.has(song.id)}
+                      onEdit={onEditSong}
+                      onReEnrich={onReEnrichSong}
+                      onMarkReviewed={onMarkReviewed}
+                      onDelete={onDeleteSong}
+                      onAnnotateSemantic={onAnnotateSong}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Nenhuma música encontrada</p>
+                  </div>
+                )}
               </ScrollArea>
             </TabsContent>
 
             {/* Tab: Linha do Tempo */}
             <TabsContent value="timeline" className="space-y-4 mt-4 flex-1 overflow-hidden">
               <ScrollArea className="h-full pr-4">
-                {/* Anos conhecidos */}
-                {songsByYear.years.map(({ year, songs: yearSongs }) => (
-                  <div key={year} className="mb-6">
-                    {/* Header do Ano - Sticky */}
-                    <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b py-2 mb-3 z-10">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-lg">{year}</h4>
-                        <Badge variant="secondary">
-                          {yearSongs.length} {yearSongs.length === 1 ? 'música' : 'músicas'}
-                        </Badge>
+                {filteredSongs.length > 0 ? (
+                  <>
+                    {/* Anos conhecidos */}
+                    {songsByYear.years.map(({ year, songs: yearSongs }) => (
+                      <div key={year} className="mb-6">
+                        {/* Header do Ano - Sticky */}
+                        <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b py-2 mb-3 z-10">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-lg">{year}</h4>
+                            <Badge variant="secondary">
+                              {yearSongs.length} {yearSongs.length === 1 ? 'música' : 'músicas'}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Músicas do ano */}
+                        <div className="space-y-2 pl-4 border-l-2 border-muted">
+                          {yearSongs.map((song) => (
+                            <SongCard
+                              key={song.id}
+                              song={song}
+                              variant="compact"
+                              isEnriching={recentlyEnrichedIds.has(song.id)}
+                              isAnnotatingSemantic={annotatingSongIds?.has(song.id)}
+                              onEdit={onEditSong}
+                              onReEnrich={onReEnrichSong}
+                              onMarkReviewed={onMarkReviewed}
+                              onDelete={onDeleteSong}
+                              onAnnotateSemantic={onAnnotateSong}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    ))}
 
-                    {/* Músicas do ano */}
-                    <div className="space-y-2 pl-4 border-l-2 border-muted">
-                      {yearSongs.map((song) => (
-                        <SongCard
-                          key={song.id}
-                          song={song}
-                          variant="compact"
-                          isEnriching={recentlyEnrichedIds.has(song.id)}
-                          isAnnotatingSemantic={annotatingSongIds?.has(song.id)}
-                          onEdit={onEditSong}
-                          onReEnrich={onReEnrichSong}
-                          onMarkReviewed={onMarkReviewed}
-                          onDelete={onDeleteSong}
-                          onAnnotateSemantic={onAnnotateSong}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                    {/* Seção "Data Desconhecida" */}
+                    {songsByYear.unknown.length > 0 && (
+                      <div className="mb-6">
+                        <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b py-2 mb-3 z-10">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-lg text-muted-foreground">Data Desconhecida</h4>
+                            <Badge variant="outline">
+                              {songsByYear.unknown.length} músicas
+                            </Badge>
+                          </div>
+                        </div>
 
-                {/* Seção "Data Desconhecida" */}
-                {songsByYear.unknown.length > 0 && (
-                  <div className="mb-6">
-                    <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b py-2 mb-3 z-10">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-lg text-muted-foreground">Data Desconhecida</h4>
-                        <Badge variant="outline">
-                          {songsByYear.unknown.length} músicas
-                        </Badge>
+                        <div className="space-y-2 pl-4 border-l-2 border-muted">
+                          {songsByYear.unknown.map((song) => (
+                            <SongCard
+                              key={song.id}
+                              song={song}
+                              variant="compact"
+                              isEnriching={recentlyEnrichedIds.has(song.id)}
+                              isAnnotatingSemantic={annotatingSongIds?.has(song.id)}
+                              onEdit={onEditSong}
+                              onReEnrich={onReEnrichSong}
+                              onMarkReviewed={onMarkReviewed}
+                              onDelete={onDeleteSong}
+                              onAnnotateSemantic={onAnnotateSong}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="space-y-2 pl-4 border-l-2 border-muted">
-                      {songsByYear.unknown.map((song) => (
-                        <SongCard
-                          key={song.id}
-                          song={song}
-                          variant="compact"
-                          isEnriching={recentlyEnrichedIds.has(song.id)}
-                          isAnnotatingSemantic={annotatingSongIds?.has(song.id)}
-                          onEdit={onEditSong}
-                          onReEnrich={onReEnrichSong}
-                          onMarkReviewed={onMarkReviewed}
-                          onDelete={onDeleteSong}
-                          onAnnotateSemantic={onAnnotateSong}
-                        />
-                      ))}
-                    </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Nenhuma música encontrada</p>
                   </div>
                 )}
               </ScrollArea>
