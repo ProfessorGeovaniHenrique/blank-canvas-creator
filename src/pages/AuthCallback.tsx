@@ -25,15 +25,32 @@ export default function AuthCallback() {
         // Verify invite using SECURITY DEFINER function (bypasses RLS)
         const { data: inviteData, error: inviteError } = await supabase
           .rpc('verify_invite_token', {
-            p_token: token,
-            p_invite_code: inviteCode
+            p_token: String(token),      // Ensure string type
+            p_invite_code: String(inviteCode)  // Ensure string type
           })
           .maybeSingle();
 
-        if (inviteError || !inviteData || !inviteData.is_valid) {
+        if (inviteError) {
+          console.error("Invite verification error:", inviteError);
           setStatus("error");
-          setMessage("Convite não encontrado ou já utilizado.");
-          setTimeout(() => navigate("/auth"), 3000);
+          setMessage(`Erro ao verificar convite: ${inviteError.message}`);
+          setTimeout(() => navigate("/auth"), 5000);
+          return;
+        }
+
+        if (!inviteData) {
+          console.error("No invite data returned - token or code mismatch");
+          setStatus("error");
+          setMessage("Convite não encontrado. Verifique o link recebido.");
+          setTimeout(() => navigate("/auth"), 5000);
+          return;
+        }
+
+        if (!inviteData.is_valid) {
+          console.error("Invite is not valid:", inviteData);
+          setStatus("error");
+          setMessage("Este convite já foi utilizado ou expirou.");
+          setTimeout(() => navigate("/auth"), 5000);
           return;
         }
 
