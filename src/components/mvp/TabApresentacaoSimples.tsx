@@ -10,6 +10,7 @@ import { TabInstrumentosChamamé } from "./TabInstrumentosChamamé";
 import { QuizModal } from "./QuizModal";
 import { QuizProvider, useQuizContext } from "@/contexts/QuizContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import guaraniBorder from "@/assets/guarani-border.jpg";
 
 const TAB_ORDER = ['introducao', 'aprendizado', 'origens', 'instrumentos', 'quiz'];
 
@@ -136,80 +137,20 @@ function TabApresentacaoSimplesContent() {
         {/* Letra da música + Player +ొssário */}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <Card className="card-academic h-full border-0 relative overflow-hidden shadow-2xl">
-              
-              {/* Padrão geométrico guarani no topo - losangos conectados */}
-              <div className="absolute top-0 left-0 right-0 h-12 bg-red-700 overflow-hidden z-10">
-                <svg className="w-full h-full" viewBox="0 0 1200 48" preserveAspectRatio="none">
-                  <defs>
-                    <pattern id="guarani-top" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
-                      <polygon points="12,0 24,12 12,24 0,12" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="36,24 48,36 36,48 24,36" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="12,24 24,36 12,48 0,36" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="36,0 48,12 36,24 24,12" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <circle cx="12" cy="12" r="3" fill="#dc2626"/>
-                      <circle cx="36" cy="36" r="3" fill="#dc2626"/>
-                    </pattern>
-                  </defs>
-                  <rect width="1200" height="48" fill="url(#guarani-top)"/>
-                </svg>
-              </div>
-              
-              {/* Padrão geométrico guarani no rodapé */}
-              <div className="absolute bottom-0 left-0 right-0 h-12 bg-red-700 overflow-hidden z-10">
-                <svg className="w-full h-full" viewBox="0 0 1200 48" preserveAspectRatio="none">
-                  <defs>
-                    <pattern id="guarani-bottom" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
-                      <polygon points="12,0 24,12 12,24 0,12" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="36,24 48,36 36,48 24,36" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="12,24 24,36 12,48 0,36" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="36,0 48,12 36,24 24,12" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <circle cx="12" cy="12" r="3" fill="#dc2626"/>
-                      <circle cx="36" cy="36" r="3" fill="#dc2626"/>
-                    </pattern>
-                  </defs>
-                  <rect width="1200" height="48" fill="url(#guarani-bottom)"/>
-                </svg>
-              </div>
-              
-              {/* Padrão geométrico nas laterais */}
-              <div className="absolute top-0 bottom-0 left-0 w-12 bg-red-700 overflow-hidden z-10">
-                <svg className="w-full h-full" viewBox="0 0 48 1200" preserveAspectRatio="none">
-                  <defs>
-                    <pattern id="guarani-left" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
-                      <polygon points="0,12 12,24 0,36 -12,24" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="24,36 36,48 24,60 12,48" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="24,12 36,24 24,36 12,24" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="0,36 12,48 0,60 -12,48" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <circle cx="12" cy="24" r="3" fill="#dc2626"/>
-                      <circle cx="36" cy="48" r="3" fill="#dc2626"/>
-                    </pattern>
-                  </defs>
-                  <rect width="48" height="1200" fill="url(#guarani-left)"/>
-                </svg>
-              </div>
-              
-              <div className="absolute top-0 bottom-0 right-0 w-12 bg-red-700 overflow-hidden z-10">
-                <svg className="w-full h-full" viewBox="0 0 48 1200" preserveAspectRatio="none">
-                  <defs>
-                    <pattern id="guarani-right" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
-                      <polygon points="0,12 12,24 0,36 -12,24" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="24,36 36,48 24,60 12,48" fill="#7f1d1d" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="24,12 36,24 24,36 12,24" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <polygon points="0,36 12,48 0,60 -12,48" fill="#991b1b" stroke="#450a0a" strokeWidth="0.5"/>
-                      <circle cx="12" cy="24" r="3" fill="#dc2626"/>
-                      <circle cx="36" cy="48" r="3" fill="#dc2626"/>
-                    </pattern>
-                  </defs>
-                  <rect width="48" height="1200" fill="url(#guarani-right)"/>
-                </svg>
-              </div>
-              
-              <CardHeader className="relative z-20 pt-16 px-16">
+            <Card 
+              className="card-academic h-full relative overflow-hidden shadow-2xl" 
+              style={{
+                borderWidth: '24px',
+                borderStyle: 'solid',
+                borderImage: `url(${guaraniBorder}) 24 repeat`,
+                borderImageSlice: '24',
+              }}
+            >
+              <CardHeader className="relative z-20">
                 <CardTitle className="text-lg">Letra da Música</CardTitle>
                 <CardDescription>Luiz Marenco - Quando o verso vem pras casa</CardDescription>
               </CardHeader>
-              <CardContent className="relative z-20 px-16 pb-16">
+              <CardContent className="relative z-20">
                 <div className="whitespace-pre-line text-base text-foreground leading-relaxed font-medium">
                   {`A calma do tarumã, ganhou sombra mais copada
 Pela várzea espichada com o sol da tarde caindo
