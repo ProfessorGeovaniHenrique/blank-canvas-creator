@@ -4,7 +4,10 @@ import { notifications } from '@/lib/notifications';
 
 export interface DeduplicationResult {
   dryRun: boolean;
+  totalGroups?: number;
   processed: number;
+  offset?: number;
+  hasMore?: boolean;
   consolidated: number;
   duplicatesRemoved: number;
   releasesPreserved: number;
@@ -53,19 +56,57 @@ export function useDeduplication() {
     setIsExecuting(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('deduplicate-songs', {
-        body: { dryRun: false, corpusIds }
-      });
+      let offset = 0;
+      let hasMore = true;
+      let totalDuplicatesRemoved = 0;
+      let totalReleasesPreserved = 0;
+      let totalGroups = 0;
+      let chunksProcessed = 0;
 
-      if (error) throw error;
+      while (hasMore) {
+        const { data, error } = await supabase.functions.invoke('deduplicate-songs', {
+          body: { 
+            dryRun: false, 
+            corpusIds,
+            chunkSize: 100,
+            offset
+          }
+        });
 
-      setResult(data);
+        if (error) throw error;
+
+        totalDuplicatesRemoved += data.duplicatesRemoved;
+        totalReleasesPreserved += data.releasesPreserved;
+        totalGroups = data.totalGroups || data.processed;
+        hasMore = data.hasMore || false;
+        offset += 100;
+        chunksProcessed++;
+
+        // Update progress
+        const progress = Math.min(Math.round((offset / totalGroups) * 100), 100);
+        notifications.info(
+          `Processando... ${progress}%`,
+          `Chunk ${chunksProcessed}: ${offset} de ${totalGroups} grupos processados`
+        );
+      }
+
+      const finalResult = {
+        dryRun: false,
+        totalGroups,
+        processed: totalGroups,
+        consolidated: totalGroups,
+        duplicatesRemoved: totalDuplicatesRemoved,
+        releasesPreserved: totalReleasesPreserved,
+        topConsolidated: []
+      };
+
+      setResult(finalResult);
       notifications.success(
-        'Deduplicação concluída',
-        `${data.duplicatesRemoved} duplicatas removidas, ${data.releasesPreserved} releases preservados`
+        'Deduplicação concluída!',
+        `${totalDuplicatesRemoved} duplicatas removidas, ${totalReleasesPreserved} releases preservados`
       );
 
-      return data;
+      return finalResult;
     } catch (error: any) {
       console.error('Erro ao executar deduplicação:', error);
       notifications.error(
