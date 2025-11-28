@@ -44,23 +44,23 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { dryRun = true, corpusIds = [] } = await req.json();
+    const { dryRun = true, corpusIds = [], chunkSize = 100, offset = 0 } = await req.json();
 
-    log.info('Starting deduplication', { dryRun, corpusIds });
+    log.info('Starting deduplication chunk', { dryRun, corpusIds, chunkSize, offset });
 
     // 1. Fetch ALL songs with pagination (Supabase has 1000 row default limit)
     const BATCH_SIZE = 1000; // Supabase max limit per query
     let allSongs: Song[] = [];
-    let offset = 0;
-    let hasMore = true;
+    let fetchOffset = 0;
+    let fetchHasMore = true;
 
     log.info('Starting batch fetch', { batchSize: BATCH_SIZE });
 
-    while (hasMore) {
+    while (fetchHasMore) {
       const query = supabase
         .from('songs')
         .select('id, title, normalized_title, artist_id, composer, release_year, lyrics, status, youtube_url, confidence_score, created_at, corpus_id')
-        .range(offset, offset + BATCH_SIZE - 1);
+        .range(fetchOffset, fetchOffset + BATCH_SIZE - 1);
 
       if (corpusIds.length > 0) {
         query.in('corpus_id', corpusIds);
@@ -78,11 +78,11 @@ serve(async (req) => {
           total_releases: 1
         }));
         allSongs = [...allSongs, ...songsWithDefaults];
-        offset += BATCH_SIZE;
-        log.info('Batch fetched', { batchSize: data.length, totalSoFar: allSongs.length, offset });
+        fetchOffset += BATCH_SIZE;
+        log.info('Batch fetched', { batchSize: data.length, totalSoFar: allSongs.length, fetchOffset });
       }
       
-      hasMore = data && data.length === BATCH_SIZE;
+      fetchHasMore = data && data.length === BATCH_SIZE;
     }
 
     log.info('All songs fetched', { totalSongs: allSongs.length });
@@ -97,10 +97,18 @@ serve(async (req) => {
     }
 
     // Filter only groups with duplicates
-    const duplicateGroups = Object.entries(groups).filter(([_, songs]) => songs.length > 1);
+    const allDuplicateGroups = Object.entries(groups).filter(([_, songs]) => songs.length > 1);
+    const totalGroups = allDuplicateGroups.length;
+
+    // Process only a chunk of groups
+    const duplicateGroups = allDuplicateGroups.slice(offset, offset + chunkSize);
+    const hasMoreGroups = offset + chunkSize < totalGroups;
 
     log.info('Duplicate groups found', { 
-      totalGroups: duplicateGroups.length,
+      totalGroups,
+      chunkSize: duplicateGroups.length,
+      offset,
+      hasMore: hasMoreGroups,
       totalDuplicates: duplicateGroups.reduce((sum, [_, songs]) => sum + (songs.length - 1), 0)
     });
 
@@ -230,14 +238,17 @@ serve(async (req) => {
 
     const result = {
       dryRun,
+      totalGroups,
       processed: duplicateGroups.length,
+      offset,
+      hasMore: hasMoreGroups,
       consolidated,
       duplicatesRemoved,
       releasesPreserved,
       topConsolidated
     };
 
-    log.info('Deduplication complete', result);
+    log.info('Deduplication chunk complete', result);
 
     return new Response(
       JSON.stringify(result),
