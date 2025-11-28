@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Music, Sparkles, Loader2, Eye, Trash2, MoreVertical, Folder, Youtube } from 'lucide-react';
+import { Music, Sparkles, Loader2, Eye, Trash2, MoreVertical, Folder, Youtube, RefreshCw } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -200,7 +200,7 @@ export function ArtistCard({
               Ver Detalhes
             </Button>
 
-            {pendingSongs > 0 && (
+            {pendingSongs > 0 ? (
               <Button
                 variant="default"
                 size="sm"
@@ -217,6 +217,26 @@ export function ArtistCard({
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
                     Enriquecer ({pendingSongs})
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={handleEnrich}
+                disabled={isEnriching}
+              >
+                {isEnriching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Reenriquecendo...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reenriquecer
                   </>
                 )}
               </Button>
