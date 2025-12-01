@@ -122,9 +122,9 @@ export function useBatchSeedingJob() {
     if (!job.last_chunk_at) return false;
     
     const lastActivity = new Date(job.last_chunk_at);
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     
-    return lastActivity > oneHourAgo;
+    return lastActivity > tenMinutesAgo;
   };
 
   // 5. Função para cancelar job
