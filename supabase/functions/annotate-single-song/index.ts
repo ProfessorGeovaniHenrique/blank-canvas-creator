@@ -632,7 +632,7 @@ ${palavrasList}
       resultMap.set(item.palavra.toLowerCase(), {
         tagset_codigo: item.tagset_codigo,
         confianca: item.confianca || 0.85,
-        fonte: 'gemini',
+        fonte: 'gemini_flash',
         justificativa: item.justificativa || 'Gemini classification'
       });
     }

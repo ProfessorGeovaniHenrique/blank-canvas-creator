@@ -501,21 +501,21 @@ async function processWordsChunk(
             pos: word.pos,
             tagset_n1: geminiResult.tagset_codigo,
             confianca: geminiResult.confianca,
-            fonte: 'gemini',
+            fonte: 'gemini_flash',
             origem_lexicon: word.origem as any
           });
 
           results.push({
             palavra: word.palavra,
             success: saved,
-            fonte: 'gemini',
+            fonte: 'gemini_flash',
             tagset_n1: geminiResult.tagset_codigo
           });
         } else {
           results.push({
             palavra: word.palavra,
             success: false,
-            fonte: 'gemini',
+            fonte: 'gemini_flash',
             tagset_n1: 'NC'
           });
         }
@@ -532,7 +532,7 @@ async function processWordsChunk(
         results.push({
           palavra: word.palavra,
           success: false,
-          fonte: 'gemini',
+          fonte: 'gemini_flash',
           error: error instanceof Error ? error.message : 'Unknown error'
         });
       });

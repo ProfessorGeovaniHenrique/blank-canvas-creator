@@ -49,6 +49,17 @@ export function BatchSeedingControl({ semanticLexiconCount, status }: BatchSeedi
     }
   };
 
+  const handleCancelCurrent = async () => {
+    if (!activeJob) return;
+    
+    const { success } = await cancelJob(activeJob.id);
+    if (success) {
+      toast.success('Job cancelado com sucesso');
+    } else {
+      toast.error('Erro ao cancelar job');
+    }
+  };
+
   const getStatusConfig = () => {
     switch (status) {
       case 'empty':
@@ -166,25 +177,28 @@ export function BatchSeedingControl({ semanticLexiconCount, status }: BatchSeedi
           <Progress value={progress} className="h-2" />
         </div>
 
-        {isJobAbandoned && (
+        {isProcessing && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full">
                 <XCircle className="h-4 w-4 mr-2" />
-                Cancelar Job Travado
+                {isJobAbandoned ? 'Cancelar Job Travado' : '⏹️ Cancelar Job Atual'}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Cancelar Job Inativo</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {isJobAbandoned ? 'Cancelar Job Inativo' : 'Cancelar Job em Processamento'}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  Este job está sem atividade há mais de 1 hora e será marcado como cancelado.
-                  Você poderá iniciar um novo batch seeding após cancelar.
+                  {isJobAbandoned 
+                    ? 'Este job está sem atividade há mais de 10 minutos e será marcado como cancelado. Você poderá iniciar um novo batch seeding após cancelar.'
+                    : 'Tem certeza que deseja cancelar este job? O progresso atual será perdido e você poderá iniciar um novo batch seeding.'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Voltar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleCancelAbandoned}>
+                <AlertDialogAction onClick={isJobAbandoned ? handleCancelAbandoned : handleCancelCurrent}>
                   Confirmar Cancelamento
                 </AlertDialogAction>
               </AlertDialogFooter>
