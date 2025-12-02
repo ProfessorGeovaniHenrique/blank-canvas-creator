@@ -734,6 +734,24 @@ export async function exportDeveloperHistoryABNT(options: ABNTExportOptions) {
   sections.push(new Paragraph({ children: [new PageBreak()] }));
 
   // ==========================================
+  // DIAGRAMAS DAS PIPELINES (Figuras 1-4)
+  // ==========================================
+  sections.push(
+    createSection('2.5', isAcademic ? 'Arquitetura do Sistema' : 'Diagramas de Arquitetura', 2),
+    createParagraph(
+      isAcademic 
+        ? 'Os diagramas a seguir ilustram as principais pipelines de processamento implementadas no Verso Austral. Cada pipeline utiliza múltiplas camadas de processamento, priorizando métodos de baixo custo antes de recorrer a APIs de inteligência artificial.'
+        : 'Os diagramas técnicos a seguir detalham a arquitetura de cada pipeline de processamento, incluindo fluxos de dados, pontos de decisão e métricas de cobertura por camada.'
+    ),
+    ...createPOSPipelineDiagram(),
+    ...createSemanticPipelineDiagram(),
+    ...createMVPFlowDiagram(),
+    ...createEnrichmentPipelineDiagram(),
+  );
+
+  sections.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // ==========================================
   // 3. METODOLOGIA / DESENVOLVIMENTO
   // ==========================================
   sections.push(createSection('3', isAcademic ? 'METODOLOGIA' : 'ARQUITETURA E IMPLEMENTAÇÃO', 1));
@@ -1010,35 +1028,47 @@ export async function exportDeveloperHistoryABNT(options: ABNTExportOptions) {
   sections.push(new Paragraph({ children: [new PageBreak()] }));
 
   // ==========================================
-  // 7. RESULTADOS E MÉTRICAS
+  // 7. RESULTADOS E MÉTRICAS (COM DADOS REAIS DO BANCO)
   // ==========================================
   sections.push(createSection('7', 'RESULTADOS E MÉTRICAS', 1));
 
   sections.push(
-    createSection('7.1', 'Métricas do Corpus', 2),
-    createBulletPoint('Total de músicas únicas: 52.050'),
-    createBulletPoint('Total de artistas: 412'),
-    createBulletPoint('Palavras no cache semântico: 5.000+'),
-    createBulletPoint('Domínios semânticos N1: 13'),
-    createBulletPoint('Subcategorias (N2-N4): 250+'),
-    createBulletPoint('Entradas no léxico dialectal: 700+'),
+    createSection('7.1', 'Métricas do Corpus (Dados Reais)', 2),
+    createBulletPoint(`Total de músicas no banco: ${stats.corpus.totalSongs.toLocaleString('pt-BR')}`),
+    createBulletPoint(`Músicas com letra disponível: ${stats.corpus.songsWithLyrics.toLocaleString('pt-BR')}`),
+    createBulletPoint(`Total de artistas cadastrados: ${stats.corpus.totalArtists.toLocaleString('pt-BR')}`),
+    createBulletPoint(`Entradas no cache semântico: ${stats.semanticCache.totalEntries.toLocaleString('pt-BR')}`),
+    createBulletPoint(`Palavras únicas anotadas: ${stats.semanticCache.uniqueWords.toLocaleString('pt-BR')}`),
+    createBulletPoint(`Domínios semânticos únicos utilizados: ${stats.semanticCache.uniqueDomains}`),
 
-    createSection('7.2', 'Métricas dos Anotadores', 2),
-    createBulletPoint('Precisão POS tagging (Layer 1): 98%'),
-    createBulletPoint('Cobertura POS Layer 1 (VA Grammar): 85%'),
-    createBulletPoint('Precisão POS combinada: 95%'),
-    createBulletPoint('Cobertura semântica: 92%'),
-    createBulletPoint('Redução de chamadas API Gemini: 70%'),
+    createSection('7.2', 'Taxonomia Semântica Hierárquica', 2),
+    createBulletPoint(`Total de tagsets ativos: ${stats.semanticTagsets.totalActive}`),
+    createBulletPoint(`Domínios N1 (nível superior): ${stats.semanticTagsets.n1Count}`),
+    createBulletPoint(`Domínios N2 (superdomínios): ${stats.semanticTagsets.n2Count}`),
+    createBulletPoint(`Domínios N3 (subcategorias): ${stats.semanticTagsets.n3Count}`),
+    createBulletPoint(`Domínios N4 (granularidade máxima): ${stats.semanticTagsets.n4Count}`),
 
-    createSection('7.3', 'Métricas de Sistema', 2),
+    createSection('7.3', 'Métricas de Anotação Semântica', 2),
+    createBulletPoint(`Confiança média das classificações: ${(stats.semanticCache.averageConfidence * 100).toFixed(1)}%`),
+    createBulletPoint(`Palavras não classificadas (NC): ${stats.semanticCache.unclassifiedWords}`),
+    createBulletPoint(`Classificações por regras (zero-custo): ${stats.semanticCache.ruleBasedCount.toLocaleString('pt-BR')}`),
+    createBulletPoint(`Classificações via Gemini Flash: ${stats.semanticCache.geminiCount.toLocaleString('pt-BR')}`),
+    createBulletPoint(`Classificações via GPT-5: ${stats.semanticCache.gpt5Count.toLocaleString('pt-BR')}`),
+
+    createSection('7.4', 'Recursos Lexicográficos', 2),
+    createBulletPoint(`Léxico dialectal gaúcho (Nunes & Rocha Pombo): ${stats.lexicons.dialectalCount.toLocaleString('pt-BR')} verbetes`),
+    createBulletPoint(`Léxico Gutenberg (português geral): ${stats.lexicons.gutenbergCount.toLocaleString('pt-BR')} verbetes`),
+    createBulletPoint(`Sinônimos lexicais mapeados: ${stats.lexicons.synonymsCount.toLocaleString('pt-BR')} entradas`),
+
+    createSection('7.5', 'Métricas de Sistema', 2),
     createBulletPoint('Tempo de processamento por artista: 2-5 minutos'),
     createBulletPoint('Taxa de sucesso de jobs: 100% (após correções)'),
-    createBulletPoint('Uptime da plataforma: 99.9%'),
+    createBulletPoint('Redução de chamadas API via cache: ~70%'),
   );
 
   if (!isAcademic) {
     sections.push(
-      createSection('7.4', 'Refatoração Realizada', 2),
+      createSection('7.6', 'Refatoração Realizada', 2),
       createBulletPoint('Sprints F0-F7 completados: NavigationConfig (-24% código)'),
       createBulletPoint('AdminUsers refatorado: 605→280 linhas (-54%)'),
       createBulletPoint('MusicCatalog refatorado: 1830→357 linhas (-80%)'),
@@ -1150,6 +1180,182 @@ export async function exportDeveloperHistoryABNT(options: ABNTExportOptions) {
       })
     );
   }
+
+  sections.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // ==========================================
+  // APÊNDICE A - TAXONOMIA DE DOMÍNIOS SEMÂNTICOS
+  // ==========================================
+  sections.push(
+    createParagraph('APÊNDICE A - TAXONOMIA COMPLETA DE DOMÍNIOS SEMÂNTICOS', {
+      alignment: AlignmentType.CENTER,
+      bold: true,
+      spacing: { after: 400 }
+    }),
+    createParagraph(
+      `A taxonomia semântica do Verso Austral é composta por ${stats.semanticTagsets.totalActive} domínios ativos organizados em 4 níveis hierárquicos: ` +
+      `${stats.semanticTagsets.n1Count} domínios N1 (nível superior), ${stats.semanticTagsets.n2Count} superdomínios N2, ` +
+      `${stats.semanticTagsets.n3Count} subcategorias N3 e ${stats.semanticTagsets.n4Count} categorias granulares N4. ` +
+      `A tabela a seguir apresenta a taxonomia completa ordenada hierarquicamente.`,
+      { spacing: { after: 400 } }
+    ),
+    createParagraph('Quadro 1 - Taxonomia Hierárquica de Domínios Semânticos', {
+      alignment: AlignmentType.CENTER,
+      bold: true,
+      fontSize: 20,
+      spacing: { before: 200, after: 200 }
+    })
+  );
+
+  // Adicionar tabela de domínios semânticos (limitada aos primeiros 100 para não sobrecarregar o documento)
+  if (semanticDomains.length > 0) {
+    const domainsForTable = semanticDomains.slice(0, 150); // Limitar para performance
+    sections.push(createSemanticDomainsTable(domainsForTable));
+    
+    if (semanticDomains.length > 150) {
+      sections.push(
+        createParagraph(
+          `Nota: Esta tabela apresenta os primeiros 150 domínios de um total de ${semanticDomains.length}. ` +
+          `A taxonomia completa está disponível na interface administrativa do sistema.`,
+          { italic: true, spacing: { before: 200, after: 200 } }
+        )
+      );
+    }
+  } else {
+    sections.push(
+      createParagraph(
+        'Nota: A taxonomia de domínios semânticos pode ser consultada na interface do sistema.',
+        { italic: true, spacing: { after: 200 } }
+      )
+    );
+  }
+
+  sections.push(
+    createParagraph('Fonte: Elaborado pelo autor (2025).', {
+      alignment: AlignmentType.CENTER,
+      fontSize: 20,
+      spacing: { before: 100, after: 400 }
+    })
+  );
+
+  sections.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // ==========================================
+  // APÊNDICE B - DESCRIÇÃO METÓDICA DA ATIVIDADE DIDÁTICA
+  // ==========================================
+  sections.push(
+    createParagraph('APÊNDICE B - DESCRIÇÃO METÓDICA DA ATIVIDADE DIDÁTICA', {
+      alignment: AlignmentType.CENTER,
+      bold: true,
+      spacing: { after: 400 }
+    }),
+    createParagraph(
+      'O MVP do Verso Austral implementa uma atividade didática em duas etapas complementares, ' +
+      'fundamentada nos princípios de multiletramentos (ROJO, 2012; COPE; KALANTZIS, 2000) e na estilística de corpus ' +
+      '(MCINTYRE; WALKER, 2019; LEECH; SHORT, 2007). A metodologia articula letramento literomusical com análise linguística científica.',
+      { spacing: { after: 300 } }
+    ),
+
+    createSection('B.1', 'ETAPA 1: LETRAMENTO LITEROMUSICAL', 2),
+    createParagraph(
+      'A primeira etapa conduz o estudante por um percurso progressivo de 7 abas sequenciais, ' +
+      'cada uma desbloqueada apenas após a interação com a anterior. Este design gamificado visa garantir ' +
+      'que o aluno percorra todo o conteúdo contextual antes de acessar as ferramentas de análise.',
+      { spacing: { after: 200 } }
+    ),
+
+    createParagraph('Aba 1 - Introdução:', { bold: true }),
+    createBulletPoint('Apresentação do contexto cultural gaúcho e da canção "Quando o Verso Vem Pras Casas" (Luiz Marenco)'),
+    createBulletPoint('Explicação dos objetivos da atividade e competências a serem desenvolvidas'),
+    createBulletPoint('Botão de desbloqueio da próxima aba mediante interação'),
+
+    createParagraph('Aba 2 - O Chamamé:', { bold: true }),
+    createBulletPoint('Descrição do gênero musical chamamé: origens, características, instrumentação'),
+    createBulletPoint('Referências: Wolffenbüttel (2020), Brittes (2021)'),
+    createBulletPoint('Player YouTube embedado para escuta da canção'),
+
+    createParagraph('Aba 3 - Origens:', { bold: true }),
+    createBulletPoint('História das raízes platinas do chamamé na Mesopotâmia Argentina'),
+    createBulletPoint('Influências culturais: guarani, jesuítica, europeia'),
+    createBulletPoint('Expansão para o Rio Grande do Sul e integração à cultura gaúcha'),
+
+    createParagraph('Aba 4 - Instrumentos:', { bold: true }),
+    createBulletPoint('Acordeão (gaita): instrumento principal do chamamé'),
+    createBulletPoint('Violão: acompanhamento harmônico'),
+    createBulletPoint('Referência: Silva (2010) sobre o acordeão na cultura gaúcha'),
+
+    createParagraph('Aba 5 - Glossário Regional:', { bold: true }),
+    createBulletPoint('Termos gauchescos presentes na letra: prenda, galpão, querência, mate, coxilha'),
+    createBulletPoint('Definições extraídas do Dicionário de Regionalismos (NUNES; NUNES, 2010)'),
+    createBulletPoint('Contextualização cultural de cada termo'),
+
+    createParagraph('Aba 6 - Escuta Ativa:', { bold: true }),
+    createBulletPoint('Player YouTube com a canção completa'),
+    createBulletPoint('Letra sincronizada para acompanhamento'),
+    createBulletPoint('Orientações para escuta analítica'),
+
+    createParagraph('Aba 7 - Quiz Interpretativo:', { bold: true }),
+    createBulletPoint('5 perguntas aleatórias selecionadas de banco de 30 questões'),
+    createBulletPoint('3 tipos de questões: objetiva (resposta única), checkbox (múltipla escolha), matching (correspondência)'),
+    createBulletPoint('Dificuldade balanceada: 2 fáceis, 2 médias, 1 difícil'),
+    createBulletPoint('Threshold de aprovação: 70% (3.5/5 acertos)'),
+    createBulletPoint('Conquista desbloqueável: "Chamamecero" 🎸'),
+    createBulletPoint('Persistência em localStorage para permitir pausas e retomadas'),
+
+    createSection('B.2', 'ETAPA 2: ANÁLISE CIENTÍFICA', 2),
+    createParagraph(
+      'Após aprovação no quiz (≥70%), o estudante desbloqueia a segunda etapa: o Dashboard de Análise Científica. ' +
+      'Esta transição é celebrada com modal gamificado e animação de página. ' +
+      'A interface apresenta ferramentas de linguística de corpus organizadas em 5 abas analíticas.',
+      { spacing: { after: 200 } }
+    ),
+
+    createParagraph('Aba 1 - Processamento:', { bold: true }),
+    createBulletPoint('Seleção de corpus de referência para comparação (ex: corpus Nordestino)'),
+    createBulletPoint('Configuração de proporção de amostragem (1x, 3x, 5x, 10x)'),
+    createBulletPoint('Monitoramento de progresso da anotação semântica'),
+
+    createParagraph('Aba 2 - Domínios Semânticos:', { bold: true }),
+    createBulletPoint('Nuvem de palavras organizada por domínio semântico'),
+    createBulletPoint('Navegação hierárquica N1→N2→N3→N4'),
+    createBulletPoint('Toggle para filtrar marcadores gramaticais (MG)'),
+    createBulletPoint('Visualização comparativa entre corpus de estudo e referência'),
+
+    createParagraph('Aba 3 - Estatísticas:', { bold: true }),
+    createBulletPoint('Log-Likelihood ratio para identificação de palavras-chave estatísticas'),
+    createBulletPoint('Type-Token Ratio (TTR) para riqueza vocabular'),
+    createBulletPoint('Mean Length of Utterance (MLU) para complexidade sintática'),
+    createBulletPoint('Distribuição de classes gramaticais (POS)'),
+
+    createParagraph('Aba 4 - Visualizações:', { bold: true }),
+    createBulletPoint('Gráficos interativos de distribuição de domínios'),
+    createBulletPoint('Filtros por significância estatística (LL > 10.83, > 6.63, > 3.84)'),
+    createBulletPoint('Filtros por prosódia semântica (positiva, negativa, neutra)'),
+    createBulletPoint('Exportação de gráficos em PNG'),
+
+    createParagraph('Aba 5 - Exportação:', { bold: true }),
+    createBulletPoint('Download de dados em CSV para análise externa'),
+    createBulletPoint('Exportação de relatório DOCX em formato ABNT'),
+    createBulletPoint('Exportação de corpus anotado em formato JSON'),
+
+    createSection('B.3', 'FUNDAMENTAÇÃO PEDAGÓGICA', 2),
+    createParagraph(
+      'A sequência didática articula três eixos pedagógicos: (1) contextualização cultural, situando a canção ' +
+      'em seu universo de produção e recepção; (2) letramento multimodal, integrando texto, áudio e visualizações; ' +
+      '(3) análise linguística científica, desenvolvendo competências de pesquisa com ferramentas reais de corpus linguistics.',
+      { spacing: { after: 200 } }
+    ),
+    createParagraphWithCitation(
+      'A abordagem fundamenta-se na pedagogia dos multiletramentos, que reconhece a necessidade de incorporar ' +
+      'práticas sociais de linguagem diversificadas e culturalmente situadas no currículo escolar.',
+      'rojo2012'
+    ),
+    createParagraphWithCitation(
+      'O framework de estilística de corpus fornece as ferramentas analíticas para transformar intuições sobre ' +
+      'estilo em observações quantificáveis e verificáveis, democratizando o acesso a métodos antes restritos a pesquisadores.',
+      'mcintyrewalker2019'
+    ),
+  );
 
   // ==========================================
   // CRIAR DOCUMENTO
