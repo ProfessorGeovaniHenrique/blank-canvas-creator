@@ -1,6 +1,16 @@
 # 📊 Verso Austral - Audit Snapshot
 **Data: 2024-12-02**  
-**Versão: Pre-Refactoring Baseline**
+**Versão: Post-Refactoring Sprint 5**
+
+---
+
+## 🔒 Security Fixes Applied (Sprint 5)
+
+| Issue | Status | Action |
+|-------|--------|--------|
+| Materialized View in API | ✅ Fixed | Revoked direct access, created secure RPC `get_artist_statistics()` |
+| Extension in Public | ⚠️ Low Risk | Extensions schema created, migration pending (requires Supabase dashboard) |
+| Leaked Password Protection | ✅ Fixed | Enabled via auth configuration |
 
 ---
 
@@ -241,7 +251,7 @@ useAuth (hook)
 | Sprint 2 | Infrastructure Fixes | ✅ Complete | Low |
 | Sprint 3 | Context & State Fixes | 🔲 Pending | Medium |
 | Sprint 4 | Code Cleanup | ✅ Complete | Low |
-| Sprint 5 | Security Fixes | 🔲 Pending | Low |
+| Sprint 5 | Security Fixes | ✅ Complete | Low |
 | Sprint 6 | Performance Optimization | 🔲 Pending | Low |
 | Sprint 7 | Documentation | ✅ Complete | Zero |
 
@@ -250,6 +260,12 @@ useAuth (hook)
 - ✅ Updated 20+ edge functions to use shared CORS module
 - ✅ Removed ~400 lines of duplicated CORS code
 - ✅ Updated `_shared/README.md` with CORS documentation
+
+### Sprint 5 Details (Completed)
+- ✅ Revoked direct API access to `artist_stats_mv` materialized view
+- ✅ Created secure RPC function `get_artist_statistics(p_corpus_id)` with SECURITY DEFINER
+- ✅ Enabled leaked password protection via auth configuration
+- ⚠️ Extensions in public schema: Low risk, requires manual Supabase dashboard migration
 
 ### Sprint 4 Details (Completed)
 - ✅ Removed deprecated service file

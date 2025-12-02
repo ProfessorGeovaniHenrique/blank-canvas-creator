@@ -3021,6 +3021,17 @@ export type Database = {
       clean_expired_semantic_cache: { Args: never; Returns: undefined }
       clean_old_system_logs: { Args: never; Returns: undefined }
       generate_invite_key: { Args: never; Returns: string }
+      get_artist_statistics: {
+        Args: { p_corpus_id?: string }
+        Returns: {
+          artist_id: string
+          artist_name: string
+          enriched_songs: number
+          error_songs: number
+          pending_songs: number
+          total_songs: number
+        }[]
+      }
       get_dialectal_stats: {
         Args: never
         Returns: {
