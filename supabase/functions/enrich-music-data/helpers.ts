@@ -150,7 +150,7 @@ Retorne APENAS um objeto JSON válido:
           { role: 'system', content: 'Você é um especialista em música brasileira que retorna apenas JSON válido.' },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 300
+        max_completion_tokens: 800  // Aumentado de 300 para 800 - GPT-5 usa tokens internamente para raciocínio
       })
     });
 
@@ -166,10 +166,13 @@ Retorne APENAS um objeto JSON válido:
     const data = await response.json();
     const rawText = data.choices?.[0]?.message?.content;
 
-    if (!rawText) {
-      console.warn('[GPT5] ⚠️ No content in response');
-      console.log('[GPT5] 📄 Full response data:', JSON.stringify(data, null, 2));
-      return null;
+    // Verificar se GPT-5 usou todos os tokens para raciocínio interno (resposta vazia)
+    if (!rawText || rawText.trim() === '') {
+      const usage = data.usage || {};
+      console.warn('[GPT5] ⚠️ Empty content - possible token exhaustion for reasoning');
+      console.warn(`[GPT5] 📊 Token usage: completion=${usage.completion_tokens}, reasoning=${usage.reasoning_tokens || 'N/A'}`);
+      console.log('[GPT5] 📄 Full response:', JSON.stringify(data, null, 2));
+      return null;  // Força fallback para Gemini
     }
 
     console.log('[GPT5] 📝 Raw Response Text (first 500 chars):', rawText.substring(0, 500));
