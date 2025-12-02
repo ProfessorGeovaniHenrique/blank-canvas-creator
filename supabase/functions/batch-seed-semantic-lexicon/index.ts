@@ -81,7 +81,30 @@ serve(async (req) => {
     // MODO SEED: Cria job e processa primeiro chunk
     if (mode === 'seed') {
       const startTime = Date.now();
-      console.log(`⚙️ [batch-seed] SEED - Criando job...`);
+      
+      // Cancelar jobs órfãos antes de criar novo
+      console.log('⚙️ [batch-seed] SEED - Verificando jobs órfãos...');
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      
+      const { data: orphanJobs } = await supabase
+        .from('batch_seeding_jobs')
+        .select('id')
+        .eq('status', 'processando')
+        .or(`last_chunk_at.is.null,last_chunk_at.lt.${fiveMinutesAgo}`);
+
+      if (orphanJobs && orphanJobs.length > 0) {
+        console.log(`⚠️ [batch-seed] Cancelando ${orphanJobs.length} jobs órfãos`);
+        await supabase
+          .from('batch_seeding_jobs')
+          .update({ 
+            status: 'cancelado', 
+            erro_mensagem: 'Job órfão cancelado automaticamente antes de novo seeding',
+            tempo_fim: new Date().toISOString()
+          })
+          .in('id', orphanJobs.map(j => j.id));
+      }
+      
+      console.log(`✅ [batch-seed] Criando novo job...`);
       
       // Criar job no banco
       const { data: job, error: jobError } = await supabase

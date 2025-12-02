@@ -120,12 +120,18 @@ export function useBatchSeedingJob() {
   // 4. Verificar se job está realmente ativo (não abandonado)
   const isJobReallyActive = (job: BatchSeedingJob): boolean => {
     if (job.status !== 'processando') return false;
-    if (!job.last_chunk_at) return false;
+    
+    if (!job.last_chunk_at) {
+      // Se job nunca processou chunk, verificar created_at
+      const created = new Date(job.created_at);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      return created > fiveMinutesAgo;
+    }
     
     const lastActivity = new Date(job.last_chunk_at);
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     
-    return lastActivity > tenMinutesAgo;
+    return lastActivity > fiveMinutesAgo;
   };
 
   // 5. Função para cancelar job
@@ -179,6 +185,12 @@ export function useBatchSeedingJob() {
     ? (activeJob.status === 'processando' && isJobReallyActive(activeJob))
     : false;
 
+  const isJobAbandoned = activeJob ? 
+    activeJob.status === 'processando' && !isJobReallyActive(activeJob) : 
+    false;
+  
+  const abandonedTimeoutMinutes = 5;
+
   return {
     activeJob,
     isLoading,
@@ -186,6 +198,7 @@ export function useBatchSeedingJob() {
     startJob,
     cancelJob,
     isProcessing: isReallyProcessing,
-    isJobAbandoned: activeJob?.status === 'processando' && !isJobReallyActive(activeJob)
+    isJobAbandoned,
+    abandonedTimeoutMinutes
   };
 }
