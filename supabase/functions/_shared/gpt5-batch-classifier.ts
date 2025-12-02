@@ -70,7 +70,10 @@ export async function classifyBatchWithGPT5(
           { role: 'system', content: getSystemPrompt() },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 2000,
+        max_completion_tokens: 6000,
+        reasoning: {
+          effort: 'low'
+        }
       }),
     });
 
@@ -84,9 +87,18 @@ export async function classifyBatchWithGPT5(
     console.log('[gpt5-batch] Raw response:', JSON.stringify(data).substring(0, 500));
     
     const content = data.choices[0]?.message?.content;
+    const finishReason = data.choices[0]?.finish_reason;
 
     if (!content) {
       console.error('[gpt5-batch] Empty content in response:', data);
+      console.error('[gpt5-batch] Finish reason:', finishReason);
+      
+      // Se falhou por length, tentar com gpt-5-nano
+      if (finishReason === 'length') {
+        console.log('[gpt5-batch] Retrying with gpt-5-nano...');
+        return await classifyBatchWithGPT5Nano(words, logger);
+      }
+      
       throw new Error('Empty response from GPT-5');
     }
 
@@ -102,6 +114,70 @@ export async function classifyBatchWithGPT5(
     logger.error('GPT-5 batch classification error', error as Error);
     
     // Fallback: retornar NC para todas
+    return words.map(w => ({
+      palavra: w.palavra,
+      lema: w.lema,
+      pos: w.pos,
+      tagset_codigo: 'NC',
+      tagsets_alternativos: [],
+      is_polysemous: false,
+      confianca: 0.50
+    }));
+  }
+}
+
+async function classifyBatchWithGPT5Nano(
+  words: WordToClassify[],
+  logger: any
+): Promise<ClassificationResult[]> {
+  
+  const prompt = buildBatchPrompt(words);
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-5-nano',
+        messages: [
+          { role: 'system', content: getSystemPrompt() },
+          { role: 'user', content: prompt }
+        ],
+        max_completion_tokens: 4000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[gpt5-nano] API error:', response.status, errorText);
+      throw new Error(`GPT-5-nano API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+
+    if (!content) {
+      console.error('[gpt5-nano] Empty content, returning NC for all');
+      return words.map(w => ({
+        palavra: w.palavra,
+        lema: w.lema,
+        pos: w.pos,
+        tagset_codigo: 'NC',
+        tagsets_alternativos: [],
+        is_polysemous: false,
+        confianca: 0.50
+      }));
+    }
+
+    const parsed = extractJsonFromText(content);
+    console.log('[gpt5-nano] Successfully classified', parsed.classifications?.length || 0, 'words');
+    return parsed.classifications || [];
+
+  } catch (error) {
+    console.error('[gpt5-nano] Classification error:', error);
     return words.map(w => ({
       palavra: w.palavra,
       lema: w.lema,
