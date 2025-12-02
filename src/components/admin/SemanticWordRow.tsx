@@ -1,0 +1,196 @@
+import { useState } from 'react';
+import { TableRow, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ChevronRight, ChevronDown, Check, Edit, AlertTriangle, Link2, Pencil, Award } from 'lucide-react';
+import { SemanticLexiconEntry } from '@/hooks/useSemanticLexiconData';
+import { KWICInlineDisplay } from './KWICInlineDisplay';
+import { cn } from '@/lib/utils';
+
+interface Props {
+  entry: SemanticLexiconEntry;
+  onValidate: (entry: SemanticLexiconEntry) => void;
+}
+
+const getConfidenceColor = (confidence: number | null): string => {
+  if (confidence === null) return 'bg-muted';
+  if (confidence >= 0.90) return 'bg-green-500/10';
+  if (confidence >= 0.70) return 'bg-yellow-500/10';
+  return 'bg-red-500/10';
+};
+
+const getSourceBadge = (fonte: string | null) => {
+  switch (fonte) {
+    case 'gemini_flash':
+      return <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600">Gemini</Badge>;
+    case 'gpt5':
+      return <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600">GPT-5</Badge>;
+    case 'rule_based':
+      return <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600">Regras</Badge>;
+    case 'manual':
+    case 'human_validated':
+      return <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600">Manual</Badge>;
+    default:
+      return <Badge variant="outline" className="text-xs">{fonte || '?'}</Badge>;
+  }
+};
+
+export function SemanticWordRow({ entry, onValidate }: Props) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const confidence = entry.confianca !== null ? Math.round(entry.confianca * 100) : null;
+  const needsReview = confidence !== null && confidence < 80 && 
+    entry.fonte !== 'manual' && entry.fonte !== 'human_validated';
+
+  return (
+    <>
+      <TableRow 
+        className={cn(
+          'cursor-pointer transition-colors hover:bg-muted/50',
+          getConfidenceColor(entry.confianca),
+          needsReview && 'border-l-2 border-l-amber-500'
+        )}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        {/* Expand toggle */}
+        <TableCell className="w-8 p-2">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </TableCell>
+
+        {/* Palavra */}
+        <TableCell className="font-mono font-medium">
+          {entry.palavra}
+          {entry.lema && entry.lema !== entry.palavra && (
+            <span className="text-xs text-muted-foreground ml-1">({entry.lema})</span>
+          )}
+        </TableCell>
+
+        {/* Tagset */}
+        <TableCell>
+          <Badge variant="secondary" className="font-mono text-xs">
+            {entry.tagset_codigo}
+          </Badge>
+        </TableCell>
+
+        {/* Domain N1 */}
+        <TableCell className="text-sm">
+          {entry.tagset_n1 || entry.tagset_codigo?.split('.')[0] || '-'}
+        </TableCell>
+
+        {/* POS */}
+        <TableCell className="text-xs text-muted-foreground">
+          {entry.pos || '-'}
+        </TableCell>
+
+        {/* Confidence */}
+        <TableCell>
+          {confidence !== null ? (
+            <span className={cn(
+              'text-sm font-medium',
+              confidence >= 90 ? 'text-green-600' :
+              confidence >= 70 ? 'text-yellow-600' : 'text-red-600'
+            )}>
+              {confidence}%
+            </span>
+          ) : '-'}
+        </TableCell>
+
+        {/* Source */}
+        <TableCell>
+          {getSourceBadge(entry.fonte)}
+        </TableCell>
+
+        {/* Flags */}
+        <TableCell>
+          <div className="flex gap-1">
+            {entry.is_polysemous && (
+              <span title="Polissêmica">
+                <AlertTriangle className="h-3 w-3 text-purple-500" />
+              </span>
+            )}
+            {entry.is_mwe && (
+              <span title="MWE">
+                <Link2 className="h-3 w-3 text-blue-500" />
+              </span>
+            )}
+            {entry.is_spelling_deviation && (
+              <span title="Desvio ortográfico">
+                <Pencil className="h-3 w-3 text-amber-500" />
+              </span>
+            )}
+            {entry.insignias_culturais && entry.insignias_culturais.length > 0 && (
+              <span title="Com insígnias">
+                <Award className="h-3 w-3 text-green-500" />
+              </span>
+            )}
+          </div>
+        </TableCell>
+
+        {/* Action */}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => onValidate(entry)}
+          >
+            {needsReview ? (
+              <>
+                <Edit className="h-3 w-3 mr-1" />
+                Revisar
+              </>
+            ) : (
+              <>
+                <Check className="h-3 w-3 mr-1" />
+                Validar
+              </>
+            )}
+          </Button>
+        </TableCell>
+      </TableRow>
+
+      {/* Expanded content */}
+      {isExpanded && (
+        <TableRow className="bg-muted/20">
+          <TableCell colSpan={9} className="p-4">
+            <div className="space-y-3">
+              {/* KWIC Display */}
+              <KWICInlineDisplay 
+                palavra={entry.palavra} 
+                songId={entry.song_id}
+              />
+
+              {/* Additional info */}
+              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2 border-t">
+                {entry.is_spelling_deviation && entry.forma_padrao && (
+                  <div>
+                    <span className="font-medium">Forma padrão:</span> {entry.forma_padrao}
+                  </div>
+                )}
+                {entry.is_mwe && entry.mwe_text && (
+                  <div>
+                    <span className="font-medium">Expressão:</span> {entry.mwe_text}
+                  </div>
+                )}
+                {entry.insignias_culturais && entry.insignias_culturais.length > 0 && (
+                  <div>
+                    <span className="font-medium">Insígnias:</span> {entry.insignias_culturais.join(', ')}
+                  </div>
+                )}
+                {entry.cached_at && (
+                  <div>
+                    <span className="font-medium">Anotado em:</span> {new Date(entry.cached_at).toLocaleDateString('pt-BR')}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, Database, AlertTriangle, TrendingUp, TestTube } from 'lucide-react';
+import { Activity, Database, AlertTriangle, TrendingUp, TestTube, BookOpen, Loader2 } from 'lucide-react';
 import { useSemanticPipelineStats } from '@/hooks/useSemanticPipelineStats';
 import { SemanticDomainChart } from '@/components/admin/SemanticDomainChart';
 import { AnnotationJobsTable } from '@/components/admin/AnnotationJobsTable';
@@ -11,6 +11,9 @@ import { NCWordCorrectionTool } from '@/components/admin/NCWordCorrectionTool';
 import { BatchSeedingControl } from '@/components/admin/BatchSeedingControl';
 import { DuplicateMonitoringCard } from '@/components/admin/DuplicateMonitoringCard';
 import { PipelineTestInterface } from '@/components/admin/PipelineTestInterface';
+
+// Lazy load heavy component
+const SemanticLexiconPanel = lazy(() => import('@/components/admin/SemanticLexiconPanel').then(m => ({ default: m.SemanticLexiconPanel })));
 
 export default function AdminSemanticPipeline() {
   const { data: stats, isLoading, refetch } = useSemanticPipelineStats();
@@ -68,10 +71,14 @@ export default function AdminSemanticPipeline() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="dashboard">
             <Database className="w-4 h-4 mr-2" />
             Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="lexicon">
+            <BookOpen className="w-4 h-4 mr-2" />
+            Léxico Anotado
           </TabsTrigger>
           <TabsTrigger value="test">
             <TestTube className="w-4 h-4 mr-2" />
@@ -257,6 +264,16 @@ export default function AdminSemanticPipeline() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="lexicon" className="mt-6">
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          }>
+            <SemanticLexiconPanel />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="test" className="mt-6">
