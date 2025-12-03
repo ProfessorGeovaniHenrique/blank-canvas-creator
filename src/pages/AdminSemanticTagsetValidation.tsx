@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, Clock, Search, Filter, RefreshCw, TreePine, Edit, Sparkles, XCircle, GitMerge, Layers } from 'lucide-react';
+import { Loader2, CheckCircle2, Clock, Search, Filter, RefreshCw, TreePine, Edit, Sparkles, XCircle, GitMerge, Layers, Users, TrendingUp, CalendarDays } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 import { RefreshButton } from '@/components/devops/RefreshButton';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -395,9 +396,62 @@ export default function AdminSemanticTagsetValidation() {
   const n3Count = tagsets.filter(t => t.nivel_profundidade === 3).length;
   const n4Count = tagsets.filter(t => t.nivel_profundidade === 4).length;
 
+  // Estatísticas por nível (ativos vs rejeitados)
+  const n1Active = tagsets.filter(t => t.nivel_profundidade === 1 && t.status === 'ativo').length;
+  const n1Rejected = tagsets.filter(t => t.nivel_profundidade === 1 && t.status === 'rejeitado').length;
+  const n2Active = tagsets.filter(t => t.nivel_profundidade === 2 && t.status === 'ativo').length;
+  const n2Rejected = tagsets.filter(t => t.nivel_profundidade === 2 && t.status === 'rejeitado').length;
+  const n3Active = tagsets.filter(t => t.nivel_profundidade === 3 && t.status === 'ativo').length;
+  const n3Rejected = tagsets.filter(t => t.nivel_profundidade === 3 && t.status === 'rejeitado').length;
+  const n4Active = tagsets.filter(t => t.nivel_profundidade === 4 && t.status === 'ativo').length;
+  const n4Rejected = tagsets.filter(t => t.nivel_profundidade === 4 && t.status === 'rejeitado').length;
+
+  // Dados para gráfico de distribuição
+  const distributionData = [
+    { nivel: 'N1', ativos: n1Active, rejeitados: n1Rejected },
+    { nivel: 'N2', ativos: n2Active, rejeitados: n2Rejected },
+    { nivel: 'N3', ativos: n3Active, rejeitados: n3Rejected },
+    { nivel: 'N4', ativos: n4Active, rejeitados: n4Rejected },
+  ];
+
+  // Taxa de aprovação vs rejeição (apenas decisões tomadas)
+  const totalDecided = approvedCount + rejectedCount;
+  const approvalRate = totalDecided > 0 ? ((approvedCount / totalDecided) * 100).toFixed(1) : '0';
+  const rejectionRate = totalDecided > 0 ? ((rejectedCount / totalDecided) * 100).toFixed(1) : '0';
+
+  // Cobertura de validação humana
+  const humanValidatedCount = tagsets.filter(t => t.validacoes_humanas && t.validacoes_humanas > 0).length;
+  const totalValidations = tagsets.reduce((sum, t) => sum + (t.validacoes_humanas || 0), 0);
+  const humanCoverageRate = tagsets.length > 0 ? ((humanValidatedCount / tagsets.length) * 100).toFixed(1) : '0';
+
+  // Domínios mais recentes (últimos 5)
+  const recentTagsets = [...tagsets]
+    .filter(t => t.criado_em || t.created_at)
+    .sort((a, b) => {
+      const dateA = new Date(a.criado_em || a.created_at || 0).getTime();
+      const dateB = new Date(b.criado_em || b.created_at || 0).getTime();
+      return dateB - dateA;
+    })
+    .slice(0, 5);
+
   const handleRefresh = () => {
     fetchTagsets();
     queryClient.invalidateQueries({ queryKey: ['tagsets'] });
+  };
+
+  // Helper para formatar data relativa
+  const formatRelativeDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'Data desconhecida';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffHours < 1) return 'Agora há pouco';
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    if (diffDays < 7) return `${diffDays}d atrás`;
+    return date.toLocaleDateString('pt-BR');
   };
 
   return (
@@ -512,6 +566,128 @@ export default function AdminSemanticTagsetValidation() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Nova linha de métricas expandidas */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Taxa de Aprovação vs Rejeição */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Aprovação vs Rejeição
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-green-600 font-medium">{approvalRate}% Aprovados</span>
+                    <span className="text-destructive font-medium">{rejectionRate}% Rejeitados</span>
+                  </div>
+                  <div className="h-3 w-full bg-muted rounded-full overflow-hidden flex">
+                    <div 
+                      className="h-full bg-green-500 transition-all" 
+                      style={{ width: `${approvalRate}%` }} 
+                    />
+                    <div 
+                      className="h-full bg-destructive transition-all" 
+                      style={{ width: `${rejectionRate}%` }} 
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {approvedCount} aprovados • {rejectedCount} rejeitados de {totalDecided} decisões
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cobertura de Validação Humana */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Users className="h-4 w-4 text-purple-500" />
+                Validação Humana
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-500">
+                {humanCoverageRate}%
+              </div>
+              <Progress value={parseFloat(humanCoverageRate)} className="h-2 mt-2" />
+              <p className="text-xs text-muted-foreground mt-2">
+                {humanValidatedCount} domínios validados • {totalValidations} validações totais
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Domínios Mais Recentes */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-orange-500" />
+                Domínios Recentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {recentTagsets.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum domínio encontrado</p>
+                ) : (
+                  recentTagsets.map((tagset, index) => (
+                    <div key={tagset.id} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Badge 
+                          variant={tagset.status === 'ativo' ? 'default' : tagset.status === 'rejeitado' ? 'destructive' : 'secondary'}
+                          className="text-[10px] px-1.5"
+                        >
+                          {tagset.codigo}
+                        </Badge>
+                        <span className="truncate text-muted-foreground">{tagset.nome}</span>
+                      </div>
+                      <span className="text-muted-foreground shrink-0 ml-2">
+                        {formatRelativeDate(tagset.criado_em || tagset.created_at)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráfico de Distribuição por Nível Hierárquico */}
+        <Card className="mt-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Distribuição por Nível Hierárquico
+            </CardTitle>
+            <CardDescription>
+              Ativos vs Rejeitados por nível (N1-N4)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={distributionData} layout="vertical" margin={{ left: 10, right: 30 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis dataKey="nivel" type="category" tick={{ fontSize: 12 }} width={30} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="ativos" name="Ativos" fill="hsl(142, 76%, 36%)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="rejeitados" name="Rejeitados" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Tabs para alternar entre Validação, Validados, Rejeitados, Hierarquia e Teste POS */}
         <Tabs defaultValue="validation" className="mt-6">
