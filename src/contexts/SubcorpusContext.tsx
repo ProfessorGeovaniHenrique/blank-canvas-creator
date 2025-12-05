@@ -107,6 +107,7 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
   // Estados de loading e corpus
   const [isLoading, setIsLoading] = useState(false);
   const [fullCorpus, setFullCorpus] = useState<CorpusCompleto | null>(null);
+  const [lastLoadedCorpus, setLastLoadedCorpus] = useState<CorpusCompleto | null>(null); // NOVO: armazena resultado de getFilteredCorpus
   const [subcorpora, setSubcorpora] = useState<SubcorpusMetadata[]>([]);
   const [availableCorpora, setAvailableCorpora] = useState<Array<{ id: string; name: string; normalized_name: string }>>([]);
   
@@ -274,7 +275,10 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
     
     // Modo completo: carregar corpus inteiro em chunks
     if (selection.mode === 'complete') {
-      if (fullCorpus) return fullCorpus;
+      if (fullCorpus) {
+        setLastLoadedCorpus(fullCorpus);
+        return fullCorpus;
+      }
       
       log.info('Loading full corpus in chunks', { corpusBase: selection.corpusBase });
       
@@ -291,6 +295,7 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
       );
       
       setFullCorpus(loadedCorpus);
+      setLastLoadedCorpus(loadedCorpus);
       return loadedCorpus;
     }
     
@@ -353,12 +358,15 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
       
       const totalPalavras = songEntries.reduce((sum, s) => sum + s.palavras.length, 0);
       
-      return {
+      const singleCorpus: CorpusCompleto = {
         tipo: selection.corpusBase,
         totalMusicas: songEntries.length,
         totalPalavras,
         musicas: songEntries
       };
+      
+      setLastLoadedCorpus(singleCorpus); // NOVO: armazena resultado do modo single
+      return singleCorpus;
     }
     
     // Modo compare: similar ao single, mas carrega dois artistas
@@ -370,7 +378,7 @@ export function SubcorpusProvider({ children }: { children: ReactNode }) {
       selection,
       setSelection,
       getFilteredCorpus,
-      loadedCorpus: fullCorpus,
+      loadedCorpus: lastLoadedCorpus,
       currentMetadata,
       availableArtists,
       subcorpora,
