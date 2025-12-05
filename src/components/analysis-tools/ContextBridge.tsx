@@ -5,7 +5,7 @@
  * Permite que as ferramentas existentes funcionem na nova página sem refatoração
  */
 
-import React, { useEffect, useState, ReactNode } from 'react';
+import React, { useEffect, useState, useRef, ReactNode } from 'react';
 import { useAnalysisTools, CorpusSelection } from '@/contexts/AnalysisToolsContext';
 import { useSubcorpus } from '@/contexts/SubcorpusContext';
 import { useTools } from '@/contexts/ToolsContext';
@@ -84,6 +84,10 @@ export function useCorpusSyncEffect() {
   const { setSelection, setStylisticSelection, getFilteredCorpus } = useSubcorpus();
   const { setKeywordsState } = useTools();
   const [isLoadingCorpus, setIsLoadingCorpus] = useState(false);
+  
+  // Ref para evitar loop infinito - getFilteredCorpus muda de referência
+  const getFilteredCorpusRef = useRef(getFilteredCorpus);
+  getFilteredCorpusRef.current = getFilteredCorpus;
 
   // Sincroniza studyCorpus → SubcorpusContext.selection
   useEffect(() => {
@@ -107,7 +111,7 @@ export function useCorpusSyncEffect() {
     const loadCorpus = async () => {
       setIsLoadingCorpus(true);
       try {
-        await getFilteredCorpus();
+        await getFilteredCorpusRef.current();
       } catch (error) {
         console.error('Erro ao carregar corpus:', error);
         if (!cancelled) {
@@ -121,7 +125,7 @@ export function useCorpusSyncEffect() {
     loadCorpus();
     
     return () => { cancelled = true; };
-  }, [studyCorpus, getFilteredCorpus]);
+  }, [studyCorpus]); // SEM getFilteredCorpus nas dependências!
 
   // Sincroniza studyCorpus + referenceCorpus → SubcorpusContext.stylisticSelection
   useEffect(() => {
