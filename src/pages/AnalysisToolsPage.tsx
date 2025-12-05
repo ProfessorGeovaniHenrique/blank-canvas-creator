@@ -23,56 +23,7 @@ import { AnalysisToolsProvider, useAnalysisTools } from '@/contexts/AnalysisTool
 import { CorpusUploader } from '@/components/analysis-tools/CorpusUploader';
 import { CorpusSelector } from '@/components/analysis-tools/CorpusSelector';
 import { BasicToolsTab } from '@/components/analysis-tools/BasicToolsTab';
-
-function StyleAnalysisTab() {
-  const { studyCorpus, setStudyCorpus, referenceCorpus, setReferenceCorpus } = useAnalysisTools();
-  
-  return (
-    <div className="space-y-6">
-      {/* Seletores de Corpus */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <CorpusSelector
-          label="Corpus de Estudo"
-          description="Corpus para análise estilística (preferencialmente anotado)"
-          value={studyCorpus}
-          onChange={setStudyCorpus}
-          showBalancing
-        />
-        <CorpusSelector
-          label="Corpus de Referência"
-          description="Corpus para comparação de perfis"
-          value={referenceCorpus}
-          onChange={setReferenceCorpus}
-        />
-      </div>
-
-      {/* Ferramentas Placeholder */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[
-          { name: 'Perfil Léxico', desc: 'Diversidade vocabular e campos semânticos' },
-          { name: 'Perfil Sintático', desc: 'Complexidade e padrões estruturais' },
-          { name: 'Figuras Retóricas', desc: 'Repetição, aliteração, anáfora' },
-          { name: 'Análise de Coesão', desc: 'Conectivos e cadeias lexicais' },
-          { name: 'Fala e Pensamento', desc: 'Escalas DS→NRSA e DT→NRTA' },
-          { name: 'Mind Style', desc: 'Transitividade, agência, modalidade' },
-          { name: 'Foregrounding', desc: 'Desvio e paralelismo' },
-        ].map(tool => (
-          <Card key={tool.name} className="opacity-60">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">{tool.name}</CardTitle>
-              <CardDescription className="text-xs">{tool.desc}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground italic">
-                Sprint P3-2: Em desenvolvimento
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { StyleAnalysisTab } from '@/components/analysis-tools/StyleAnalysisTab';
 
 function CulturalAnalysisTab() {
   const { studyCorpus, setStudyCorpus, referenceCorpus, setReferenceCorpus } = useAnalysisTools();

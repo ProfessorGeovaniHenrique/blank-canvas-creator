@@ -42,14 +42,48 @@ function corpusSelectionToLegacy(selection: CorpusSelection | null): {
 }
 
 /**
+ * Converte CorpusSelection para formato stylisticSelection do SubcorpusContext
+ */
+function corpusSelectionToStylistic(
+  studySelection: CorpusSelection | null,
+  referenceSelection: CorpusSelection | null
+) {
+  if (!studySelection || studySelection.type === 'user') {
+    return null;
+  }
+  
+  return {
+    study: {
+      corpusType: studySelection.platformCorpus || 'gaucho',
+      mode: studySelection.platformArtist ? 'artist' : 'complete' as const,
+      artist: studySelection.platformArtist || undefined,
+      estimatedSize: 0
+    },
+    reference: referenceSelection && referenceSelection.type === 'platform' ? {
+      corpusType: referenceSelection.platformCorpus || 'nordestino',
+      mode: referenceSelection.platformArtist ? 'artist' : 'complete' as const,
+      artist: referenceSelection.platformArtist || undefined,
+      targetSize: 0,
+      sizeRatio: 1
+    } : {
+      corpusType: 'nordestino' as CorpusType,
+      mode: 'complete' as const,
+      targetSize: 0,
+      sizeRatio: 1
+    },
+    isComparative: !!referenceSelection
+  };
+}
+
+/**
  * Hook para sincronização bidirecional de contextos
  */
 export function useCorpusSyncEffect() {
   const { studyCorpus, referenceCorpus } = useAnalysisTools();
-  const { setSelection } = useSubcorpus();
+  const { setSelection, setStylisticSelection } = useSubcorpus();
   const { setKeywordsState } = useTools();
 
-  // Sincroniza studyCorpus → SubcorpusContext
+  // Sincroniza studyCorpus → SubcorpusContext.selection
   useEffect(() => {
     if (studyCorpus && studyCorpus.type === 'platform') {
       const legacy = corpusSelectionToLegacy(studyCorpus);
@@ -61,6 +95,14 @@ export function useCorpusSyncEffect() {
       });
     }
   }, [studyCorpus, setSelection]);
+
+  // Sincroniza studyCorpus + referenceCorpus → SubcorpusContext.stylisticSelection
+  useEffect(() => {
+    const stylistic = corpusSelectionToStylistic(studyCorpus, referenceCorpus);
+    if (stylistic) {
+      setStylisticSelection(stylistic);
+    }
+  }, [studyCorpus, referenceCorpus, setStylisticSelection]);
 
   // Sincroniza referenceCorpus → ToolsContext.keywordsState
   useEffect(() => {
