@@ -11,7 +11,7 @@
  * - Foregrounding
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   BookOpen, 
@@ -25,6 +25,8 @@ import {
 import { useAnalysisTools } from '@/contexts/AnalysisToolsContext';
 import { CorpusSelector } from './CorpusSelector';
 import { AnalysisToolsBridge } from './ContextBridge';
+import { ToolErrorBoundary } from './ToolErrorBoundary';
+import { ToolLoadingSkeleton } from './ToolLoadingSkeleton';
 
 // Ferramentas existentes
 import { TabLexicalProfile } from '@/components/advanced/TabLexicalProfile';
@@ -86,31 +88,59 @@ export function StyleAnalysisTab() {
           </TabsList>
           
           <TabsContent value="lexical" className="mt-4">
-            <TabLexicalProfile analyzeRef={analyzeRef} />
+            <ToolErrorBoundary toolName="Perfil Léxico">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <TabLexicalProfile analyzeRef={analyzeRef} />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="syntactic" className="mt-4">
-            <SyntacticProfileTool />
+            <ToolErrorBoundary toolName="Perfil Sintático">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <SyntacticProfileTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="rhetorical" className="mt-4">
-            <RhetoricalFiguresTool />
+            <ToolErrorBoundary toolName="Figuras Retóricas">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <RhetoricalFiguresTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="cohesion" className="mt-4">
-            <CohesionAnalysisTool />
+            <ToolErrorBoundary toolName="Análise de Coesão">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <CohesionAnalysisTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="speech" className="mt-4">
-            <SpeechThoughtPresentationTool />
+            <ToolErrorBoundary toolName="Fala e Pensamento">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <SpeechThoughtPresentationTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="mind" className="mt-4">
-            <MindStyleAnalyzerTool />
+            <ToolErrorBoundary toolName="Mind Style">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <MindStyleAnalyzerTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="foregrounding" className="mt-4">
-            <ForegroundingDetectorTool />
+            <ToolErrorBoundary toolName="Foregrounding">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <ForegroundingDetectorTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
         </Tabs>
       </AnalysisToolsBridge>

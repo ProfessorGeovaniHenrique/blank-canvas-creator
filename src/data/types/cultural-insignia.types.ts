@@ -11,19 +11,23 @@
 export enum InsigniaCultural {
   GAUCHO = 'Gaúcho',
   NORDESTINO = 'Nordestino',
+  SERTANEJO = 'Sertanejo',
   INDIGENA = 'Indígena',
   PLATINO = 'Platino',
   AFRO_BRASILEIRO = 'Afro-Brasileiro',
-  CAIPIRA = 'Caipira'
+  CAIPIRA = 'Caipira',
+  BRASILEIRO = 'Brasileiro'
 }
 
 export const INSIGNIAS_OPTIONS = [
   { value: InsigniaCultural.GAUCHO, label: '🏇 Gaúcho', description: 'Cultura gaúcha sul-rio-grandense' },
   { value: InsigniaCultural.NORDESTINO, label: '☀️ Nordestino', description: 'Cultura nordestina brasileira' },
+  { value: InsigniaCultural.SERTANEJO, label: '🌵 Sertanejo', description: 'Cultura sertaneja brasileira' },
   { value: InsigniaCultural.INDIGENA, label: '🪶 Indígena', description: 'Culturas indígenas brasileiras' },
   { value: InsigniaCultural.PLATINO, label: '🌎 Platino', description: 'Influência platina (Argentina/Uruguai)' },
   { value: InsigniaCultural.AFRO_BRASILEIRO, label: '🥁 Afro-Brasileiro', description: 'Culturas afro-brasileiras' },
-  { value: InsigniaCultural.CAIPIRA, label: '🌾 Caipira', description: 'Cultura caipira do interior' }
+  { value: InsigniaCultural.CAIPIRA, label: '🌾 Caipira', description: 'Cultura caipira do interior' },
+  { value: InsigniaCultural.BRASILEIRO, label: '🇧🇷 Brasileiro', description: 'Cultura brasileira geral' }
 ];
 
 export interface WordWithInsignias {

@@ -7,12 +7,14 @@
  * - Cultural Insignias (cultural identity markers)
  */
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, MapPin, Award } from 'lucide-react';
 import { useAnalysisTools } from '@/contexts/AnalysisToolsContext';
 import { CorpusSelector } from './CorpusSelector';
 import { AnalysisToolsBridge } from './ContextBridge';
+import { ToolErrorBoundary } from './ToolErrorBoundary';
+import { ToolLoadingSkeleton } from './ToolLoadingSkeleton';
 
 // Import existing tools
 import { TemporalAnalysisTool } from '@/components/mvp/tools/TemporalAnalysisTool';
@@ -64,15 +66,27 @@ export function CulturalAnalysisTab() {
           </TabsList>
 
           <TabsContent value="temporal" className="mt-4">
-            <TemporalAnalysisTool />
+            <ToolErrorBoundary toolName="Análise Temporal">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <TemporalAnalysisTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
 
           <TabsContent value="dialectal" className="mt-4">
-            <DialectalAnalysisTool />
+            <ToolErrorBoundary toolName="Análise Dialetal">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <DialectalAnalysisTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
 
           <TabsContent value="insignias" className="mt-4">
-            <CulturalInsigniaAnalysisTool />
+            <ToolErrorBoundary toolName="Insígnias Culturais">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <CulturalInsigniaAnalysisTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
         </Tabs>
       </AnalysisToolsBridge>

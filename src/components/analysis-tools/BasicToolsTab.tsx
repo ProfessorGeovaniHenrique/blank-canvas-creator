@@ -5,7 +5,7 @@
  * Integra: Wordlist, Keywords, KWIC, Dispersão, N-grams, Nuvem de Keywords
  */
 
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   List, 
@@ -13,14 +13,15 @@ import {
   Search, 
   BarChart3, 
   Hash, 
-  Cloud,
-  Loader2
+  Cloud
 } from 'lucide-react';
 import { useAnalysisTools } from '@/contexts/AnalysisToolsContext';
 import { CorpusSelector } from './CorpusSelector';
 import { StatisticsCards } from './StatisticsCards';
 import { KeywordsCloud } from './KeywordsCloud';
 import { AnalysisToolsBridge } from './ContextBridge';
+import { ToolErrorBoundary } from './ToolErrorBoundary';
+import { ToolLoadingSkeleton } from './ToolLoadingSkeleton';
 
 // Importar ferramentas existentes
 import { WordlistTool } from '@/components/mvp/tools/WordlistTool';
@@ -28,16 +29,6 @@ import { KeywordsTool } from '@/components/mvp/tools/KeywordsTool';
 import { KWICTool } from '@/components/mvp/tools/KWICTool';
 import { DispersionTool } from '@/components/mvp/tools/DispersionTool';
 import { NGramsTool } from '@/components/mvp/tools/NGramsTool';
-
-// Loading fallback
-function ToolLoading() {
-  return (
-    <div className="flex items-center justify-center py-12">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      <span className="ml-2 text-sm text-muted-foreground">Carregando ferramenta...</span>
-    </div>
-  );
-}
 
 interface BasicToolsTabProps {
   className?: string;
@@ -105,37 +96,49 @@ export function BasicToolsTab({ className }: BasicToolsTabProps) {
           </TabsList>
           
           <TabsContent value="wordlist" className="mt-4">
-            <Suspense fallback={<ToolLoading />}>
-              <WordlistTool />
-            </Suspense>
+            <ToolErrorBoundary toolName="Wordlist">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <WordlistTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="keywords" className="mt-4">
-            <Suspense fallback={<ToolLoading />}>
-              <KeywordsTool />
-            </Suspense>
+            <ToolErrorBoundary toolName="Keywords">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <KeywordsTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="kwic" className="mt-4">
-            <Suspense fallback={<ToolLoading />}>
-              <KWICTool />
-            </Suspense>
+            <ToolErrorBoundary toolName="KWIC">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <KWICTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="dispersion" className="mt-4">
-            <Suspense fallback={<ToolLoading />}>
-              <DispersionTool />
-            </Suspense>
+            <ToolErrorBoundary toolName="Dispersão">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <DispersionTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="ngrams" className="mt-4">
-            <Suspense fallback={<ToolLoading />}>
-              <NGramsTool />
-            </Suspense>
+            <ToolErrorBoundary toolName="N-grams">
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <NGramsTool />
+              </Suspense>
+            </ToolErrorBoundary>
           </TabsContent>
           
           <TabsContent value="cloud" className="mt-4">
-            <KeywordsCloud />
+            <ToolErrorBoundary toolName="Nuvem de Keywords">
+              <KeywordsCloud />
+            </ToolErrorBoundary>
           </TabsContent>
         </Tabs>
       </AnalysisToolsBridge>

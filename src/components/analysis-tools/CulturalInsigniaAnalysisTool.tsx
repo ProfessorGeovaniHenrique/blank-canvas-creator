@@ -56,7 +56,8 @@ const INSIGNIA_COLORS: Record<string, string> = {
   'Caipira': 'hsl(var(--chart-4))',
   'Platino': 'hsl(var(--chart-5))',
   'Indígena': 'hsl(142, 71%, 45%)',
-  'Brasileiro': 'hsl(200, 70%, 50%)',
+  'Afro-Brasileiro': 'hsl(280, 70%, 50%)',
+  'Brasileiro': 'hsl(47, 70%, 50%)',
 };
 
 interface InsigniaCount {

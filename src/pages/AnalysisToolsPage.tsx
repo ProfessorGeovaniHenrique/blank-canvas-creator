@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { CorpusProvider } from '@/contexts/CorpusContext';
 import { SubcorpusProvider } from '@/contexts/SubcorpusContext';
 import { ToolsProvider } from '@/contexts/ToolsContext';
 import { AnalysisToolsProvider, useAnalysisTools } from '@/contexts/AnalysisToolsContext';
@@ -100,14 +99,12 @@ function AnalysisToolsContent() {
 
 export default function AnalysisToolsPage() {
   return (
-    <CorpusProvider>
-      <SubcorpusProvider>
-        <ToolsProvider>
-          <AnalysisToolsProvider>
-            <AnalysisToolsContent />
-          </AnalysisToolsProvider>
-        </ToolsProvider>
-      </SubcorpusProvider>
-    </CorpusProvider>
+    <SubcorpusProvider>
+      <ToolsProvider>
+        <AnalysisToolsProvider>
+          <AnalysisToolsContent />
+        </AnalysisToolsProvider>
+      </ToolsProvider>
+    </SubcorpusProvider>
   );
 }
