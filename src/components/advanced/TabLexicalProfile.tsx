@@ -59,7 +59,7 @@ export function TabLexicalProfile() {
   const { songs, isLoading: loadingSongs, completedCount, totalCount } = useJobSongsProgress(job?.id || null, isProcessing);
   
   // Sincronização com AnalysisToolsContext
-  const { studyCorpus, referenceCorpus } = useAnalysisTools();
+  const { studyCorpus, referenceCorpus, balancing } = useAnalysisTools();
   
   const [existingJob, setExistingJob] = useState<any | null>(null);
   const [studyProfile, setStudyProfile] = useState<LexicalProfile | null>(null);
@@ -291,13 +291,14 @@ export function TabLexicalProfile() {
         setStudyProfile(profile);
       }
 
-      // Analyze reference corpus if comparative mode
-      if (stylisticSelection.isComparative && stylisticSelection.reference) {
+      // Analyze reference corpus if comparative mode OR balancing enabled
+      if ((stylisticSelection.isComparative && stylisticSelection.reference) || balancing.enabled) {
         // Guard clause: só buscar domínios se for corpus de plataforma
         let refDominiosData: DominioSemantico[] = [];
-        if (stylisticSelection.reference.corpusType !== 'user') {
+        const refCorpusType = stylisticSelection.reference?.corpusType || referenceCorpus?.platformCorpus;
+        if (refCorpusType && refCorpusType !== 'user') {
           refDominiosData = await getSemanticDomainsFromAnnotatedCorpus(
-            stylisticSelection.reference.corpusType as 'gaucho' | 'nordestino',
+            refCorpusType as 'gaucho' | 'nordestino',
             undefined
           );
         }
@@ -308,7 +309,17 @@ export function TabLexicalProfile() {
         // Por agora, usar o mesmo loadedCorpus se for o mesmo tipo
         let refCorpusData = loadedCorpus;
         
-        if (refCorpusData && stylisticSelection.reference.mode === 'proportional-sample') {
+        // SPRINT LF-9 FIX: Aplicar balanceamento do contexto
+        if (refCorpusData && balancing.enabled) {
+          const studySize = studyCorpusData?.musicas.reduce((acc, m) => acc + (m.letra?.split(/\s+/).length || 0), 0) || 1000;
+          const targetSize = studySize * balancing.ratio;
+          refCorpusData = sampleProportionalCorpus(
+            refCorpusData, 
+            targetSize,
+            balancing.method === 'random' ? undefined : Date.now()
+          );
+          log.info('Applied corpus balancing', { ratio: balancing.ratio, targetSize, actualSize: refCorpusData.musicas.length });
+        } else if (refCorpusData && stylisticSelection.reference?.mode === 'proportional-sample') {
           refCorpusData = sampleProportionalCorpus(
             refCorpusData, 
             stylisticSelection.reference.targetSize
@@ -318,7 +329,7 @@ export function TabLexicalProfile() {
         if (refCorpusData && refDominiosData.length > 0) {
           const refProfile = calculateLexicalProfile(refCorpusData, refDominiosData);
           setReferenceProfile(refProfile);
-        } else if (refDominiosData.length === 0) {
+        } else if (refDominiosData.length === 0 && (stylisticSelection.isComparative || balancing.enabled)) {
           toast.warning('Nenhum domínio semântico encontrado para o corpus de referência.');
         }
       }
@@ -330,7 +341,7 @@ export function TabLexicalProfile() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [stylisticSelection, loadedCorpus, getFilteredCorpus, startJob]);
+  }, [stylisticSelection, loadedCorpus, getFilteredCorpus, startJob, balancing, referenceCorpus]);
 
   // Auto-analisar quando job concluir
   useEffect(() => {
@@ -617,14 +628,19 @@ export function TabLexicalProfile() {
         />
       )}
 
-      {/* ========== SPRINT LF-5: PROPORTSIONAL SAMPLE INFO COM TAMANHO CORRETO ========== */}
-      {stylisticSelection?.isComparative && stylisticSelection.reference && (
+      {/* ========== SPRINT LF-9 FIX: PROPORTSIONAL SAMPLE INFO USANDO BALANCING DO CONTEXT ========== */}
+      {/* Mostrar info de amostragem quando há corpus de referência E balanceamento ativo OU modo comparativo */}
+      {(balancing.enabled || stylisticSelection?.isComparative) && (
         <ProportionalSampleInfo
-          studySize={studyProfile?.totalTokens || stylisticSelection.study.estimatedSize || 0}
-          referenceSize={referenceCorpusSize}
-          targetSize={stylisticSelection.reference.targetSize || referenceCorpusSize}
-          ratio={stylisticSelection.reference.sizeRatio || 1}
-          samplingMethod={stylisticSelection.reference.mode}
+          studySize={studyProfile?.totalTokens || stylisticSelection?.study.estimatedSize || (loadedCorpus?.musicas.reduce((acc, m) => acc + (m.letra?.split(/\s+/).length || 0), 0) || 0)}
+          referenceSize={balancing.enabled 
+            ? Math.round((studyProfile?.totalTokens || 1000) * balancing.ratio)
+            : referenceCorpusSize}
+          targetSize={balancing.enabled 
+            ? Math.round((studyProfile?.totalTokens || 1000) * balancing.ratio)
+            : (stylisticSelection?.reference?.targetSize || referenceCorpusSize)}
+          ratio={balancing.enabled ? balancing.ratio : (stylisticSelection?.reference?.sizeRatio || 1)}
+          samplingMethod={balancing.enabled ? 'proportional-sample' : (stylisticSelection?.reference?.mode || 'complete')}
           warnings={validation?.warnings || []}
         />
       )}
@@ -763,45 +779,18 @@ export function TabLexicalProfile() {
                 </CardContent>
               </Card>
 
-              {/* Frequências Top 50 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Frequências de Palavras</CardTitle>
-                  <CardDescription>Top 50 palavras mais frequentes</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="max-h-[400px] overflow-y-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Palavra</TableHead>
-                          <TableHead>Frequência</TableHead>
-                          <TableHead>Domínio</TableHead>
-                          <TableHead>Hapax</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {studyProfile.wordFrequencies.slice(0, 50).map((word, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="font-medium">{word.word}</TableCell>
-                            <TableCell>{word.freq}</TableCell>
-                            <TableCell>
-                              {word.domain ? (
-                                <Badge variant="secondary">{word.domain}</Badge>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">N/A</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {word.isHapax && <Badge variant="outline">Sim</Badge>}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* SPRINT LF-9: Usar LexicalStatisticsTable em modo compacto */}
+              <LexicalStatisticsTable 
+                keywords={lexicalData.keywords}
+                corpus={kwicCorpus}
+                onOpenKWICTool={openKWICTool}
+                compact
+                onViewAll={() => {
+                  // Navegar para sub-aba de estatísticas
+                  const tabsTrigger = document.querySelector('[data-state="inactive"][value="statistics"]') as HTMLElement;
+                  tabsTrigger?.click();
+                }}
+              />
 
               {/* Comparação (se modo comparativo) */}
               {stylisticSelection?.isComparative && comparison && referenceProfile && (

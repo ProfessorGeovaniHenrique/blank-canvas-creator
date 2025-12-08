@@ -2,6 +2,7 @@
  * LexicalStatisticsTable - Tabela de Estatísticas de Palavras-Chave
  * Sprint LF-5 Fase 3: Tabela interativa com ordenação e paginação
  * Sprint LF-8: Integração KWIC Popover
+ * Sprint LF-9: Modo compacto para "Visão Geral"
  */
 
 import { useState, useMemo } from 'react';
@@ -19,14 +20,19 @@ interface LexicalStatisticsTableProps {
   keywords: LexicalKeyword[];
   corpus?: CorpusCompleto | null;
   onOpenKWICTool?: (word: string) => void;
+  /** SPRINT LF-9: Modo compacto para exibição em Visão Geral */
+  compact?: boolean;
+  /** Callback quando "Ver todas" é clicado no modo compacto */
+  onViewAll?: () => void;
 }
 
 type SortField = 'word' | 'domain' | 'frequency' | 'frequencyPercent' | 'isHapax';
 type SortDirection = 'asc' | 'desc';
 
 const ITEMS_PER_PAGE = 50;
+const COMPACT_ITEMS = 10;
 
-export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: LexicalStatisticsTableProps) {
+export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool, compact = false, onViewAll }: LexicalStatisticsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('frequency');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -73,11 +79,12 @@ export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: Lex
     return result;
   }, [keywords, searchQuery, sortField, sortDirection]);
 
-  const totalPages = Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE);
-  const paginatedData = filteredAndSorted.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // SPRINT LF-9: Determinar itens a exibir baseado no modo
+  const itemsToShow = compact ? COMPACT_ITEMS : ITEMS_PER_PAGE;
+  const totalPages = compact ? 1 : Math.ceil(filteredAndSorted.length / itemsToShow);
+  const paginatedData = compact 
+    ? filteredAndSorted.slice(0, COMPACT_ITEMS)
+    : filteredAndSorted.slice((currentPage - 1) * itemsToShow, currentPage * itemsToShow);
 
   const handleExportCSV = () => {
     const headers = ['Palavra', 'Domínio', 'Frequência', 'Freq %', 'Hapax'];
@@ -108,16 +115,16 @@ export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: Lex
   if (keywords.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Estatísticas Detalhadas</CardTitle>
-          <CardDescription>Análise de frequência por palavra</CardDescription>
+        <CardHeader className={compact ? 'pb-2' : ''}>
+          <CardTitle className={compact ? 'text-base' : ''}>Estatísticas Detalhadas</CardTitle>
+          {!compact && <CardDescription>Análise de frequência por palavra</CardDescription>}
         </CardHeader>
         <CardContent>
-          <div className="min-h-[200px] flex items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-lg">
-            <div className="text-center p-8">
-              <Search className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+          <div className="min-h-[100px] flex items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-lg">
+            <div className="text-center p-4">
+              <Search className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
               <p className="text-muted-foreground text-sm">
-                Nenhuma palavra disponível. Execute a análise do corpus primeiro.
+                Nenhuma palavra disponível. Execute a análise primeiro.
               </p>
             </div>
           </div>
@@ -128,32 +135,48 @@ export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: Lex
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className={compact ? 'pb-2' : ''}>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Estatísticas Detalhadas</CardTitle>
-            <CardDescription>
-              {filteredAndSorted.length.toLocaleString()} palavras • Página {currentPage} de {Math.max(1, totalPages)}
-            </CardDescription>
+            <CardTitle className={compact ? 'text-base' : ''}>
+              {compact ? 'Top Palavras' : 'Estatísticas Detalhadas'}
+            </CardTitle>
+            {!compact && (
+              <CardDescription>
+                {filteredAndSorted.length.toLocaleString()} palavras • Página {currentPage} de {Math.max(1, totalPages)}
+              </CardDescription>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="pl-9 w-64"
-              />
-            </div>
-            <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2" disabled={filteredAndSorted.length === 0}>
-              <Download className="w-4 h-4" />
-              CSV
-            </Button>
+          <div className="flex items-center gap-2">
+            {/* SPRINT LF-9: Esconder busca em modo compacto */}
+            {!compact && (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar..."
+                    value={searchQuery}
+                    onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    className="pl-9 w-64"
+                  />
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2" disabled={filteredAndSorted.length === 0}>
+                  <Download className="w-4 h-4" />
+                  CSV
+                </Button>
+              </>
+            )}
+            {/* SPRINT LF-9: Botão "Ver todas" em modo compacto */}
+            {compact && onViewAll && filteredAndSorted.length > COMPACT_ITEMS && (
+              <Button variant="ghost" size="sm" onClick={onViewAll} className="gap-1 text-primary">
+                Ver todas
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className={compact ? 'pt-0' : ''}>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -182,22 +205,27 @@ export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: Lex
                     Freq <SortIcon field="frequency" />
                   </div>
                 </TableHead>
-                <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
-                  onClick={() => handleSort('frequencyPercent')}
-                >
-                  <div className="flex items-center justify-end">
-                    Freq % <SortIcon field="frequencyPercent" />
-                  </div>
-                </TableHead>
-                <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors text-center"
-                  onClick={() => handleSort('isHapax')}
-                >
-                  <div className="flex items-center justify-center">
-                    Hapax <SortIcon field="isHapax" />
-                  </div>
-                </TableHead>
+                {/* SPRINT LF-9: Esconder colunas extras em modo compacto */}
+                {!compact && (
+                  <>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                      onClick={() => handleSort('frequencyPercent')}
+                    >
+                      <div className="flex items-center justify-end">
+                        Freq % <SortIcon field="frequencyPercent" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors text-center"
+                      onClick={() => handleSort('isHapax')}
+                    >
+                      <div className="flex items-center justify-center">
+                        Hapax <SortIcon field="isHapax" />
+                      </div>
+                    </TableHead>
+                  </>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -208,9 +236,7 @@ export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: Lex
                   corpus={corpus || null}
                   onOpenKWICTool={onOpenKWICTool}
                 >
-                  <TableRow 
-                    className="cursor-pointer hover:bg-muted/30"
-                  >
+                  <TableRow className="cursor-pointer hover:bg-muted/30">
                     <TableCell className="font-medium">{kw.word}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
@@ -220,16 +246,20 @@ export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: Lex
                     <TableCell className="text-right tabular-nums">
                       {kw.frequency.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {kw.frequencyPercent.toFixed(3)}%
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {kw.isHapax && (
-                        <Badge variant="outline" className="text-xs">
-                          ✓
-                        </Badge>
-                      )}
-                    </TableCell>
+                    {!compact && (
+                      <>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {kw.frequencyPercent.toFixed(3)}%
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {kw.isHapax && (
+                            <Badge variant="outline" className="text-xs">
+                              ✓
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
                 </KWICPopover>
               ))}
@@ -237,8 +267,8 @@ export function LexicalStatisticsTable({ keywords, corpus, onOpenKWICTool }: Lex
           </Table>
         </div>
 
-        {/* Paginação */}
-        {totalPages > 1 && (
+        {/* Paginação - escondida em modo compacto */}
+        {!compact && totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
               Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSorted.length)} de {filteredAndSorted.length}
