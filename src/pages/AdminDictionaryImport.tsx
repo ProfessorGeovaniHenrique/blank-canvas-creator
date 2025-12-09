@@ -344,13 +344,13 @@ export default function AdminDictionaryImport() {
         </Card>
 
         {/* 📚 Card Rocha Pombo (ABL) */}
-        <Card className="mb-6 border-2 border-blue-500/30 bg-gradient-to-br from-blue-50 to-background dark:from-blue-950/20 dark:to-background">
+        <Card className="mb-6 border-2 border-purple-500/30 bg-gradient-to-br from-purple-50 to-background dark:from-purple-950/20 dark:to-background">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">📖</span>
                 <div>
-                  <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                  <h3 className="text-lg font-semibold text-purple-600 dark:text-purple-400">
                     Rocha Pombo (ABL)
                   </h3>
                   <p className="text-sm text-muted-foreground">
@@ -358,7 +358,7 @@ export default function AdminDictionaryImport() {
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="border-blue-500 text-blue-600 font-mono">
+              <Badge variant="outline" className="border-purple-500 text-purple-600 font-mono">
                 {lexiconStats?.rochaPombo?.total > 0 
                   ? ((lexiconStats.rochaPombo.validados / lexiconStats.rochaPombo.total) * 100).toFixed(1)
                   : 0}%
@@ -431,7 +431,7 @@ export default function AdminDictionaryImport() {
                     }
                   }}
                   disabled={importingDict === 'pombo_abl'}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
                   size="lg"
                 >
                   {importingDict === 'pombo_abl' ? (
@@ -449,7 +449,7 @@ export default function AdminDictionaryImport() {
                 
                 <Button
                   onClick={() => navigate('/admin/dictionary-validation/rocha_pombo')}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
                   size="lg"
                   variant="outline"
                 >

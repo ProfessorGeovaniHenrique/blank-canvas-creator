@@ -196,7 +196,7 @@ export function TabEnrichmentJobs() {
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-blue-600">{stats.processing}</div>
+            <div className="text-2xl font-bold text-primary">{stats.processing}</div>
             <p className="text-xs text-muted-foreground">Processando</p>
           </CardContent>
         </Card>

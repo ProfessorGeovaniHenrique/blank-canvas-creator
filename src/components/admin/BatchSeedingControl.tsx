@@ -149,8 +149,8 @@ export function BatchSeedingControl({ semanticLexiconCount, status }: BatchSeedi
             </div>
             
             <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-              <div className="p-2 bg-blue-500/10 rounded text-center">
-                <p className="font-medium text-blue-600">Morfológico</p>
+              <div className="p-2 bg-primary/10 rounded text-center">
+                <p className="font-medium text-primary">Morfológico</p>
                 <p className="text-lg font-bold">{activeJob.morfologico_count}</p>
               </div>
               <div className="p-2 bg-green-500/10 rounded text-center">

@@ -67,7 +67,7 @@ export function TabStats({ totalSongs, totalArtists, avgConfidence }: TabStatsPr
           title="Total de Músicas"
           value={data.totalSongs.toLocaleString()}
           icon={Music}
-          color="text-blue-500"
+          color="text-primary"
         />
         <StatsCard
           title="Total de Artistas"

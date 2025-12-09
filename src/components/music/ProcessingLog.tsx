@@ -56,7 +56,7 @@ export function ProcessingLog({ entries, maxHeight = '400px' }: ProcessingLogPro
 
   const getTypeColor = (type: LogType) => {
     switch (type) {
-      case 'info': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'info': return 'bg-primary/10 text-primary border-primary/20';
       case 'success': return 'bg-green-500/10 text-green-500 border-green-500/20';
       case 'warning': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'error': return 'bg-destructive/10 text-destructive border-destructive/20';

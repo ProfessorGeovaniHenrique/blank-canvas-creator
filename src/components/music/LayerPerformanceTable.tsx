@@ -28,7 +28,7 @@ export function LayerPerformanceTable({ layerStats }: LayerPerformanceTableProps
   const getLayerBadge = (layer: string) => {
     const colors: Record<string, string> = {
       'youtube_description': 'bg-red-500/10 text-red-500 border-red-500/20',
-      'google_search_grounding': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+      'google_search_grounding': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
       'youtube_description+google_search_grounding': 'bg-purple-500/10 text-purple-500 border-purple-500/20',
       'gpt5_knowledge_base': 'bg-green-500/10 text-green-500 border-green-500/20',
       'gemini_knowledge_base': 'bg-orange-500/10 text-orange-500 border-orange-500/20',

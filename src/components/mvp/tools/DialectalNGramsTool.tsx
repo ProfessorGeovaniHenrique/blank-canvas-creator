@@ -83,7 +83,7 @@ const CATEGORIA_LABELS = {
 
 const TIPO_COLORS = {
   expressao_fixa: 'bg-purple-500/10 text-purple-700 border-purple-500/20',
-  colocacao_forte: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
+  colocacao_forte: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
   colocacao_media: 'bg-slate-500/10 text-slate-700 border-slate-500/20'
 };
 
@@ -198,7 +198,7 @@ export function DialectalNGramsTool() {
       { 
         name: 'Colocação Forte', 
         value: dialectalNGrams.filter(ng => ng.tipo === 'colocacao_forte').length,
-        fill: '#3b82f6'
+        fill: '#f59e0b'
       },
       { 
         name: 'Colocação Média', 
@@ -406,12 +406,12 @@ export function DialectalNGramsTool() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  <TrendingUp className="h-4 w-4 text-amber-600" />
                   Colocações Fortes
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-600">
+                <div className="text-3xl font-bold text-amber-600">
                   {stats.colocacoesFortes}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

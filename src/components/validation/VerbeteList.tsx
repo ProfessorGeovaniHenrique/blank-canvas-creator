@@ -26,7 +26,7 @@ interface VerbeteListProps {
 const statusColors: Record<ValidationStatus, string> = {
   pending: 'bg-yellow-500',
   approved: 'bg-green-500',
-  corrected: 'bg-blue-500',
+  corrected: 'bg-purple-500',
   rejected: 'bg-red-500',
 };
 

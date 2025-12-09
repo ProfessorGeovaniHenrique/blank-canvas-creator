@@ -46,10 +46,10 @@ export function MusicCatalogAlerts({
 
   return (
     <div className="space-y-4">
-      {/* Active Filters Alert */}
+      {/* Active Filters Alert - usando cores da paleta aprovada (amber) */}
       {hasActiveFilters && (
-        <Alert className="border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20">
-          <Filter className="h-4 w-4 text-blue-500" />
+        <Alert className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+          <Filter className="h-4 w-4 text-amber-600" />
           <AlertTitle>Filtros Ativos</AlertTitle>
           <AlertDescription>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

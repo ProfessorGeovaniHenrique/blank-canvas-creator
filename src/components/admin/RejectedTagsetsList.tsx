@@ -249,7 +249,7 @@ export function RejectedTagsetsList({
                             size="icon"
                             onClick={() => onRestore(tagset)}
                             title="Restaurar para validação"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
                           >
                             <RotateCcw className="h-4 w-4" />
                           </Button>
