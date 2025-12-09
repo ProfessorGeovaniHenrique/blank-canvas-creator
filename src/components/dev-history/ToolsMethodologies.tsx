@@ -38,7 +38,7 @@ const categoryIcons = {
 
 const categoryColors = {
   processamento: 'text-primary',
-  lexicon: 'text-blue-500',
+  lexicon: 'text-amber-500',
   corpus: 'text-green-500',
   visualizacao: 'text-purple-500',
   importacao: 'text-orange-500'
@@ -100,7 +100,7 @@ const ToolCard = ({ tool }: { tool: Tool }) => {
             <div className="text-xs text-muted-foreground mt-1">Acurácia</div>
           </div>
           <div className="p-3 bg-background border rounded-lg text-center">
-            <div className="text-2xl font-bold text-blue-500">{tool.reliability.precision}%</div>
+            <div className="text-2xl font-bold text-amber-500">{tool.reliability.precision}%</div>
             <div className="text-xs text-muted-foreground mt-1">Precisão</div>
           </div>
           <div className="p-3 bg-background border rounded-lg text-center">

@@ -25,7 +25,7 @@ export function AlertsPanel({ alerts, onDismiss, onMarkAsRead }: AlertsPanelProp
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'info':
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className="h-5 w-5 text-primary" />;
     }
   };
 
@@ -47,7 +47,7 @@ export function AlertsPanel({ alerts, onDismiss, onMarkAsRead }: AlertsPanelProp
       case 'warning':
         return 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800';
       case 'info':
-        return 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800';
+        return 'bg-muted border-border';
     }
   };
 

@@ -137,7 +137,7 @@ export function ArtistCard({
                 <Badge 
                   variant="outline" 
                   className="border-2 shrink-0"
-                  style={{ borderColor: corpusColor || '#3B82F6' }}
+                  style={{ borderColor: corpusColor || 'hsl(var(--primary))' }}
                 >
                   <Folder className="w-3 h-3 mr-1" />
                   {corpusName}

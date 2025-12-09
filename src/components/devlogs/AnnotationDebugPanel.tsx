@@ -60,7 +60,7 @@ export function AnnotationDebugPanel() {
 
   const getAuthStatusBadge = (authStatus: string) => {
     const colors: Record<string, string> = {
-      'demo': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+      'demo': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
       'authenticated': 'bg-green-500/10 text-green-600 border-green-500/20',
       'unauthorized': 'bg-red-500/10 text-red-600 border-red-500/20',
       'invalid_token': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
@@ -294,7 +294,7 @@ export function AnnotationDebugPanel() {
                           </TableCell>
                           <TableCell>
                             {log.demo_mode ? (
-                              <Badge variant="outline" className="bg-blue-500/10 text-blue-600">
+                              <Badge variant="outline" className="bg-purple-500/10 text-purple-600">
                                 <Shield className="w-3 h-3 mr-1" />
                                 Demo
                               </Badge>

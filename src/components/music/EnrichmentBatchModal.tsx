@@ -135,7 +135,7 @@ export function EnrichmentBatchModal({
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             Enriquecimento em Lote
-            {isProcessing && !isAbandoned && <Badge variant="default" className="bg-blue-500">Processando</Badge>}
+            {isProcessing && !isAbandoned && <Badge variant="default" className="bg-primary">Processando</Badge>}
             {isAbandoned && <Badge variant="destructive" className="animate-pulse">⚠️ Travado</Badge>}
             {isPaused && <Badge variant="secondary">Pausado</Badge>}
             {isCompleted && <Badge variant="default" className="bg-green-500">Concluído</Badge>}
@@ -317,15 +317,15 @@ export function EnrichmentBatchModal({
 
               {/* Info background processing */}
               {(isProcessing || isPaused) && (
-                <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg text-xs">
-                  <span className="text-blue-600">
+                <div className="flex items-center justify-between p-2 bg-primary/10 rounded-lg text-xs">
+                  <span className="text-primary">
                     Job continua em background ao fechar
                   </span>
                   <a 
                     href="/music-catalog?tab=enrichment" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-blue-600 hover:underline"
+                    className="flex items-center gap-1 text-primary hover:underline"
                   >
                     Ver Dashboard
                     <ExternalLink className="h-3 w-3" />

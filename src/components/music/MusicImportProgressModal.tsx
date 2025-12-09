@@ -173,7 +173,7 @@ export function MusicImportProgressModal({
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4 text-center space-y-2">
-                <Users className="h-5 w-5 mx-auto text-blue-500" />
+                <Users className="h-5 w-5 mx-auto text-purple-500" />
                 <div className="text-2xl font-bold">{simulatedArtists}</div>
                 <div className="text-xs text-muted-foreground">
                   {result ? 'Artistas Criados' : 'Criando...'}

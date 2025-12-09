@@ -336,10 +336,10 @@ export default function AdminMetrics() {
                   <CardTitle className="text-sm font-medium">
                     Convites Disponíveis
                   </CardTitle>
-                  <Key className="h-4 w-4 text-blue-500" />
+                  <Key className="h-4 w-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-500">
+                  <div className="text-2xl font-bold text-purple-500">
                     {metrics.activeInvites}
                   </div>
                   <p className="text-xs text-muted-foreground">
