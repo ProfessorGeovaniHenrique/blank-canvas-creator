@@ -4,6 +4,9 @@
  * 
  * Tour interativo para guiar professores/usuários
  * pelas funcionalidades do catálogo musical
+ * 
+ * CORREÇÃO: Adicionado waitForElement e beforeShowPromise
+ * para elementos dinâmicos que podem não estar no DOM
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -13,12 +16,49 @@ import 'shepherd.js/dist/css/shepherd.css';
 interface TourOptions {
   autoStart?: boolean;
   onComplete?: () => void;
+  onTabChange?: (tab: string) => void;
 }
 
 const TOUR_STORAGE_KEY = 'music_catalog_tour_completed';
 
+/**
+ * Helper para aguardar elemento aparecer no DOM
+ */
+const waitForElement = (selector: string, timeout = 3000): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Se já existe, retorna imediatamente
+    if (document.querySelector(selector)) {
+      return resolve(true);
+    }
+    
+    // Observar mudanças no DOM
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(selector)) {
+        observer.disconnect();
+        resolve(true);
+      }
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Timeout de segurança
+    setTimeout(() => {
+      observer.disconnect();
+      resolve(false);
+    }, timeout);
+  });
+};
+
+/**
+ * Verifica se elemento existe no DOM
+ */
+const elementExists = (selector: string): boolean => {
+  return !!document.querySelector(selector);
+};
+
 export function useMusicCatalogTour(options: TourOptions = {}) {
   const tourRef = useRef<typeof Shepherd.Tour.prototype | null>(null);
+  const { onTabChange } = options;
 
   useEffect(() => {
     const tour = new Shepherd.Tour({
@@ -32,7 +72,7 @@ export function useMusicCatalogTour(options: TourOptions = {}) {
       }
     });
 
-    // Passo 1: Boas-vindas
+    // Passo 1: Boas-vindas (sem elemento - sempre aparece)
     tour.addStep({
       id: 'welcome',
       title: '👋 Bem-vindo ao Catálogo Musical',
@@ -55,13 +95,14 @@ export function useMusicCatalogTour(options: TourOptions = {}) {
         <p class="mt-2">A busca oferece sugestões automáticas enquanto você digita!</p>
       `,
       attachTo: { element: '[data-tour="search-autocomplete"]', on: 'bottom' },
+      beforeShowPromise: () => waitForElement('[data-tour="search-autocomplete"]', 2000),
       buttons: [
         { text: 'Voltar', action: tour.back, secondary: true },
         { text: 'Próximo', action: tour.next }
       ]
     });
 
-    // Passo 3: Filtro Alfabético
+    // Passo 3: Filtro Alfabético (requer aba Artistas)
     tour.addStep({
       id: 'alphabet-filter',
       title: '🔤 Filtro Alfabético',
@@ -70,13 +111,25 @@ export function useMusicCatalogTour(options: TourOptions = {}) {
         <p class="mt-2">Use as teclas ← → para navegar e Enter para selecionar.</p>
       `,
       attachTo: { element: '[data-tour="alphabet-filter"]', on: 'bottom' },
+      beforeShowPromise: async () => {
+        // Mudar para aba Artistas se não estiver
+        onTabChange?.('artists');
+        // Aguardar elemento aparecer
+        const found = await waitForElement('[data-tour="alphabet-filter"]', 3000);
+        if (!found) {
+          // Se não encontrou, pular para próximo passo
+          tour.next();
+          return false;
+        }
+        return true;
+      },
       buttons: [
         { text: 'Voltar', action: tour.back, secondary: true },
         { text: 'Próximo', action: tour.next }
       ]
     });
 
-    // Passo 4: Cartão do Artista
+    // Passo 4: Cartão do Artista (requer aba Artistas com dados)
     tour.addStep({
       id: 'artist-card',
       title: '🎤 Cartão do Artista',
@@ -89,6 +142,24 @@ export function useMusicCatalogTour(options: TourOptions = {}) {
         </ul>
       `,
       attachTo: { element: '[data-tour="artist-card"]', on: 'right' },
+      beforeShowPromise: async () => {
+        // Garantir aba Artistas
+        onTabChange?.('artists');
+        const found = await waitForElement('[data-tour="artist-card"]', 3000);
+        if (!found) {
+          // Se não encontrou artistas, mostrar mensagem alternativa
+          return false;
+        }
+        return true;
+      },
+      when: {
+        show: () => {
+          // Verificar se elemento existe ao mostrar
+          if (!elementExists('[data-tour="artist-card"]')) {
+            tour.next();
+          }
+        }
+      },
       buttons: [
         { text: 'Voltar', action: tour.back, secondary: true },
         { text: 'Próximo', action: tour.next }
@@ -104,6 +175,14 @@ export function useMusicCatalogTour(options: TourOptions = {}) {
         <p class="mt-2">Lá você pode explorar domínios semânticos, estatísticas e visualizações!</p>
       `,
       attachTo: { element: '[data-tour="analyze-corpus-button"]', on: 'bottom' },
+      beforeShowPromise: () => waitForElement('[data-tour="analyze-corpus-button"]', 2000),
+      when: {
+        show: () => {
+          if (!elementExists('[data-tour="analyze-corpus-button"]')) {
+            tour.next();
+          }
+        }
+      },
       buttons: [
         { text: 'Voltar', action: tour.back, secondary: true },
         { text: 'Próximo', action: tour.next }
@@ -124,6 +203,7 @@ export function useMusicCatalogTour(options: TourOptions = {}) {
         </ul>
       `,
       attachTo: { element: '[data-tour="catalog-tabs"]', on: 'bottom' },
+      beforeShowPromise: () => waitForElement('[data-tour="catalog-tabs"]', 2000),
       buttons: [
         { text: 'Voltar', action: tour.back, secondary: true },
         { text: 'Finalizar', action: tour.complete }
@@ -136,21 +216,32 @@ export function useMusicCatalogTour(options: TourOptions = {}) {
       options.onComplete?.();
     });
 
+    // Evento de cancelamento também marca como visto
+    tour.on('cancel', () => {
+      localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+    });
+
     tourRef.current = tour;
 
     // Auto-start se solicitado e não foi completado antes
     if (options.autoStart) {
       const hasCompleted = localStorage.getItem(TOUR_STORAGE_KEY);
       if (!hasCompleted) {
-        // Aguardar elementos renderizarem
-        setTimeout(() => tour.start(), 1500);
+        // Aumentar delay para garantir que dados carregaram
+        setTimeout(() => {
+          // Verificar se pelo menos toolbar existe
+          if (elementExists('[data-tour="search-autocomplete"]') || 
+              elementExists('[data-tour="catalog-tabs"]')) {
+            tour.start();
+          }
+        }, 2500);
       }
     }
 
     return () => {
       tour.cancel();
     };
-  }, [options.autoStart, options.onComplete]);
+  }, [options.autoStart, options.onComplete, onTabChange]);
 
   const startTour = useCallback(() => {
     tourRef.current?.start();
