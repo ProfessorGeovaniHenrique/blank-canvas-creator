@@ -46,17 +46,6 @@ const log = createLogger('MusicCatalog');
 export default function MusicCatalog() {
   const { toast } = useToast();
   
-  // Sprint CAT-AUDIT-P3: Onboarding Tour
-  const { startTour, hasCompletedTour } = useMusicCatalogTour({ 
-    autoStart: true,
-    onComplete: () => {
-      toast({
-        title: "Tour concluído!",
-        description: "Agora você conhece as principais funcionalidades do catálogo.",
-      });
-    }
-  });
-  
   // Hook centralizado de estados
   const state = useMusicCatalogState();
   
@@ -69,6 +58,22 @@ export default function MusicCatalog() {
     handlers.convertToSongCard,
     handlers.hasSuspiciousData
   );
+
+  // Sprint CAT-AUDIT-P3: Onboarding Tour com sincronização de aba
+  const handleTourTabChange = useCallback((tab: string) => {
+    state.setView(tab as any);
+  }, [state]);
+  
+  const { startTour, hasCompletedTour } = useMusicCatalogTour({ 
+    autoStart: true,
+    onTabChange: handleTourTabChange,
+    onComplete: () => {
+      toast({
+        title: "Tour concluído!",
+        description: "Agora você conhece as principais funcionalidades do catálogo.",
+      });
+    }
+  });
 
   // Corpus options para filtros
   const corpusOptions = useMemo(() => state.corpora, [state.corpora]);
