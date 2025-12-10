@@ -16,18 +16,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ============ SPRINT STABILITY: CONSTANTES OTIMIZADAS PARA TIMEOUT ============
-// CHUNK_SIZE reduzido de 50 para 20 para garantir conclusão dentro do timeout de 240s
-// Com ~7.4s/música, 20 músicas = ~148s (seguro dentro do limite)
-const CHUNK_SIZE = 20;
+// ============ SPRINT AUDIT-FIX: CONSTANTES ULTRA-CONSERVADORAS PARA TIMEOUT ============
+// CHUNK_SIZE reduzido de 20 para 10 para GARANTIR conclusão dentro do timeout de 240s
+// Com ~7.4s/música + overhead, 10 músicas = ~100s (margem de segurança de 60%!)
+const CHUNK_SIZE = 10;
 const LOCK_TIMEOUT_MS = 90000; // 90 segundos para evitar race conditions
-const AUTO_INVOKE_DELAY_MS = 3000; // 3s entre chunks
+const AUTO_INVOKE_DELAY_MS = 2000; // 2s entre chunks (reduzido para agilizar)
 const ABANDONED_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos para considerar job abandonado
+const AUTO_INVOKE_RETRIES = 3; // Tentativas de auto-invocação
 
 // Rate Limit Adaptativo
-const PARALLEL_SONGS = 3; // Processar 3 músicas em paralelo
-const RATE_LIMIT_BASE_MS = 300; // Base: 300ms entre lotes
-const RATE_LIMIT_MAX_MS = 1500; // Máximo em caso de erros
+const PARALLEL_SONGS = 2; // Reduzido para 2 músicas em paralelo (mais seguro)
+const RATE_LIMIT_BASE_MS = 500; // Base: 500ms entre lotes (mais conservador)
+const RATE_LIMIT_MAX_MS = 2000; // Máximo em caso de erros
 const RATE_LIMIT_BACKOFF_FACTOR = 1.5; // Fator de aumento em erros
 const RATE_LIMIT_COOLDOWN_FACTOR = 0.9; // Fator de redução em sucesso
 const MAX_CONSECUTIVE_ERRORS = 5; // Pausa automática após 5 erros
@@ -305,33 +306,53 @@ async function enrichWithRetry(
   return lastResult;
 }
 
+/**
+ * SPRINT AUDIT-FIX: Auto-invocação com retry exponencial
+ * Garante que falhas transitórias não travem o job
+ */
 async function autoInvokeNextChunk(jobId: string, continueFrom: number): Promise<boolean> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-  try {
-    console.log(`[enrich-batch] Auto-invocando próximo chunk (índice ${continueFrom})...`);
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/enrich-songs-batch`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({ jobId, continueFrom }),
-    });
+  for (let attempt = 1; attempt <= AUTO_INVOKE_RETRIES; attempt++) {
+    try {
+      console.log(`[enrich-batch] Auto-invocação tentativa ${attempt}/${AUTO_INVOKE_RETRIES} (índice ${continueFrom})...`);
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/enrich-songs-batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ jobId, continueFrom }),
+      });
 
-    if (!response.ok) {
-      console.error(`[enrich-batch] Falha na auto-invocação: ${response.status}`);
-      return false;
+      if (response.ok) {
+        console.log(`[enrich-batch] ✅ Auto-invocação bem sucedida na tentativa ${attempt}`);
+        return true;
+      }
+      
+      const errorText = await response.text().catch(() => 'unknown');
+      console.warn(`[enrich-batch] ⚠️ Auto-invocação tentativa ${attempt} falhou: ${response.status} - ${errorText}`);
+      
+      // Delay exponencial entre tentativas
+      if (attempt < AUTO_INVOKE_RETRIES) {
+        const delayMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        console.log(`[enrich-batch] Aguardando ${delayMs}ms antes da próxima tentativa...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    } catch (err) {
+      console.error(`[enrich-batch] ❌ Exceção na auto-invocação tentativa ${attempt}:`, err);
+      
+      if (attempt < AUTO_INVOKE_RETRIES) {
+        const delayMs = 1000 * Math.pow(2, attempt - 1);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
-    
-    console.log(`[enrich-batch] Auto-invocação iniciada com sucesso`);
-    return true;
-  } catch (err) {
-    console.error(`[enrich-batch] Erro na auto-invocação:`, err);
-    return false;
   }
+  
+  console.error(`[enrich-batch] 🛑 Auto-invocação falhou após ${AUTO_INVOKE_RETRIES} tentativas`);
+  return false;
 }
 
 async function countTotalSongs(

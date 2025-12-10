@@ -421,14 +421,32 @@ export function TabArtistsTyped({
         </div>
       )}
 
+      {/* SPRINT AUDIT-FIX: Fallback de erro com ação de refresh */}
       {artists.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            {selectedLetter !== 'all' 
-              ? `Nenhum artista encontrado com a letra ${selectedLetter}`
-              : 'Nenhum artista encontrado'
-            }
-          </p>
+        <div className="text-center py-12 space-y-4">
+          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground" />
+          <div>
+            <p className="text-muted-foreground font-medium">
+              {selectedLetter !== 'all' 
+                ? `Nenhum artista encontrado com a letra ${selectedLetter}`
+                : 'Nenhum artista encontrado'
+              }
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedCorpusId 
+                ? 'Verifique se o corpus selecionado possui artistas cadastrados.'
+                : 'Importe músicas ou verifique os filtros aplicados.'}
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={onRefresh}
+            disabled={loading || isDataRefreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isDataRefreshing ? 'animate-spin' : ''}`} />
+            Recarregar Dados
+          </Button>
         </div>
       ) : (
         <>

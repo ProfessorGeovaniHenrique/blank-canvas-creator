@@ -1,12 +1,16 @@
 /**
  * Hook para dados filtrados do MusicCatalog
  * Sprint F2.1 - Refatoração
+ * Sprint AUDIT-FIX: Correção de filtro de artistas desaparecendo
  */
 
 import { useMemo, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Song } from '@/components/music/SongCard';
 import type { MusicCatalogState } from './useMusicCatalogState';
+import { createLogger } from '@/lib/loggerFactory';
+
+const log = createLogger('useFilteredData');
 
 export function useFilteredData(
   state: MusicCatalogState,
@@ -59,29 +63,57 @@ export function useFilteredData(
     });
   }, [state.songs, state.debouncedSearchQuery]);
 
-  // Filtered artists
+  // SPRINT AUDIT-FIX: Filtered artists com validação robusta
   const filteredArtists = useMemo(() => {
     let filtered = state.artistsWithStats;
     
-    if (state.selectedCorpusFilter !== 'all') {
+    // Debug logging
+    log.info('Filtering artists', { 
+      totalArtists: filtered.length, 
+      selectedCorpusFilter: state.selectedCorpusFilter,
+      selectedLetter: state.selectedLetter 
+    });
+    
+    // Filtro por corpus - CORRIGIDO: validar antes de aplicar
+    if (state.selectedCorpusFilter !== 'all' && state.selectedCorpusFilter) {
       if (state.selectedCorpusFilter === 'null') {
         filtered = filtered.filter(artist => !artist.corpus_id);
       } else {
-        filtered = filtered.filter(artist => artist.corpus_id === state.selectedCorpusFilter);
+        // SPRINT AUDIT-FIX: Verificar se o corpus existe nos artistas antes de filtrar
+        const corpusExists = filtered.some(a => a.corpus_id === state.selectedCorpusFilter);
+        
+        if (corpusExists) {
+          filtered = filtered.filter(artist => artist.corpus_id === state.selectedCorpusFilter);
+          log.info('Corpus filter applied', { corpusId: state.selectedCorpusFilter, remaining: filtered.length });
+        } else {
+          // Se corpus não existe, log warning e NÃO aplicar filtro (evitar zerar lista)
+          log.warn('Corpus filter ignored - corpus not found in artist data', { 
+            corpusId: state.selectedCorpusFilter,
+            availableCorpora: [...new Set(state.artistsWithStats.map(a => a.corpus_id).filter(Boolean))]
+          });
+        }
       }
     }
     
+    // Filtro por letra
     if (state.selectedLetter !== 'all') {
       filtered = filtered.filter(artist => 
         artist.name.charAt(0).toUpperCase() === state.selectedLetter
       );
     }
     
+    // Filtro por busca
     if (state.debouncedSearchQuery) {
       filtered = filtered.filter(artist =>
         artist.name.toLowerCase().includes(state.debouncedSearchQuery.toLowerCase())
       );
     }
+    
+    log.info('Filter result', { 
+      finalCount: filtered.length,
+      letter: state.selectedLetter,
+      search: state.debouncedSearchQuery 
+    });
     
     return filtered;
   }, [state.artistsWithStats, state.selectedLetter, state.debouncedSearchQuery, state.selectedCorpusFilter]);
