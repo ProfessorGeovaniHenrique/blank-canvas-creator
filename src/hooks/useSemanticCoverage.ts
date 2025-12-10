@@ -43,14 +43,14 @@ export interface CoverageQualityMetrics {
 
 interface UseSemanticCoverageOptions {
   corpusFilter?: string;
-  autoRefreshInterval?: number; // ms, default 30000
+  autoRefreshInterval?: number | false; // ms, false to disable, default false
   enabled?: boolean;
 }
 
 export function useSemanticCoverage(options: UseSemanticCoverageOptions = {}) {
   const { 
     corpusFilter, 
-    autoRefreshInterval = 30000,
+    autoRefreshInterval = false, // Desabilitado por padrão para evitar N+1 queries
     enabled = true 
   } = options;
   
@@ -120,8 +120,9 @@ export function useSemanticCoverage(options: UseSemanticCoverageOptions = {}) {
       return coverages;
     },
     enabled,
-    refetchInterval: autoRefreshInterval,
-    staleTime: 10000,
+    refetchInterval: autoRefreshInterval || undefined,
+    staleTime: 60000, // 1 minuto - dados mudam lentamente
+    gcTime: 300000,   // 5 minutos em cache
   });
 
   // Fetch artist coverage
@@ -206,8 +207,9 @@ export function useSemanticCoverage(options: UseSemanticCoverageOptions = {}) {
       return coverages.sort((a, b) => a.coveragePercent - b.coveragePercent);
     },
     enabled,
-    refetchInterval: autoRefreshInterval,
-    staleTime: 10000,
+    refetchInterval: autoRefreshInterval || undefined,
+    staleTime: 60000,
+    gcTime: 300000,
   });
 
   // Fetch quality metrics
@@ -239,8 +241,9 @@ export function useSemanticCoverage(options: UseSemanticCoverageOptions = {}) {
       };
     },
     enabled,
-    refetchInterval: autoRefreshInterval,
-    staleTime: 10000,
+    refetchInterval: autoRefreshInterval || undefined,
+    staleTime: 60000,
+    gcTime: 300000,
   });
 
   // Global coverage percentage

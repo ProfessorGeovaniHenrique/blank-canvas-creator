@@ -469,6 +469,33 @@ export function useEnrichmentJobsList() {
     }
   }, []);
 
+  // Ref para debounce do realtime
+  const lastRealtimeFetchRef = useRef<number>(0);
+  const pendingFetchRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch com debounce para realtime
+  const debouncedRealtimeFetch = useCallback(() => {
+    // Cancelar fetch pendente
+    if (pendingFetchRef.current) {
+      clearTimeout(pendingFetchRef.current);
+    }
+    
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastRealtimeFetchRef.current;
+    
+    // Se último fetch foi há menos de 2s, agendar para depois
+    if (timeSinceLastFetch < 2000) {
+      pendingFetchRef.current = setTimeout(() => {
+        lastRealtimeFetchRef.current = Date.now();
+        fetchJobs();
+      }, 2000 - timeSinceLastFetch);
+      return;
+    }
+    
+    lastRealtimeFetchRef.current = now;
+    fetchJobs();
+  }, [fetchJobs]);
+
   useEffect(() => {
     fetchJobs();
 
@@ -477,14 +504,17 @@ export function useEnrichmentJobsList() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'enrichment_jobs' },
-        () => fetchJobs()
+        debouncedRealtimeFetch
       )
       .subscribe();
 
     return () => {
+      if (pendingFetchRef.current) {
+        clearTimeout(pendingFetchRef.current);
+      }
       supabase.removeChannel(channel);
     };
-  }, [fetchJobs]);
+  }, [fetchJobs, debouncedRealtimeFetch]);
 
   return { jobs, isLoading, refetch: fetchJobs };
 }

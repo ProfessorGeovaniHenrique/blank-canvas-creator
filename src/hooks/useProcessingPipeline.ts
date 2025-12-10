@@ -3,7 +3,7 @@
  * Sprint 3: Pipeline Unificada
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -84,19 +84,54 @@ export function useProcessingPipeline(autoRefreshInterval = 5000) {
     }
   }, []);
 
-  // Auto-refresh
+  // Ref para controlar se já há jobs ativos (evita loop infinito)
+  const hasActiveJobRef = useRef(false);
+  const lastFetchRef = useRef<number>(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch com debounce
+  const debouncedFetch = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastFetchRef.current < 3000) return; // Skip se fetched há menos de 3s
+    lastFetchRef.current = now;
+    await fetchJobs();
+  }, [fetchJobs]);
+
+  // Fetch inicial apenas uma vez
   useEffect(() => {
     fetchJobs();
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-refresh controlado
+  useEffect(() => {
     const hasActiveJob = jobs.some(j => 
       j.status === 'processando' || j.status === 'pausado'
     );
 
-    if (hasActiveJob) {
-      const interval = setInterval(fetchJobs, autoRefreshInterval);
-      return () => clearInterval(interval);
+    // Só reconfigura interval se estado mudou
+    if (hasActiveJob !== hasActiveJobRef.current) {
+      hasActiveJobRef.current = hasActiveJob;
+      
+      // Limpar interval anterior
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      // Criar novo interval se há jobs ativos
+      if (hasActiveJob) {
+        intervalRef.current = setInterval(debouncedFetch, autoRefreshInterval);
+      }
     }
-  }, [fetchJobs, autoRefreshInterval, jobs.length]);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [jobs, autoRefreshInterval, debouncedFetch]);
 
   // Calcular progresso
   const progress = job 

@@ -4,7 +4,7 @@
  * Com monitoramento em tempo real (refresh 5s)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,24 +75,52 @@ const IDLE_REFRESH_INTERVAL = 30000;
 
 export function TabEnrichmentJobs() {
   const { jobs, isLoading, refetch } = useEnrichmentJobsList();
-  const { globalCoveragePercent } = useSemanticCoverage({ autoRefreshInterval: 60000 });
+  const { globalCoveragePercent } = useSemanticCoverage({ autoRefreshInterval: 120000 }); // 2 min
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [coverageOpen, setCoverageOpen] = useState(true);
 
-  // Jobs ativos (processando ou pausado)
-  const activeJobs = jobs.filter(j => ['processando', 'pausado'].includes(j.status));
+  // Refs para controle de interval
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasActiveJobsRef = useRef(false);
+
+  // Jobs ativos (processando ou pausado) - memoizado
+  const activeJobs = useMemo(() => 
+    jobs.filter(j => ['processando', 'pausado'].includes(j.status)),
+    [jobs]
+  );
   const hasActiveJobs = activeJobs.length > 0;
 
-  // Auto-refresh com intervalo dinâmico
+  // Refetch memoizado
+  const stableRefetch = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // Auto-refresh com controle para evitar re-creates
   useEffect(() => {
-    const interval = setInterval(
-      refetch, 
-      hasActiveJobs ? ACTIVE_REFRESH_INTERVAL : IDLE_REFRESH_INTERVAL
-    );
-    return () => clearInterval(interval);
-  }, [hasActiveJobs, refetch]);
+    // Só reconfigura interval se estado mudou
+    if (hasActiveJobs !== hasActiveJobsRef.current) {
+      hasActiveJobsRef.current = hasActiveJobs;
+      
+      // Limpar interval anterior
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      // Criar novo interval
+      const newInterval = hasActiveJobs ? ACTIVE_REFRESH_INTERVAL : IDLE_REFRESH_INTERVAL;
+      intervalRef.current = setInterval(stableRefetch, newInterval);
+    }
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [hasActiveJobs, stableRefetch]);
 
   // Filtrar jobs
   const filteredJobs = jobs.filter(job => {
