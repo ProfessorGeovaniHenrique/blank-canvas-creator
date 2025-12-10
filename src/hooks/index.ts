@@ -17,6 +17,8 @@ export { useFeatureAccess } from './useFeatureAccess';
 export { useEnrichmentJob, useEnrichmentJobsList, useOrphanedEnrichmentJobs } from './useEnrichmentJob';
 export { useProcessingPipeline } from './useProcessingPipeline';
 export { useActiveJobs } from './useActiveJobs';
+export { useEnrichmentHeartbeat } from './useEnrichmentHeartbeat';
+export { useEnrichmentLiveMetrics } from './useEnrichmentLiveMetrics';
 
 // Music Catalog
 export { useCatalogData } from './useCatalogData';

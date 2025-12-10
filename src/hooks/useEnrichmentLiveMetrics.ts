@@ -62,6 +62,7 @@ export function useEnrichmentLiveMetrics(options: UseEnrichmentLiveMetricsOption
   const [isLoading, setIsLoading] = useState(true);
   const [totalRemaining, setTotalRemaining] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastFetchRef = useRef<number>(0);
   
   const fetchMetrics = useCallback(async () => {
     if (!enabled) return;
@@ -170,12 +171,29 @@ export function useEnrichmentLiveMetrics(options: UseEnrichmentLiveMetricsOption
     }
   }, [enabled, jobId]);
   
-  // Setup do intervalo
+  // Fetch com debounce
+  const debouncedFetch = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastFetchRef.current < 3000) return;
+    lastFetchRef.current = now;
+    await fetchMetrics();
+  }, [fetchMetrics]);
+
+  // Setup do intervalo com controle
   useEffect(() => {
-    if (enabled) {
-      fetchMetrics();
-      intervalRef.current = setInterval(fetchMetrics, refreshInterval);
+    // Limpar interval anterior
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
+
+    if (!enabled) return;
+
+    // Fetch inicial
+    fetchMetrics();
+    
+    // Criar novo interval
+    intervalRef.current = setInterval(debouncedFetch, refreshInterval);
     
     return () => {
       if (intervalRef.current) {
@@ -183,7 +201,7 @@ export function useEnrichmentLiveMetrics(options: UseEnrichmentLiveMetricsOption
         intervalRef.current = null;
       }
     };
-  }, [enabled, refreshInterval, fetchMetrics]);
+  }, [enabled, refreshInterval, debouncedFetch, fetchMetrics]);
   
   // Formatar ETA para exibição
   const formatEta = useCallback((minutes: number | null) => {
