@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMVStats, parseActiveJobs, type ActiveJob } from '@/lib/schemas/pipelineStatsSchema';
+import { useSmartPolling } from './useSmartPolling';
 
 export interface PipelineStats {
   cacheStats: {
@@ -27,7 +28,13 @@ export interface PipelineStats {
 }
 
 export function useSemanticPipelineStats() {
-  return useQuery({
+  // Smart polling - pauses when tab not visible
+  const { pollingInterval, isTabVisible, shouldPoll, togglePolling, isManuallyPaused } = useSmartPolling({
+    interval: 30000,
+    resumeDelay: 1000
+  });
+
+  const query = useQuery({
     queryKey: ['semantic-pipeline-stats'],
     queryFn: async (): Promise<PipelineStats> => {
       // 1. Fetch aggregated stats from materialized view (single row, <100ms)
@@ -91,8 +98,20 @@ export function useSemanticPipelineStats() {
         activeJobs
       };
     },
-    refetchInterval: 30000, // Refresh every 30s
+    refetchInterval: pollingInterval, // Smart polling - false when tab hidden
+    refetchOnWindowFocus: true, // Immediate refresh when tab becomes visible
   });
+
+  return {
+    ...query,
+    // Expose polling state for UI indicators
+    pollingState: {
+      isTabVisible,
+      shouldPoll,
+      togglePolling,
+      isManuallyPaused
+    }
+  };
 }
 
 // Hook para forçar refresh da MV

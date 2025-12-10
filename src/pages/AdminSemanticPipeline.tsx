@@ -1,9 +1,13 @@
 import { useState, lazy, Suspense } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, Database, AlertTriangle, TrendingUp, TestTube, BookOpen, Loader2, Award } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Activity, Database, AlertTriangle, TrendingUp, TestTube, BookOpen, Loader2, Award, ExternalLink, Bell, Pause, Play } from 'lucide-react';
 import { useSemanticPipelineStats } from '@/hooks/useSemanticPipelineStats';
+import { useAnomalyAlerts } from '@/hooks/useAnomalyAlerts';
 import { SemanticDomainChart } from '@/components/admin/SemanticDomainChart';
 import { AnnotationJobsTable } from '@/components/admin/AnnotationJobsTable';
 import { NCCurationPanel } from '@/components/admin/NCCurationPanel';
@@ -16,13 +20,17 @@ import { SectionErrorBoundary } from '@/components/admin/SectionErrorBoundary';
 import { MetricCardWithTooltip } from '@/components/admin/MetricCardWithTooltip';
 import { CollapsibleSection } from '@/components/admin/CollapsibleSection';
 import { PIPELINE_METRIC_DEFINITIONS } from '@/lib/pipelineMetricDefinitions';
+import { cn } from '@/lib/utils';
 
 // Lazy load heavy component
 const SemanticLexiconPanel = lazy(() => import('@/components/admin/SemanticLexiconPanel').then(m => ({ default: m.SemanticLexiconPanel })));
 
 export default function AdminSemanticPipeline() {
-  const { data: stats, isLoading, refetch } = useSemanticPipelineStats();
+  const { data: stats, isLoading, refetch, pollingState } = useSemanticPipelineStats();
+  const { criticalCount, warningCount } = useAnomalyAlerts();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  const totalAlerts = criticalCount + warningCount;
 
   if (isLoading) {
     return (
@@ -65,19 +73,117 @@ export default function AdminSemanticPipeline() {
   const defs = PIPELINE_METRIC_DEFINITIONS;
 
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Pipeline de Anotação Semântica</h1>
-          <p className="text-muted-foreground">
-            Monitoramento em tempo real do sistema de classificação semântica
-          </p>
+    <TooltipProvider>
+      <div className="min-h-screen bg-background p-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Pipeline de Anotação Semântica</h1>
+            <p className="text-muted-foreground">
+              Monitoramento em tempo real do sistema de classificação semântica
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Polling Status Indicator */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={pollingState.togglePolling}
+                  className={cn(
+                    "gap-2 transition-colors",
+                    pollingState.shouldPoll 
+                      ? "border-green-500/50 text-green-600 hover:bg-green-500/10" 
+                      : "border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                  )}
+                >
+                  {pollingState.shouldPoll ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <Play className="w-3 h-3" />
+                      <span className="hidden sm:inline">Auto-refresh</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <Pause className="w-3 h-3" />
+                      <span className="hidden sm:inline">
+                        {pollingState.isManuallyPaused ? 'Pausado' : 'Tab oculta'}
+                      </span>
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {pollingState.shouldPoll 
+                    ? 'Auto-refresh ativo (30s). Clique para pausar.' 
+                    : pollingState.isManuallyPaused 
+                      ? 'Pausado manualmente. Clique para retomar.'
+                      : 'Pausado (tab não visível). Será retomado ao voltar.'}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Alerts Badge */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/admin/metrics-realtime?tab=alerts">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "gap-2 relative",
+                      totalAlerts > 0 && criticalCount > 0 && "border-destructive/50 text-destructive",
+                      totalAlerts > 0 && criticalCount === 0 && "border-amber-500/50 text-amber-600"
+                    )}
+                  >
+                    <Bell className="w-4 h-4" />
+                    {totalAlerts > 0 && (
+                      <Badge 
+                        variant={criticalCount > 0 ? "destructive" : "secondary"}
+                        className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                      >
+                        {totalAlerts}
+                      </Badge>
+                    )}
+                    <span className="hidden sm:inline">Alertas</span>
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {totalAlerts === 0 
+                    ? 'Nenhum alerta ativo' 
+                    : `${criticalCount} críticos, ${warningCount} avisos`}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Link to Throughput Dashboard */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/admin/metrics-realtime?tab=throughput">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="hidden sm:inline">Métricas Realtime</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Ver dashboard de throughput e métricas detalhadas</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* System Status Badge */}
+            <Badge variant={systemStatus.variant} className="text-lg px-4 py-2">
+              {systemStatus.label}
+            </Badge>
+          </div>
         </div>
-        <Badge variant={systemStatus.variant} className="text-lg px-4 py-2">
-          {systemStatus.label}
-        </Badge>
-      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -301,9 +407,22 @@ export default function AdminSemanticPipeline() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Auto-Refresh</span>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    Ativo (30s)
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "flex items-center gap-1",
+                      pollingState.shouldPoll ? "text-green-600" : "text-amber-600"
+                    )}
+                  >
+                    <span className={cn(
+                      "w-2 h-2 rounded-full",
+                      pollingState.shouldPoll ? "bg-green-500 animate-pulse" : "bg-amber-500"
+                    )} />
+                    {pollingState.shouldPoll 
+                      ? 'Ativo (30s)' 
+                      : pollingState.isManuallyPaused 
+                        ? 'Pausado' 
+                        : 'Tab oculta'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
@@ -323,6 +442,21 @@ export default function AdminSemanticPipeline() {
                   <span className="text-sm font-medium">
                     {stats.cacheStats.geminiPercentage.toFixed(1)}%
                   </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Alertas Ativos</span>
+                  <Badge variant={totalAlerts > 0 ? (criticalCount > 0 ? 'destructive' : 'secondary') : 'outline'}>
+                    {totalAlerts === 0 ? 'Nenhum' : `${criticalCount} críticos, ${warningCount} avisos`}
+                  </Badge>
+                </div>
+                <div className="pt-2 border-t">
+                  <Link to="/admin/metrics-realtime?tab=throughput">
+                    <Button variant="outline" size="sm" className="w-full gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      Ver Métricas Detalhadas
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </CollapsibleSection>
@@ -369,5 +503,6 @@ export default function AdminSemanticPipeline() {
         </TabsContent>
       </Tabs>
     </div>
+    </TooltipProvider>
   );
 }
