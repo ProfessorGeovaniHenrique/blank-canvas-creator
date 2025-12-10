@@ -1,7 +1,7 @@
 /**
  * MusicCatalog - Componente principal refatorado
  * Sprint F2.1 - Reduzido de 1830 para ~350 linhas
- * Sprint CAT-AUDIT-P1 - Breadcrumb + integração com análise
+ * Sprint CAT-AUDIT-P1 - Breadcrumb + integração com análise + ErrorBoundary + Seções de abas
  * Sprint CAT-AUDIT-P3 - Onboarding Shepherd.js
  */
 
@@ -17,7 +17,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMusicCatalogTour } from '@/hooks/useMusicCatalogTour';
-import { Sparkles, Briefcase, FlaskConical, Copy, HelpCircle } from 'lucide-react';
+import { Sparkles, Briefcase, FlaskConical, Copy, HelpCircle, Music, BarChart3 } from 'lucide-react';
+import { TabErrorBoundary } from '@/components/ui/tab-error-boundary';
 
 // Hooks refatorados
 import { 
@@ -34,7 +35,7 @@ import {
   CatalogStatsOverview,
   CatalogBreadcrumb,
   TabSongs,
-  TabArtists,
+  TabArtistsTyped,
   TabStats,
   TabMetrics,
   TabValidation,
@@ -260,26 +261,53 @@ export default function MusicCatalog() {
         <CatalogStatsOverview />
 
         <Tabs value={state.view} onValueChange={(v) => state.setView(v as any)} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <TabsList data-tour="catalog-tabs">
-              <TabsTrigger value="songs">Músicas</TabsTrigger>
-              <TabsTrigger value="artists">
-                Artistas {state.selectedLetter !== 'all' && `(${state.selectedLetter})`}
-              </TabsTrigger>
-              <TabsTrigger value="enrichment-jobs" className="flex items-center gap-1">
-                <Briefcase className="h-3 w-3" />
-                Enriquecimento
-              </TabsTrigger>
-              <TabsTrigger value="stats">Estatísticas</TabsTrigger>
-              <TabsTrigger value="metrics">Métricas</TabsTrigger>
-              <TabsTrigger value="validation" className="flex items-center gap-1">
-                <FlaskConical className="h-3 w-3" />
-                Validação
-              </TabsTrigger>
-              <TabsTrigger value="deduplication" className="flex items-center gap-1">
-                <Copy className="h-3 w-3" />
-                Deduplicação
-              </TabsTrigger>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            {/* TabsList com 3 seções agrupadas visualmente */}
+            <TabsList data-tour="catalog-tabs" className="flex flex-wrap gap-1 h-auto p-1">
+              {/* GRUPO 1: Catálogo */}
+              <div className="flex items-center gap-1 border-r border-border/50 pr-2 mr-1">
+                <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-wider hidden sm:inline">
+                  <Music className="h-3 w-3 inline mr-0.5" />
+                  Catálogo
+                </span>
+                <TabsTrigger value="songs" className="text-xs">Músicas</TabsTrigger>
+                <TabsTrigger value="artists" className="text-xs">
+                  Artistas {state.selectedLetter !== 'all' && `(${state.selectedLetter})`}
+                </TabsTrigger>
+              </div>
+              
+              {/* GRUPO 2: Pipeline */}
+              <div className="flex items-center gap-1 border-r border-border/50 pr-2 mr-1">
+                <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-wider hidden sm:inline">
+                  <Sparkles className="h-3 w-3 inline mr-0.5" />
+                  Pipeline
+                </span>
+                <TabsTrigger value="enrichment-jobs" className="flex items-center gap-1 text-xs">
+                  <Briefcase className="h-3 w-3" />
+                  <span className="hidden md:inline">Enriquecimento</span>
+                  <span className="md:hidden">Enrich</span>
+                </TabsTrigger>
+                <TabsTrigger value="validation" className="flex items-center gap-1 text-xs">
+                  <FlaskConical className="h-3 w-3" />
+                  <span className="hidden md:inline">Validação</span>
+                  <span className="md:hidden">Valid</span>
+                </TabsTrigger>
+                <TabsTrigger value="deduplication" className="flex items-center gap-1 text-xs">
+                  <Copy className="h-3 w-3" />
+                  <span className="hidden md:inline">Deduplicação</span>
+                  <span className="md:hidden">Dedup</span>
+                </TabsTrigger>
+              </div>
+              
+              {/* GRUPO 3: Analytics */}
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-wider hidden sm:inline">
+                  <BarChart3 className="h-3 w-3 inline mr-0.5" />
+                  Analytics
+                </span>
+                <TabsTrigger value="stats" className="text-xs">Estatísticas</TabsTrigger>
+                <TabsTrigger value="metrics" className="text-xs">Métricas</TabsTrigger>
+              </div>
             </TabsList>
             
             {/* Botão para reiniciar tour */}
@@ -295,88 +323,103 @@ export default function MusicCatalog() {
             </Button>
           </div>
 
+          {/* TabsContent com ErrorBoundary em cada aba */}
           <TabsContent value="songs">
-            <TabSongs
-              songs={filteredSongs}
-              loading={state.loading}
-              viewMode={state.viewMode}
-              searchQuery={state.searchQuery}
-              enrichingIds={state.enrichingIds}
-              onEnrich={handlers.handleEnrichSongUI}
-              onReEnrich={handlers.handleReEnrichSong}
-              onMarkReviewed={handlers.handleMarkReviewed}
-              onDelete={handlers.handleDeleteSong}
-              onEdit={handlers.handleEditSong}
-            />
+            <TabErrorBoundary tabName="Músicas" onRetry={state.reload}>
+              <TabSongs
+                songs={filteredSongs}
+                loading={state.loading}
+                viewMode={state.viewMode}
+                searchQuery={state.searchQuery}
+                enrichingIds={state.enrichingIds}
+                onEnrich={handlers.handleEnrichSongUI}
+                onReEnrich={handlers.handleReEnrichSong}
+                onMarkReviewed={handlers.handleMarkReviewed}
+                onDelete={handlers.handleDeleteSong}
+                onEdit={handlers.handleEditSong}
+              />
+            </TabErrorBoundary>
           </TabsContent>
 
           <TabsContent value="artists">
-            <TabArtists
-              artists={filteredArtists}
-              paginatedArtists={paginatedArtists}
-              allSongs={state.allSongs}
-              loading={state.catalogLoading}
-              isDataRefreshing={state.isDataRefreshing}
-              selectedLetter={state.selectedLetter}
-              onLetterChange={state.setSelectedLetter}
-              pendingCountForLetter={state.pendingCountForLetter}
-              enrichingByLetter={state.enrichingByLetter}
-              onEnrichByLetter={handleEnrichByLetter}
-              currentPage={state.currentArtistPage}
-              totalPages={totalArtistPages}
-              onPageChange={state.setCurrentArtistPage}
-              totalSongs={state.catalogStats?.totalSongs || 0}
-              artistStatsOverrides={state.artistStatsOverrides}
-              onRefresh={() => state.reloadWithDelay(500)}
-              onViewArtistDetails={(artistId) => {
-                state.setSelectedArtistId(artistId);
-                state.setIsSheetOpen(true);
-              }}
-              onOpenEnrichmentModal={(songs, artistId) => {
-                state.setSongsToEnrich(songs);
-                state.setSelectedArtistId(artistId);
-                state.setIsEnrichmentModalOpen(true);
-              }}
-              onDeleteArtist={handleArtistDelete}
-              onAnnotateArtist={state.annotateArtist}
-              isAnnotatingArtist={state.isAnnotatingArtist}
-              reload={state.reload}
-              selectedCorpusId={state.selectedCorpusFilter !== 'all' ? state.selectedCorpusFilter : undefined}
-              selectedCorpusName={
-                state.selectedCorpusFilter !== 'all'
-                  ? corpusOptions.find(c => c.id === state.selectedCorpusFilter)?.name
-                  : undefined
-              }
-            />
+            <TabErrorBoundary tabName="Artistas" onRetry={state.reload}>
+              <TabArtistsTyped
+                artists={filteredArtists}
+                paginatedArtists={paginatedArtists}
+                allSongs={state.allSongs}
+                loading={state.catalogLoading}
+                isDataRefreshing={state.isDataRefreshing}
+                selectedLetter={state.selectedLetter}
+                onLetterChange={state.setSelectedLetter}
+                pendingCountForLetter={state.pendingCountForLetter}
+                enrichingByLetter={state.enrichingByLetter}
+                onEnrichByLetter={handleEnrichByLetter}
+                currentPage={state.currentArtistPage}
+                totalPages={totalArtistPages}
+                onPageChange={state.setCurrentArtistPage}
+                totalSongs={state.catalogStats?.totalSongs || 0}
+                artistStatsOverrides={state.artistStatsOverrides}
+                onRefresh={() => state.reloadWithDelay(500)}
+                onViewArtistDetails={(artistId) => {
+                  state.setSelectedArtistId(artistId);
+                  state.setIsSheetOpen(true);
+                }}
+                onOpenEnrichmentModal={(songs, artistId) => {
+                  state.setSongsToEnrich(songs);
+                  state.setSelectedArtistId(artistId);
+                  state.setIsEnrichmentModalOpen(true);
+                }}
+                onDeleteArtist={handleArtistDelete}
+                onAnnotateArtist={state.annotateArtist}
+                isAnnotatingArtist={state.isAnnotatingArtist}
+                reload={state.reload}
+                selectedCorpusId={state.selectedCorpusFilter !== 'all' ? state.selectedCorpusFilter : undefined}
+                selectedCorpusName={
+                  state.selectedCorpusFilter !== 'all'
+                    ? corpusOptions.find(c => c.id === state.selectedCorpusFilter)?.name
+                    : undefined
+                }
+              />
+            </TabErrorBoundary>
           </TabsContent>
 
           <TabsContent value="enrichment-jobs">
-            <TabEnrichmentJobsRefactored />
+            <TabErrorBoundary tabName="Enriquecimento" onRetry={state.reload}>
+              <TabEnrichmentJobsRefactored />
+            </TabErrorBoundary>
           </TabsContent>
 
           <TabsContent value="stats">
-            <TabStats 
-              totalSongs={state.catalogStats?.totalSongs || 0}
-              totalArtists={state.catalogStats?.totalArtists || 0}
-              avgConfidence={state.catalogStats?.avgConfidence || 0}
-            />
+            <TabErrorBoundary tabName="Estatísticas" onRetry={state.reload}>
+              <TabStats 
+                totalSongs={state.catalogStats?.totalSongs || 0}
+                totalArtists={state.catalogStats?.totalArtists || 0}
+                avgConfidence={state.catalogStats?.avgConfidence || 0}
+              />
+            </TabErrorBoundary>
           </TabsContent>
 
           <TabsContent value="metrics">
-            <TabMetrics
-              metrics={state.enrichmentMetrics}
-              loading={state.metricsLoading}
-              onRefresh={state.refetchMetrics}
-              onExportReport={handlers.handleExportReport}
-            />
+            <TabErrorBoundary tabName="Métricas" onRetry={state.refetchMetrics}>
+              <TabMetrics
+                metrics={state.enrichmentMetrics}
+                loading={state.metricsLoading}
+                onRefresh={state.refetchMetrics}
+                onExportReport={handlers.handleExportReport}
+              />
+            </TabErrorBoundary>
           </TabsContent>
 
           <TabsContent value="validation">
-            <TabValidation />
+            <TabErrorBoundary tabName="Validação" onRetry={state.reload}>
+              <TabValidation />
+            </TabErrorBoundary>
           </TabsContent>
 
           <TabsContent value="deduplication">
-            <TabDeduplication />
+            <TabErrorBoundary tabName="Deduplicação" onRetry={state.reload}>
+              <TabDeduplication />
+            </TabErrorBoundary>
           </TabsContent>
         </Tabs>
 
