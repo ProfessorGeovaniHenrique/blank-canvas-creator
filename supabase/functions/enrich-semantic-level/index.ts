@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
+import { 
+  generateDomainPromptSection, 
+  isValidTagset, 
+  loadActiveTagsets 
+} from "../_shared/tagset-loader.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,6 +49,10 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY não configurado');
     }
 
+    // 🆕 Carregar domínios DINAMICAMENTE do banco de dados
+    const dynamicDomains = await generateDomainPromptSection();
+    console.log('[enrich-semantic-level] Domínios carregados dinamicamente do banco');
+
     // Preparar prompt para batch de palavras N1 → N2
     const palavrasList = palavras.map((p, i) => {
       return `${i + 1}. Palavra: "${p.palavra}" | Domínio Atual: ${p.tagset_n1} | Contexto: "${p.contexto}"`;
@@ -51,60 +60,14 @@ serve(async (req) => {
 
     const prompt = `Você é um especialista em análise semântica. Estas palavras foram classificadas em domínios N1 (genéricos). Sua tarefa é especificar qual SUBDOMÍNIO N2 melhor se aplica.
 
-**SUBDOMÍNIOS N2 DISPONÍVEIS (CÓDIGOS ATUALIZADOS):**
+**DOMÍNIOS SEMÂNTICOS (CARREGADOS DO BANCO DE DADOS):**
+${dynamicDomains}
 
-**Ações e Processos (AC):**
-- AC.MD (Movimento): andar, correr, pular, cavalgar, caminhar
-- AC.MI (Manipulação): pegar, segurar, empurrar, abrir, fechar
-- AC.TR (Transformação): construir, quebrar, criar, limpar, cortar
-- AC.PS (Percepção): olhar, ver, escutar, cheirar, sentir, provar
-- AC.EC (Expressão): falar, cantar, gritar, sussurrar, acenar
-
-**Atividades e Práticas (AP):**
-- AP.TRA (Trabalho/Economia): plantar, colher, tropeiro, peão, vender
-- AP.ALI (Alimentação): chimarrão, churrasco, mate, cuia, cozinhar
-- AP.VES (Vestuário): bombacha, bota, poncho, pilcha, vestir
-- AP.LAZ (Lazer): festa, fandango, rodeio, dança, futebol
-- AP.DES (Transporte): cavalgar, viajar, tropear, rota
-
-**Cultura e Conhecimento (CC):**
-- CC.ART (Arte): poesia, música, verso, canção, pintura
-- CC.EDU (Educação): estudar, escola, professor, ensinar
-- CC.REL (Religiosidade): Deus, fé, reza, alma, igreja
-- CC.COM (Comunicação): conversa, mensagem, notícia, jornal
-
-**Natureza (NA):**
-- NA.FA (Fauna): cavalo, gado, pássaro, bagual, boi
-- NA.FL (Flora): árvore, flor, erva, mato, planta
-- NA.GE (Geografia): campo, pampa, coxilha, rio, várzea, serra
-- NA.FN (Fenômenos Naturais): chuva, vento, tempestade, neve
-- NA.EC (Elementos Celestes): sol, lua, estrela, céu
-
-**Sentimentos (SE):**
-- SE.ALE (Alegria): alegria, felicidade, esperança, contentamento
-- SE.AMO (Amor): amor, paixão, carinho, afeto
-- SE.TRI (Tristeza): tristeza, saudade, nostalgia, melancolia, dor
-- SE.MED (Medo): medo, temor, receio, pavor
-- SE.RAI (Raiva): raiva, ódio, ira, frustração
-
-**Saúde e Bem-Estar (SB):**
-- SB.DOE (Doenças): gripe, febre, dor física, ferida
-- SB.TRA (Tratamentos): remédio, hospital, médico, cirurgia
-- SB.BEM (Bem-Estar): exercício, dieta, descanso, higiene
-- SB.MEN (Saúde Mental): depressão, ansiedade, memória
-
-**Sociedade e Política (SP):**
-- SP.GOV (Governo): democracia, ministério, eleição, imposto
-- SP.LEI (Lei/Justiça): lei, crime, polícia, prisão, julgamento
-- SP.POL (Processos Políticos): voto, protesto, cidadania
-
-**Abstrações (AB):**
-- AB.FIL (Filosofia/Ética): liberdade, justiça, verdade, virtude
-- AB.SOC (Social/Político): poder, direito, paz, democracia
-- AB.EXI (Existencial): destino, vida, morte, sonho, eternidade
-- AB.LOG (Lógico): lógica, razão, proporção, infinito
-
-**REGRA:** Se nenhum N2 se aplica claramente, retorne o código N1 original. Se N2 se aplica, retorne o código completo (ex: "SE.TRI", "NA.FA").
+**REGRAS CRÍTICAS:**
+1. Retorne APENAS códigos que existam na lista acima
+2. Se nenhum N2 se aplica claramente, retorne o código N1 original
+3. Se N2 se aplica, retorne o código completo (ex: "SE.TRI", "NA.FA")
+4. NÃO invente códigos - use apenas os listados
 
 **PALAVRAS PARA ENRIQUECER:**
 ${palavrasList}
@@ -126,7 +89,7 @@ ${palavrasList}
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'Você é um classificador semântico preciso. Retorne APENAS JSON array válido.' },
+          { role: 'system', content: 'Você é um classificador semântico preciso. Retorne APENAS JSON array válido com códigos existentes.' },
           { role: 'user', content: prompt },
         ],
       }),
@@ -169,11 +132,22 @@ ${palavrasList}
       }
     }
 
-    // Atualizar cache com códigos N2 enriquecidos
+    // 🆕 VALIDAÇÃO: Verificar se tagsets retornados existem no banco
     let updatedCount = 0;
+    let invalidCount = 0;
+    
     for (const result of results) {
       if (result.tagset_n2 && result.tagset_n2.includes('.')) {
-        // Apenas atualizar se realmente mudou para N2
+        // Validar se o código existe no banco
+        const isValid = await isValidTagset(result.tagset_n2);
+        
+        if (!isValid) {
+          console.warn(`[enrich-semantic-level] Código inválido rejeitado: ${result.tagset_n2} para "${result.palavra}"`);
+          invalidCount++;
+          continue; // Pular códigos inválidos
+        }
+        
+        // Apenas atualizar se realmente mudou para N2 válido
         const { error } = await supabaseClient
           .from('semantic_disambiguation_cache')
           .update({
@@ -189,13 +163,14 @@ ${palavrasList}
       }
     }
 
-    console.log(`[enrich-semantic-level] Concluído: ${updatedCount}/${results.length} palavras enriquecidas para N2`);
+    console.log(`[enrich-semantic-level] Concluído: ${updatedCount}/${results.length} palavras enriquecidas para N2 (${invalidCount} códigos inválidos rejeitados)`);
 
     return new Response(
       JSON.stringify({
         success: true,
         resultados: results,
         updatedCount,
+        invalidTagsetsRejected: invalidCount,
         processingTime: Date.now() - startTime,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

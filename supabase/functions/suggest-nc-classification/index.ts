@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadActiveTagsets, isValidTagset, getN2Tagsets } from "../_shared/tagset-loader.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,17 +23,67 @@ interface NCSuggestion {
   fonte: 'dialectal_lexicon' | 'ai_gemini' | 'pattern_match';
 }
 
-// Padrões conhecidos para classificação automática
-const PATTERN_RULES: { pattern: RegExp; tagset: string; nome: string; confianca: number }[] = [
-  // Interjeições gaúchas
-  { pattern: /^(iê|ité|tchê|bah|eita|uai|opa|oxe|vixe|arretado)$/i, tagset: 'MG.INT', nome: 'Interjeição', confianca: 0.88 },
-  // Sufixos diminutivos típicos
-  { pattern: /inho$|inha$|zinho$|zinha$/i, tagset: 'MG.SF', nome: 'Sufixo (Diminutivo)', confianca: 0.75 },
-  // Verbos no gerúndio
-  { pattern: /ando$|endo$|indo$/i, tagset: 'MG.VB', nome: 'Verbo (Gerúndio)', confianca: 0.70 },
-  // Advérbios típicos
-  { pattern: /mente$/i, tagset: 'MG.ADV', nome: 'Advérbio', confianca: 0.80 },
+/**
+ * 🆕 Padrões conhecidos para classificação automática
+ * Códigos serão validados contra banco de dados em runtime
+ */
+const PATTERN_RULES_RAW = [
+  // Interjeições gaúchas → MG (será validado se MG existe)
+  { pattern: /^(iê|ité|tchê|bah|eita|uai|opa|oxe|vixe|arretado)$/i, tagset: 'MG', nome: 'Marcadores Gramaticais', confianca: 0.88 },
+  // Sufixos diminutivos típicos → EQ ou MG
+  { pattern: /inho$|inha$|zinho$|zinha$/i, tagset: 'EQ', nome: 'Estados e Qualidades', confianca: 0.75 },
+  // Verbos no gerúndio → AC
+  { pattern: /ando$|endo$|indo$/i, tagset: 'AC', nome: 'Ações e Processos', confianca: 0.70 },
+  // Advérbios típicos → MG
+  { pattern: /mente$/i, tagset: 'MG', nome: 'Marcadores Gramaticais', confianca: 0.80 },
 ];
+
+/**
+ * 🆕 Mapeamento dinâmico de categorias do léxico dialetal para tagsets
+ * Carrega N2 tagsets do banco para obter mapeamentos corretos
+ */
+async function getCategoryToTagsetMapping(): Promise<Record<string, { tagset: string; nome: string }>> {
+  const n2Tagsets = await getN2Tagsets();
+  
+  // Construir mapeamento baseado em N2 tagsets existentes
+  const mapping: Record<string, { tagset: string; nome: string }> = {
+    // Defaults seguros usando N1
+    'fauna': { tagset: 'NA', nome: 'Natureza' },
+    'flora': { tagset: 'NA', nome: 'Natureza' },
+    'alimentação': { tagset: 'AP', nome: 'Atividades e Práticas' },
+    'vestuário': { tagset: 'AP', nome: 'Atividades e Práticas' },
+    'indumentária': { tagset: 'AP', nome: 'Atividades e Práticas' },
+    'música': { tagset: 'CC', nome: 'Cultura e Conhecimento' },
+    'dança': { tagset: 'CC', nome: 'Cultura e Conhecimento' },
+    'default': { tagset: 'CC', nome: 'Cultura e Conhecimento' }
+  };
+  
+  // Tentar encontrar N2 mais específicos no banco
+  for (const tagset of n2Tagsets) {
+    const code = tagset.codigo.toLowerCase();
+    const nome = tagset.nome.toLowerCase();
+    
+    if (nome.includes('fauna') || code.includes('fa')) {
+      mapping['fauna'] = { tagset: tagset.codigo, nome: tagset.nome };
+    }
+    if (nome.includes('flora') || code.includes('fl')) {
+      mapping['flora'] = { tagset: tagset.codigo, nome: tagset.nome };
+    }
+    if (nome.includes('alimenta') || code.includes('ali')) {
+      mapping['alimentação'] = { tagset: tagset.codigo, nome: tagset.nome };
+    }
+    if (nome.includes('vestua') || nome.includes('indument') || code.includes('ves')) {
+      mapping['vestuário'] = { tagset: tagset.codigo, nome: tagset.nome };
+      mapping['indumentária'] = { tagset: tagset.codigo, nome: tagset.nome };
+    }
+    if (nome.includes('música') || nome.includes('arte') || code.includes('art')) {
+      mapping['música'] = { tagset: tagset.codigo, nome: tagset.nome };
+      mapping['dança'] = { tagset: tagset.codigo, nome: tagset.nome };
+    }
+  }
+  
+  return mapping;
+}
 
 async function checkDialectalLexicon(
   supabaseUrl: string,
@@ -59,26 +110,30 @@ async function checkDialectalLexicon(
   const entry = data[0];
 
   if (entry) {
+    // 🆕 Carregar mapeamento dinâmico de categorias
+    const categoryMapping = await getCategoryToTagsetMapping();
+    
     // Mapear categoria temática para tagset
     const categorias = (entry.categorias_tematicas || []) as string[];
-    let tagset = 'CC.RG'; // Default: Cultura Regional
-    let tagsetNome = 'Cultura Regional (Gaúcho)';
+    let tagset = categoryMapping['default'].tagset;
+    let tagsetNome = categoryMapping['default'].nome;
 
-    if (categorias.includes('fauna')) {
-      tagset = 'NA.FA';
-      tagsetNome = 'Fauna';
-    } else if (categorias.includes('flora')) {
-      tagset = 'NA.FL';
-      tagsetNome = 'Flora';
-    } else if (categorias.includes('alimentação')) {
-      tagset = 'AP.AL';
-      tagsetNome = 'Alimentação';
-    } else if (categorias.includes('vestuário') || categorias.includes('indumentária')) {
-      tagset = 'AP.VE';
-      tagsetNome = 'Vestuário';
-    } else if (categorias.includes('música') || categorias.includes('dança')) {
-      tagset = 'CC.MU';
-      tagsetNome = 'Música e Dança';
+    // Tentar encontrar categoria específica
+    for (const cat of categorias) {
+      const catLower = cat.toLowerCase();
+      if (categoryMapping[catLower]) {
+        tagset = categoryMapping[catLower].tagset;
+        tagsetNome = categoryMapping[catLower].nome;
+        break;
+      }
+    }
+
+    // 🆕 Validar tagset existe no banco
+    const isValid = await isValidTagset(tagset);
+    if (!isValid) {
+      console.warn(`[suggest-nc-classification] Tagset ${tagset} não existe, usando fallback CC`);
+      tagset = 'CC';
+      tagsetNome = 'Cultura e Conhecimento';
     }
 
     return {
@@ -94,9 +149,17 @@ async function checkDialectalLexicon(
   return null;
 }
 
-function checkPatternMatch(palavra: string): NCSuggestion | null {
-  for (const rule of PATTERN_RULES) {
+async function checkPatternMatch(palavra: string): Promise<NCSuggestion | null> {
+  for (const rule of PATTERN_RULES_RAW) {
     if (rule.pattern.test(palavra)) {
+      // 🆕 Validar se o tagset existe no banco
+      const isValid = await isValidTagset(rule.tagset);
+      
+      if (!isValid) {
+        console.warn(`[suggest-nc-classification] Pattern rule tagset ${rule.tagset} não existe no banco`);
+        continue; // Pular regra com código inválido
+      }
+      
       return {
         palavra,
         tagset_sugerido: rule.tagset,
@@ -133,7 +196,7 @@ async function getAISuggestion(
 
 Classifique as seguintes palavras não classificadas (NC) em domínios semânticos.
 
-DOMÍNIOS DISPONÍVEIS:
+DOMÍNIOS DISPONÍVEIS (CARREGADOS DO BANCO DE DADOS):
 ${tagsetsStr}
 
 PALAVRAS A CLASSIFICAR:
@@ -141,15 +204,17 @@ ${palavrasStr}
 
 Para cada palavra, retorne um JSON array com objetos contendo:
 - palavra: string
-- tagset_sugerido: código do domínio (ex: "NA.FL")
+- tagset_sugerido: código do domínio (ex: "NA", "AC", "SE") - APENAS códigos da lista acima
 - tagset_nome: nome do domínio
 - confianca: número entre 0 e 1
 - justificativa: breve explicação da classificação
 
 IMPORTANTE:
+- RETORNE APENAS códigos que existem na lista acima
 - Se não tiver certeza, use confiança baixa (< 0.6)
 - Priorize domínios específicos (N2/N3/N4) sobre genéricos (N1)
 - Considere o contexto KWIC quando disponível
+- NÃO invente códigos novos
 
 Responda APENAS com o JSON array, sem markdown.`;
 
@@ -163,7 +228,7 @@ Responda APENAS com o JSON array, sem markdown.`;
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'Você é um linguista especializado em classificação semântica de palavras em português.' },
+          { role: 'system', content: 'Você é um linguista especializado em classificação semântica de palavras em português. Retorne apenas códigos válidos da lista fornecida.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
@@ -182,10 +247,23 @@ Responda APENAS com o JSON array, sem markdown.`;
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const suggestions = JSON.parse(jsonMatch[0]);
-      return suggestions.map((s: any) => ({
-        ...s,
-        fonte: 'ai_gemini' as const
-      }));
+      
+      // 🆕 Validar cada sugestão contra o banco
+      const validatedSuggestions: NCSuggestion[] = [];
+      const validCodes = new Set(tagsetsDisponiveis.map(t => t.codigo));
+      
+      for (const s of suggestions) {
+        if (validCodes.has(s.tagset_sugerido)) {
+          validatedSuggestions.push({
+            ...s,
+            fonte: 'ai_gemini' as const
+          });
+        } else {
+          console.warn(`[suggest-nc-classification] AI sugeriu código inválido ${s.tagset_sugerido} para "${s.palavra}"`);
+        }
+      }
+      
+      return validatedSuggestions;
     }
 
     return [];
@@ -232,12 +310,15 @@ serve(async (req) => {
       });
     }
 
-    // Buscar tagsets disponíveis para IA
-    const { data: tagsets } = await supabaseClient
-      .from('semantic_tagset')
-      .select('codigo, nome, descricao')
-      .eq('status', 'ativo')
-      .order('codigo');
+    // 🆕 Buscar tagsets ativos dinamicamente
+    const tagsets = await loadActiveTagsets();
+    const tagsetsForAI = tagsets.map(t => ({
+      codigo: t.codigo,
+      nome: t.nome,
+      descricao: t.descricao
+    }));
+    
+    console.log(`[suggest-nc-classification] ${tagsets.length} tagsets válidos carregados do banco`);
 
     const suggestions: NCSuggestion[] = [];
     const wordsNeedingAI: NCWord[] = [];
@@ -252,7 +333,7 @@ serve(async (req) => {
       }
 
       // Tentar pattern matching
-      const patternSuggestion = checkPatternMatch(word.palavra);
+      const patternSuggestion = await checkPatternMatch(word.palavra);
       if (patternSuggestion) {
         suggestions.push(patternSuggestion);
         continue;
@@ -263,15 +344,15 @@ serve(async (req) => {
     }
 
     // Fase 2: Usar IA para palavras restantes (em batch)
-    if (wordsNeedingAI.length > 0 && tagsets) {
-      const aiSuggestions = await getAISuggestion(wordsNeedingAI, tagsets as any);
+    if (wordsNeedingAI.length > 0 && tagsetsForAI.length > 0) {
+      const aiSuggestions = await getAISuggestion(wordsNeedingAI, tagsetsForAI);
       suggestions.push(...aiSuggestions);
     }
 
     // Ordenar por confiança
     suggestions.sort((a, b) => b.confianca - a.confianca);
 
-    console.log(`[suggest-nc-classification] Processadas ${ncWords.length} palavras, ${suggestions.length} sugestões geradas`);
+    console.log(`[suggest-nc-classification] Processadas ${ncWords.length} palavras, ${suggestions.length} sugestões geradas (todas validadas contra banco)`);
 
     return new Response(JSON.stringify({
       suggestions,
@@ -280,7 +361,8 @@ serve(async (req) => {
         dialectal_lexicon: suggestions.filter(s => s.fonte === 'dialectal_lexicon').length,
         pattern_match: suggestions.filter(s => s.fonte === 'pattern_match').length,
         ai_gemini: suggestions.filter(s => s.fonte === 'ai_gemini').length,
-        sem_sugestao: ncWords.length - suggestions.length
+        sem_sugestao: ncWords.length - suggestions.length,
+        tagsets_validos_disponiveis: tagsets.length
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
