@@ -3,11 +3,16 @@
  * Job recursivo para refinamento semântico automático de palavras N1
  * Auto-invoca próximo chunk até completar ou ser cancelado
  * 
- * Sprint 4: Métricas de qualidade, priorização inteligente, prompt otimizado
+ * Sprint AUD-P4: Migrado para tagset-loader dinâmico
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
+import { 
+  generateFullDomainPromptSection,
+  isValidTagset,
+  loadActiveTagsets 
+} from "../_shared/tagset-loader.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -205,6 +210,9 @@ async function createJob(supabase: any, domain_filter: string | null, model: str
     query = query.eq('tagset_codigo', 'MG');
   } else if (domain_filter === 'DS') {
     query = query.neq('tagset_codigo', 'MG');
+  } else if (domain_filter && domain_filter !== 'all') {
+    // Filtro por domínio N1 específico (ex: 'NA', 'SE', 'AP')
+    query = query.ilike('tagset_codigo', `${domain_filter}%`);
   }
 
   const { count, error: countError } = await query;
@@ -342,6 +350,9 @@ async function processChunk(supabase: any, job: RefinementJob) {
     query = query.eq('tagset_codigo', 'MG');
   } else if (job.domain_filter === 'DS') {
     query = query.neq('tagset_codigo', 'MG');
+  } else if (job.domain_filter && job.domain_filter !== 'all') {
+    // Filtro por domínio N1 específico
+    query = query.ilike('tagset_codigo', `${job.domain_filter}%`);
   }
 
   // Apply priority ordering
@@ -441,65 +452,21 @@ async function processChunk(supabase: any, job: RefinementJob) {
   };
 }
 
-// Domain-specific instructions for optimized prompt
-const DOMAIN_INSTRUCTIONS: Record<string, string> = {
-  MG: `PALAVRAS GRAMATICAIS (MG): Use contexto KWIC para distinguir:
-- Preposições de lugar: "de casa", "do campo" → MG.PR.LOC
-- Preposições de tempo: "de manhã", "de tarde" → MG.PR.TMP  
-- Preposições causais: "de medo", "de alegria" → MG.PR.CAU
-- Conjunções subordinativas: "que" integrante → MG.CJ.SUB
-- Pronomes relativos: "que" como pronome → MG.PR.REL
-- Advérbios temporais: "já", "ainda" → MG.AV.TMP
-- Advérbios modais: "bem", "mal" → MG.AV.MOD`,
-
-  NA: `NATUREZA (NA): Prefira subcategorias específicas:
-- Flora gaúcha: tarumã, maçanilha → NA.FL.ARV ou NA.FL.PLA
-- Fauna específica: quero-quero, tatu → NA.FA.AVE ou NA.FA.MAM
-- Paisagem: coxilha, várzea → NA.PA.REL`,
-
-  AH: `ATIVIDADES HUMANAS (AH): Distinguir por contexto:
-- Trabalho no campo: tropeada, lida → AH.TR.RUR
-- Artes: cantiga, poesia → AH.AR.MUS
-- Culinária: churrasco, chimarrão → AH.AL.BEB ou AH.AL.COM`,
-
-  SH: `SER HUMANO (SH): Subcategorias:
-- Partes do corpo: olhos, mãos → SH.CO.MEM
-- Relações: prenda, compadre → SH.RS.FAM
-- Emoções: saudade, alegria → SH.EM.POS ou SH.EM.NEG`,
-};
-
+/**
+ * Processa batch de palavras com IA usando hierarquia dinâmica do banco
+ * Sprint AUD-P4: Removido DOMAIN_INSTRUCTIONS hardcoded, usa tagset-loader
+ */
 async function processBatchWithAI(supabase: any, words: WordToProcess[], model: string, domain_filter: string | null) {
-  // Get unique domains
-  const domains = [...new Set(words.map(w => w.tagset_codigo?.split('.')[0]).filter(Boolean))];
-  
-  // Fetch hierarchy
-  const { data: tagsets } = await supabase
-    .from('semantic_tagset')
-    .select('codigo, nome, nivel_profundidade')
-    .order('codigo');
+  // Carregar hierarquia completa dinamicamente (com cache de 5min do tagset-loader)
+  const domainPrompt = await generateFullDomainPromptSection({
+    includeN3: true,
+    includeN4: true,
+    maxExamples: 5
+  });
 
-  const validCodes = new Set((tagsets || []).map((t: any) => t.codigo));
-  
-  // Build hierarchy text
-  const hierarchyLines: string[] = [];
-  for (const domain of domains) {
-    const domainTagsets = (tagsets || []).filter((t: any) => 
-      t.codigo === domain || t.codigo.startsWith(`${domain}.`)
-    );
-    domainTagsets.forEach((t: any) => {
-      const depth = t.codigo.split('.').length - 1;
-      const indent = '  '.repeat(depth);
-      hierarchyLines.push(`${indent}${t.codigo} - ${t.nome}`);
-    });
-  }
-
-  const hierarchyText = hierarchyLines.join('\n');
-
-  // Build domain-specific instructions
-  const domainInstr = domains
-    .map(d => DOMAIN_INSTRUCTIONS[d])
-    .filter(Boolean)
-    .join('\n\n');
+  // Carregar tagsets para validação
+  const allTagsets = await loadActiveTagsets();
+  const validCodes = new Set(allTagsets.map(t => t.codigo));
 
   // Build word list with KWIC
   const wordList = words.map(w => {
@@ -510,23 +477,11 @@ async function processBatchWithAI(supabase: any, words: WordToProcess[], model: 
     return `- "${w.palavra}" (POS: ${w.pos || '?'}, atual: ${w.tagset_codigo})${freqInfo}${contextLine}`;
   }).join('\n');
 
-  // Few-shot examples
-  const fewShotExamples = `
-EXEMPLOS DE REFINAMENTO CORRETO:
-- "de" com contexto "...de manhã cedo..." → MG.PR.TMP (temporal, conf: 0.92)
-- "que" com contexto "...disse que voltaria..." → MG.CJ.SUB (integrante, conf: 0.88)
-- "campo" com contexto "...no campo verde..." → NA.PA.PL (paisagem, conf: 0.95)
-- "cavalo" com contexto "...montou no cavalo..." → NA.FA.EQU (equino, conf: 0.98)
-`;
-
   const systemPrompt = `Você é um especialista em classificação semântica do português brasileiro, especializado em textos gaúchos.
 Seu objetivo é REFINAR palavras de nível N1 para o subnível mais específico possível (N4 > N3 > N2).
 
-HIERARQUIA DISPONÍVEL:
-${hierarchyText}
-
-${domainInstr ? `INSTRUÇÕES POR DOMÍNIO:\n${domainInstr}\n` : ''}
-${fewShotExamples}
+HIERARQUIA DE DOMÍNIOS SEMÂNTICOS (carregada dinamicamente do banco de dados):
+${domainPrompt}
 
 REGRAS CRÍTICAS:
 1. SEMPRE prefira o nível mais específico disponível (N4 > N3 > N2)
@@ -535,6 +490,11 @@ REGRAS CRÍTICAS:
 4. Sem contexto, use a classificação mais genérica segura
 5. PENALIZAÇÃO: manter N1 quando N2+ existe reduz a confiança em 0.20
 6. Confiança: 0.70-0.85 sem contexto, 0.85-0.98 com contexto claro
+
+EXEMPLOS DE REFINAMENTO (baseados nos dados reais do banco):
+- Palavras de natureza (NA) devem ir para subcategorias como NA.FL (flora), NA.FA (fauna), NA.PA (paisagem)
+- Palavras de sentimento (SE) devem distinguir SE.PO (positivos), SE.NE (negativos), SE.MI (mistos)
+- Palavras gramaticais (MG) devem ir para MG.CON (conectores), MG.DET (determinantes), etc.
 
 Responda APENAS com JSON válido:
 [{"palavra": "x", "tagset_codigo": "XX.YY.ZZ", "confianca": 0.85}]`;
@@ -559,6 +519,8 @@ Responda APENAS com JSON válido:
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[refine-domain-batch] AI API error: ${response.status}`, errorText);
     throw new Error(`AI API error: ${response.status}`);
   }
 
@@ -587,7 +549,11 @@ Responda APENAS com JSON válido:
     if (!word) continue;
 
     let code = result.tagset_codigo;
-    if (!validCodes.has(code)) {
+    
+    // Validar código usando tagset-loader (mais robusto que set local)
+    const isValid = await isValidTagset(code);
+    if (!isValid) {
+      console.warn(`[refine-domain-batch] Invalid tagset code "${code}" for word "${word.palavra}", keeping original`);
       code = word.tagset_codigo;
     }
 
