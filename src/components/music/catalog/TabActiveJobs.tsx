@@ -5,8 +5,8 @@
  * Responsabilidade única: visualização e controle de jobs em execução
  */
 
-import React, { useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -39,9 +39,9 @@ import {
 import { useEnrichmentJobsContext } from '@/contexts/EnrichmentJobsContext';
 import { EnrichmentLiveCardOptimized } from '../EnrichmentLiveCardOptimized';
 import { EnrichmentControlPanel } from '../EnrichmentControlPanel';
+import { EnrichmentOrchestrationPanel } from '../enrichment/EnrichmentOrchestrationPanel';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useState } from 'react';
 import type { EnrichmentJob, EnrichmentStatus, EnrichmentJobType } from '@/hooks/useEnrichmentJob';
 
 const JOB_TYPE_LABELS: Record<EnrichmentJobType, string> = {
@@ -105,6 +105,9 @@ export const TabActiveJobs = React.memo(function TabActiveJobs() {
 
   return (
     <div className="space-y-6">
+      {/* Painel de Orquestração - Pipeline de Batch */}
+      <EnrichmentOrchestrationPanel />
+
       {/* Cards de jobs ativos com monitoramento em tempo real */}
       {activeJobs.map((job) => (
         <EnrichmentLiveCardOptimized
@@ -118,7 +121,7 @@ export const TabActiveJobs = React.memo(function TabActiveJobs() {
         />
       ))}
 
-      {/* Painel de controle para iniciar novos jobs */}
+      {/* Painel de controle para iniciar jobs individuais */}
       <EnrichmentControlPanel />
 
       {/* Header com estatísticas */}
