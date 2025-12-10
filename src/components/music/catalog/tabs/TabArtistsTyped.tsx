@@ -58,10 +58,13 @@ interface Song {
   artist?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySong = any;
+
 interface TabArtistsProps {
   artists: Artist[];
   paginatedArtists: Artist[];
-  allSongs: Song[];
+  allSongs: AnySong[];
   loading: boolean;
   selectedLetter: string;
   onLetterChange: (letter: string) => void;
@@ -77,7 +80,7 @@ interface TabArtistsProps {
   onViewArtistDetails: (artistId: string) => void;
   onAnnotateArtist: (artistId: string, artistName: string) => Promise<void>;
   isAnnotatingArtist: (artistId: string) => boolean;
-  onOpenEnrichmentModal: (songs: Song[], artistId: string) => void;
+  onOpenEnrichmentModal: (songs: AnySong[], artistId: string) => void;
   onDeleteArtist: (artistId: string, artistName: string) => Promise<void>;
   reload: () => Promise<void>;
   totalSongs: number;
