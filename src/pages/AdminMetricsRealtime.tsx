@@ -7,13 +7,16 @@ import { useHealthAggregator } from '@/hooks/useHealthAggregator';
 import { useEdgeFunctionMetrics } from '@/hooks/useEdgeFunctionMetrics';
 import { useMetricAlerts } from '@/hooks/useMetricAlerts';
 import { MetricsAlertToast } from '@/components/admin/MetricsAlertToast';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Activity, AlertTriangle, CheckCircle, Clock, TrendingUp, XCircle } from 'lucide-react';
+import { ThroughputDashboard } from '@/components/admin/ThroughputDashboard';
+import { AnomalyAlertsPanel, AnomalyAlertsBadge } from '@/components/admin/AnomalyAlertsPanel';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Activity, AlertTriangle, CheckCircle, Clock, TrendingUp, XCircle, Gauge, Bell } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function AdminMetricsRealtime() {
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
+  const [activeTab, setActiveTab] = useState<'overview' | 'throughput' | 'anomalies'>('overview');
   const { data: health, isLoading: healthLoading } = useHealthAggregator();
   const { data: metricsData, isLoading: metricsLoading } = useEdgeFunctionMetrics(timeRange);
   const { data: alerts } = useMetricAlerts();
@@ -91,7 +94,10 @@ export default function AdminMetricsRealtime() {
       <div className="space-y-2">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Métricas em Tempo Real</h1>
+            <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
+              Métricas em Tempo Real
+              <AnomalyAlertsBadge />
+            </h1>
             <p className="text-muted-foreground">
               Monitoramento de saúde e performance das Edge Functions
             </p>
@@ -105,6 +111,33 @@ export default function AdminMetricsRealtime() {
           </div>
         </div>
       </div>
+
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="overview" className="gap-2">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Visão Geral</span>
+          </TabsTrigger>
+          <TabsTrigger value="throughput" className="gap-2">
+            <Gauge className="h-4 w-4" />
+            <span className="hidden sm:inline">Throughput</span>
+          </TabsTrigger>
+          <TabsTrigger value="anomalies" className="gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Anomalias</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="throughput" className="mt-6">
+          <ThroughputDashboard />
+        </TabsContent>
+
+        <TabsContent value="anomalies" className="mt-6">
+          <AnomalyAlertsPanel />
+        </TabsContent>
+
+        <TabsContent value="overview" className="mt-6 space-y-6">
 
       {/* Alertas Ativos */}
       {alerts && alerts.length > 0 && (

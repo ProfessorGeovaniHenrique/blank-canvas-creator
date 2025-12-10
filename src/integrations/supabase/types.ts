@@ -536,6 +536,60 @@ export type Database = {
         }
         Relationships: []
       }
+      anomaly_detections: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          actual_value: number | null
+          anomaly_type: string
+          auto_resolved: boolean | null
+          check_name: string
+          context: Json | null
+          created_at: string | null
+          detected_at: string | null
+          deviation_score: number | null
+          expected_value: number | null
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          actual_value?: number | null
+          anomaly_type: string
+          auto_resolved?: boolean | null
+          check_name: string
+          context?: Json | null
+          created_at?: string | null
+          detected_at?: string | null
+          deviation_score?: number | null
+          expected_value?: number | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          actual_value?: number | null
+          anomaly_type?: string
+          auto_resolved?: boolean | null
+          check_name?: string
+          context?: Json | null
+          created_at?: string | null
+          detected_at?: string | null
+          deviation_score?: number | null
+          expected_value?: number | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+        }
+        Relationships: []
+      }
       artists: {
         Row: {
           biography: string | null
@@ -3558,6 +3612,33 @@ export type Database = {
           },
         ]
       }
+      enrichment_throughput_mv: {
+        Row: {
+          avg_confidence: number | null
+          corpus_id: string | null
+          last_activity: string | null
+          period_start: string | null
+          songs_enriched: number | null
+          songs_failed: number | null
+          songs_processed: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "songs_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "corpora"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "songs_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "semantic_coverage_by_corpus"
+            referencedColumns: ["corpus_id"]
+          },
+        ]
+      }
       semantic_coverage_by_artist: {
         Row: {
           annotated_songs: number | null
@@ -3735,6 +3816,7 @@ export type Database = {
         Returns: boolean
       }
       normalize_text: { Args: { "": string }; Returns: string }
+      refresh_enrichment_throughput_mv: { Args: never; Returns: undefined }
       refresh_semantic_coverage_mvs: { Args: never; Returns: undefined }
       truncate_gutenberg_table: { Args: never; Returns: undefined }
       unaccent: { Args: { "": string }; Returns: string }
