@@ -767,6 +767,7 @@ ${palavrasList}
 
 /**
  * Classificação individual com Gemini Flash (mantido para compatibilidade)
+ * 🆕 REFATORADO: Agora usa tagsets dinâmicos do banco de dados
  */
 async function classifyWithGemini(
   palavra: string,
@@ -783,18 +784,19 @@ async function classifyWithGemini(
 
   const sentencaCompleta = `${contextoEsquerdo} **${palavra}** ${contextoDireito}`.trim();
 
+  // 🆕 Carregar domínios dinamicamente do banco de dados (igual ao batch mode)
+  const { generateDomainPromptSection, isValidTagset } = await import('../_shared/tagset-loader.ts');
+  const dynamicDomains = await generateDomainPromptSection();
+
   const prompt = `Você é um especialista em análise semântica de texto. Classifique a palavra em destaque.
 
 **INSTRUÇÕES CRÍTICAS:**
 1. **PRIORIZE códigos N2 (subcategorias) sempre que o contexto permitir**
 2. Use códigos N1 APENAS quando a classificação for ambígua ou não houver N2 apropriado
-3. Exemplos: "cavalgar" → AP.DES, "saudade" → SE.SA, "chimarrão" → AP.ALI
+3. Retorne APENAS códigos que existam na lista abaixo
 
-**13 DOMÍNIOS N1:**
-AB (Abstrações), AC (Ações/Processos), AP (Atividades), CC (Cultura), EL (Estruturas), EQ (Qualidades), MG (Marcadores), NA (Natureza), NC (Não Classificado), OA (Objetos), SB (Saúde), SE (Sentimentos), SH (Ser Humano), SP (Sociedade)
-
-**SUBDOMÍNIOS N2 IMPORTANTES (USE ESTES):** 
-AC.MD (Movimento), AC.MI (Manipulação), AC.TR (Transformação), AC.PS (Percepção), AC.EC (Expressão), AP.ALI (Alimentação), AP.DES (Transporte), AP.TRA (Trabalho), AP.LAZ (Lazer), NA.FAU (Fauna), NA.FLO (Flora), NA.GEO (Geografia), NA.CLI (Clima), SE.SA (Saudade), SE.AM (Amor), SE.PO (Positivos), SE.NE (Negativos), CC.ART (Arte), CC.EDU (Educação), CC.REL (Religiosidade), CC.COM (Comunicação), AB.FIL (Filosofia/Ética), AB.SOC (Social/Político), AB.EXI (Existencial), SB.DOE (Doenças), SB.TRA (Tratamentos), SP.GOV (Governo), SP.LEI (Lei/Justiça)
+**DOMÍNIOS SEMÂNTICOS (CARREGADOS DO BANCO DE DADOS):**
+${dynamicDomains}
 
 **CONTEXTO:** "${sentencaCompleta}"
 Palavra: "${palavra}" | Lema: "${lema}" | POS: ${pos}
@@ -813,7 +815,7 @@ Palavra: "${palavra}" | Lema: "${lema}" | POS: ${pos}
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'Você é um classificador semântico preciso. Retorne APENAS JSON válido.' },
+          { role: 'system', content: 'Você é um classificador semântico preciso. Retorne APENAS JSON válido com códigos existentes.' },
           { role: 'user', content: prompt },
         ],
         temperature: 0.3,
@@ -856,6 +858,26 @@ Palavra: "${palavra}" | Lema: "${lema}" | POS: ${pos}
       throw new Error('Resposta Gemini incompleta');
     }
 
+    // 🆕 VALIDAÇÃO: Verificar se o tagset existe no banco
+    const tagsetValid = await isValidTagset(result.tagset_codigo);
+    if (!tagsetValid) {
+      logger.warn('Tagset inválido retornado pelo Gemini, usando fallback', { 
+        palavra, 
+        invalidTagset: result.tagset_codigo 
+      });
+      // Tentar extrair N1 do código
+      const n1Code = result.tagset_codigo.split('.')[0];
+      const n1Valid = await isValidTagset(n1Code);
+      if (n1Valid) {
+        result.tagset_codigo = n1Code;
+        result.confianca = Math.min(result.confianca, 0.70);
+        result.justificativa = `Fallback para N1: ${result.justificativa}`;
+      } else {
+        // Fallback absoluto
+        return { tagset_codigo: 'NC', confianca: 0.50, fonte: 'gemini_flash', justificativa: 'Código inválido - não classificado' };
+      }
+    }
+
     logger.info('Classificação Gemini concluída', { 
       palavra, 
       tagset: result.tagset_codigo, 
@@ -875,11 +897,11 @@ Palavra: "${palavra}" | Lema: "${lema}" | POS: ${pos}
     
     // Fallback para domínio genérico baseado em POS
     if (pos === 'NOUN') return { tagset_codigo: 'NA', confianca: 0.60, fonte: 'rule_based', justificativa: 'Fallback: substantivo → Natureza' };
-    if (pos === 'VERB') return { tagset_codigo: 'AP', confianca: 0.60, fonte: 'rule_based', justificativa: 'Fallback: verbo → Atividades' };
+    if (pos === 'VERB') return { tagset_codigo: 'AC', confianca: 0.60, fonte: 'rule_based', justificativa: 'Fallback: verbo → Ações' };
     if (pos === 'ADJ') return { tagset_codigo: 'EQ', confianca: 0.60, fonte: 'rule_based', justificativa: 'Fallback: adjetivo → Qualidades' };
     
     // Fallback final
-    return { tagset_codigo: 'SE', confianca: 0.50, fonte: 'rule_based', justificativa: 'Fallback genérico' };
+    return { tagset_codigo: 'NC', confianca: 0.50, fonte: 'rule_based', justificativa: 'Fallback genérico - não classificado' };
   }
 }
 
