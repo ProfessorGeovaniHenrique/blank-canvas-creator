@@ -3836,6 +3836,7 @@ export type Database = {
       refresh_enrichment_throughput_mv: { Args: never; Returns: undefined }
       refresh_semantic_coverage_mvs: { Args: never; Returns: undefined }
       refresh_semantic_pipeline_stats_mv: { Args: never; Returns: undefined }
+      resume_paused_enrichment_jobs: { Args: never; Returns: number }
       truncate_gutenberg_table: { Args: never; Returns: undefined }
       unaccent: { Args: { "": string }; Returns: string }
       verify_invite_token: {
