@@ -91,6 +91,13 @@ export function useJobAutoRefresh(
   // Check if job is stuck
   const isJobStuck = useCallback((job: Job): boolean => {
     if (job.status !== 'processando') return false;
+    
+    // NEVER consider jobs with cancellation message as stuck
+    const erroLower = (job as any).erro_mensagem?.toLowerCase() || '';
+    if (erroLower.includes('cancelado') || erroLower.includes('cancelar')) {
+      return false;
+    }
+    
     if (!job.last_chunk_at) return true;
 
     const lastActivity = new Date(job.last_chunk_at).getTime();
@@ -123,6 +130,13 @@ export function useJobAutoRefresh(
   // Auto-resume a stuck job
   const handleAutoResume = useCallback(async (job: Job): Promise<boolean> => {
     if (isResumingRef.current[job.id]) return false;
+    
+    // NEVER auto-resume jobs with cancellation message
+    const erroLower = (job as any).erro_mensagem?.toLowerCase() || '';
+    if (erroLower.includes('cancelado') || erroLower.includes('cancelar')) {
+      console.log(`[AutoResume] Job ${job.id} ignorado - mensagem de cancelamento`);
+      return false;
+    }
     
     isResumingRef.current[job.id] = true;
     
