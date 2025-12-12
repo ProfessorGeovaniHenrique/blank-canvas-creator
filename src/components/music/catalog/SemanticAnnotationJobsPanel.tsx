@@ -3,6 +3,7 @@
  * 
  * Integra AnnotationJobsTable existente com controles e estatísticas
  * Exibe tanto jobs de corpus (corpus_annotation_jobs) quanto jobs de artista (semantic_annotation_jobs)
+ * SPRINT BP-1: Integrado com sistema de backpressure
  */
 
 import React, { useState, useMemo } from 'react';
@@ -26,7 +27,9 @@ import {
 } from 'lucide-react';
 import { useSemanticAnnotationStats } from '@/hooks/useSemanticAnnotationStats';
 import { useCorpusAnnotationJobs } from '@/hooks/useCorpusAnnotationJobs';
+import { useBackpressureStatus } from '@/hooks/useBackpressureStatus';
 import { AnnotationJobsTable } from '@/components/admin/AnnotationJobsTable';
+import { BackpressureAlert } from '@/components/semantic/BackpressureAlert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -171,8 +174,14 @@ export function SemanticAnnotationJobsPanel({ isActive = true }: SemanticAnnotat
     }
   };
 
+  // SPRINT BP-1: Monitor de backpressure
+  const { status: bpStatus, isSystemHealthy } = useBackpressureStatus(isActive);
+
   return (
     <div className="space-y-6">
+      {/* SPRINT BP-1: Alerta de Backpressure */}
+      <BackpressureAlert enabled={isActive} />
+
       {/* Header com Controles */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
@@ -181,6 +190,8 @@ export function SemanticAnnotationJobsPanel({ isActive = true }: SemanticAnnotat
           <Badge variant="outline" className="text-xs">
             sync: {lastUpdated.toLocaleTimeString('pt-BR')}
           </Badge>
+          {/* Status compacto do sistema */}
+          <BackpressureAlert enabled={isActive} compact />
         </div>
         
         <div className="flex items-center gap-2">
@@ -380,14 +391,15 @@ export function SemanticAnnotationJobsPanel({ isActive = true }: SemanticAnnotat
 
             <Button
               onClick={handleStartCorpusAnnotation}
-              disabled={isStartingAnnotation || activeCorpusJobs.length > 0}
+              disabled={isStartingAnnotation || activeCorpusJobs.length > 0 || bpStatus?.isActive}
+              title={bpStatus?.isActive ? 'Sistema em backpressure - aguarde recuperação' : undefined}
             >
               {isStartingAnnotation ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              Iniciar Anotação
+              {bpStatus?.isActive ? 'Sistema em Pausa' : 'Iniciar Anotação'}
             </Button>
 
             {activeCorpusJobs.length > 0 && (

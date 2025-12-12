@@ -10,6 +10,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
+import { performHealthCheck, triggerBackpressure } from "../_shared/backpressure.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -459,6 +460,40 @@ Deno.serve(async (req) => {
     const payload: EnrichmentJobPayload = await req.json();
     console.log(`[enrich-batch] 🚀 OTIM-10X v1: CHUNK=${CHUNK_SIZE}, PARALLEL=${PARALLEL_SONGS}`);
     console.log(`[enrich-batch] Payload:`, JSON.stringify(payload));
+
+    // SPRINT BP-1: Verificar backpressure antes de processar
+    const healthResult = await performHealthCheck('enrich-songs-batch');
+    if (healthResult.shouldPause) {
+      console.log(`[enrich-batch] ⛔ Sistema em backpressure: ${healthResult.message}`);
+      
+      // Se temos um jobId, pausar o job com mensagem explicativa
+      if (payload.jobId) {
+        await supabase
+          .from('enrichment_jobs')
+          .update({
+            status: 'pausado',
+            erro_mensagem: `Auto-pausado: ${healthResult.message}. Retomada automática após recuperação.`
+          })
+          .eq('id', payload.jobId);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'backpressure_active',
+          message: healthResult.message,
+          retryAfterMs: 5 * 60 * 1000
+        }),
+        { 
+          status: 503, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '300'
+          } 
+        }
+      );
+    }
 
     // Detectar e limpar jobs abandonados
     const abandonedCount = await detectAndHandleAbandonedJobs(supabase);

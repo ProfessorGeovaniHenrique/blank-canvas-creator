@@ -8,6 +8,7 @@ import { detectGauchoMWEs } from "../_shared/gaucho-mwe.ts";
 import { enrichTokensWithPOS, calculatePOSCoverage } from "../_shared/pos-enrichment.ts";
 import { normalizeText } from "../_shared/text-normalizer.ts";
 import { corsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
+import { performHealthCheck, getRecommendedDelay, triggerBackpressure } from "../_shared/backpressure.ts";
 
 interface AnnotateArtistRequest {
   artistId?: string;
@@ -131,6 +132,32 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // SPRINT BP-1: Verificar backpressure antes de processar
+    const healthResult = await performHealthCheck('annotate-artist-songs');
+    if (healthResult.shouldPause) {
+      logger.warn('Sistema em backpressure, pausando processamento', { 
+        status: healthResult.status,
+        message: healthResult.message 
+      });
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'backpressure_active',
+          message: healthResult.message,
+          retryAfterMs: 5 * 60 * 1000 // 5 minutos
+        }),
+        { 
+          status: 503, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '300'
+          } 
+        }
+      );
+    }
 
     // SPRINT SEMANTIC-HEALTH-FIX: Detectar e pausar jobs stuck antes de processar
     const stuckCount = await detectAndHandleStuckJobs(supabaseClient, logger);
