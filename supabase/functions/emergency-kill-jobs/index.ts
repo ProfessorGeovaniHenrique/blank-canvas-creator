@@ -9,6 +9,10 @@ const corsHeaders = {
 const EMERGENCY_TOKEN = "verso-austral-emergency-2024";
 const KILL_FLAG_TTL_SECONDS = 30 * 60; // 30 minutos
 
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -47,7 +51,7 @@ serve(async (req) => {
         console.log("📡 Ativando kill flag no Redis...");
         
         // Kill flag
-        const killResponse = await fetch(redisUrl, {
+        await fetch(redisUrl, {
           method: "POST",
           headers: { Authorization: `Bearer ${redisToken}`, "Content-Type": "application/json" },
           body: JSON.stringify(["SETEX", "emergency:kill_flag", KILL_FLAG_TTL_SECONDS.toString(), "true"]),
@@ -70,9 +74,10 @@ serve(async (req) => {
 
         results.redis = { success: true, message: "Kill flag e backpressure ativados por 30 minutos" };
         console.log("✅ Redis: kill flag ativado");
-      } catch (err) {
-        results.redis = { success: false, message: err.message };
-        console.log("⚠️ Redis falhou:", err.message);
+      } catch (err: unknown) {
+        const msg = getErrorMessage(err);
+        results.redis = { success: false, message: msg };
+        console.log("⚠️ Redis falhou:", msg);
       }
     } else {
       results.redis = { success: false, message: "Redis não configurado" };
@@ -100,7 +105,7 @@ serve(async (req) => {
             .eq("status", "processando")
             .select('id'),
           new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
-        ]) as any;
+        ]) as { data: { id: string }[] | null };
         
         results.jobs.semantic = { 
           success: true, 
@@ -108,9 +113,10 @@ serve(async (req) => {
           error: ""
         };
         console.log(`✅ Semantic jobs: ${results.jobs.semantic.count} cancelados`);
-      } catch (err) {
-        results.jobs.semantic = { success: false, count: 0, error: err.message };
-        console.log("⚠️ Semantic jobs timeout:", err.message);
+      } catch (err: unknown) {
+        const msg = getErrorMessage(err);
+        results.jobs.semantic = { success: false, count: 0, error: msg };
+        console.log("⚠️ Semantic jobs timeout:", msg);
       }
 
       // Corpus annotation jobs
@@ -124,7 +130,7 @@ serve(async (req) => {
             .eq("status", "processando")
             .select('id'),
           new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
-        ]) as any;
+        ]) as { data: { id: string }[] | null };
         
         results.jobs.corpus = { 
           success: true, 
@@ -132,9 +138,10 @@ serve(async (req) => {
           error: ""
         };
         console.log(`✅ Corpus jobs: ${results.jobs.corpus.count} cancelados`);
-      } catch (err) {
-        results.jobs.corpus = { success: false, count: 0, error: err.message };
-        console.log("⚠️ Corpus jobs timeout:", err.message);
+      } catch (err: unknown) {
+        const msg = getErrorMessage(err);
+        results.jobs.corpus = { success: false, count: 0, error: msg };
+        console.log("⚠️ Corpus jobs timeout:", msg);
       }
 
       // Enrichment jobs
@@ -149,7 +156,7 @@ serve(async (req) => {
             .eq("status", "processando")
             .select('id'),
           new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
-        ]) as any;
+        ]) as { data: { id: string }[] | null };
         
         results.jobs.enrichment = { 
           success: true, 
@@ -157,13 +164,14 @@ serve(async (req) => {
           error: ""
         };
         console.log(`✅ Enrichment jobs: ${results.jobs.enrichment.count} cancelados`);
-      } catch (err) {
-        results.jobs.enrichment = { success: false, count: 0, error: err.message };
-        console.log("⚠️ Enrichment jobs timeout:", err.message);
+      } catch (err: unknown) {
+        const msg = getErrorMessage(err);
+        results.jobs.enrichment = { success: false, count: 0, error: msg };
+        console.log("⚠️ Enrichment jobs timeout:", msg);
       }
 
-    } catch (err) {
-      console.log("⚠️ Database operations failed:", err.message);
+    } catch (err: unknown) {
+      console.log("⚠️ Database operations failed:", getErrorMessage(err));
     }
 
     const totalCancelled = results.jobs.semantic.count + results.jobs.corpus.count + results.jobs.enrichment.count;
@@ -184,10 +192,10 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("❌ [EMERGENCY-KILL] Erro:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: getErrorMessage(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

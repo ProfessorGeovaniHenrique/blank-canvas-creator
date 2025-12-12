@@ -23,8 +23,9 @@ export async function isEmergencyKillActive(): Promise<boolean> {
 
     const data = await response.json();
     return data?.result === "true";
-  } catch (err) {
-    console.warn("[EMERGENCY-CHECK] Falha ao verificar kill flag:", err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn("[EMERGENCY-CHECK] Falha ao verificar kill flag:", message);
     return false;
   }
 }
@@ -57,8 +58,9 @@ export async function clearEmergencyKillFlag(): Promise<boolean> {
     });
     
     return true;
-  } catch (err) {
-    console.warn("[EMERGENCY-CHECK] Falha ao limpar kill flag:", err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn("[EMERGENCY-CHECK] Falha ao limpar kill flag:", message);
     return false;
   }
 }
