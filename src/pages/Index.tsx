@@ -4,6 +4,7 @@ import HeroSection from "@/components/HeroSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import BenefitsSection from "@/components/BenefitsSection";
 import EmailCaptureSection from "@/components/EmailCaptureSection";
+import { EmergencyKillButton } from "@/components/emergency/EmergencyKillButton";
 import { createLogger } from "@/lib/loggerFactory";
 
 const log = createLogger('Index');
@@ -28,6 +29,11 @@ const Index = () => {
           <EmailCaptureSection />
         </div>
       </main>
+      
+      {/* Emergency Kill Switch - Posição fixa para acesso rápido */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <EmergencyKillButton />
+      </div>
     </div>
   );
 };
