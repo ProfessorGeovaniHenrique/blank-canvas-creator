@@ -35,7 +35,7 @@ const processingSongIds = new Set<string>(); // Lock local por songId
 
 // ============ CIRCUIT BREAKER CONSTANTS ============
 const CIRCUIT_BREAKER_MAX_CHUNKS_NO_PROGRESS = 10;
-const CIRCUIT_BREAKER_MAX_TOTAL_TIME_MS = 60 * 60 * 1000;
+const CIRCUIT_BREAKER_MAX_TOTAL_TIME_MS = 24 * 60 * 60 * 1000; // 24 horas (era 1 hora, insuficiente para 25k+ músicas)
 const CIRCUIT_BREAKER_MAX_CONSECUTIVE_FAILURES = 3;
 
 interface EnrichmentJobPayload {
